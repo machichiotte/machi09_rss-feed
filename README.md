@@ -1,12 +1,12 @@
 # 📰 MachiFeed - Intelligent RSS Aggregator
 
-![Vue.js](https://img.shields.io/badge/vuejs-%2335495e.svg?style=for-the-badge&logo=vuedotjs&logoColor=%234FC08D)
-![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
-![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB)
-![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
+![Vue.js](https://img.shields.io/badge/Vue.js-3.5-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
+![NodeJS](https://img.shields.io/badge/Node.js-18%2B-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Express.js](https://img.shields.io/badge/Express.js-4.21-000000?style=for-the-badge&logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-6.0-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 
 > **Note:** This project has been extracted from [machi00_shad](https://github.com/machichiotte/machi00_shad) and is now a standalone application with a full-stack architecture.
 
@@ -21,7 +21,6 @@
 - **REST API**: Clean API to manage and query articles.
 - **Modern UI**: Vue.js + TailwindCSS dashboard to view and filter news.
 - **MongoDB Storage**: Persists articles with flexible schema.
-- **Docker Ready**: (Coming soon)
 
 ## 🏗 Project Structure
 
@@ -39,11 +38,11 @@ machi09_rss-feed/
 └── LICENSE
 ```
 
-## � Prerequisites
+## 🛠 Prerequisites
 
 - **Node.js**: v18+
 - **Yarn** or **NPM**
-- **MongoDB Atlas** Account (for database)
+- **MongoDB Atlas** Account
 
 ## 🏁 Quick Start
 
@@ -85,13 +84,13 @@ npm run dev
 ## 📡 API Endpoints
 
 | Method | Endpoint | Description |
-|bbox|----------|-------------|
+| :--- | :--- | :--- |
 | **GET** | `/api/health` | Check server status |
 | **GET** | `/api/rss` | Get processed articles |
 | **POST** | `/api/rss/process` | Trigger manual feed fetch |
 | **GET** | `/api/rss/search` | Search articles (`?link=...`) |
 
-## � usage
+## 📊 Usage
 
 1. **Dashboard**: Go to `http://localhost:5173` to browse news.
 2. **Refresh**: Click "Refresh Feeds" in the UI to trigger a new fetch.
@@ -99,7 +98,7 @@ npm run dev
 
 ---
 
-## � Configuration
+## ⚙️ Configuration
 
 **RSS Feeds** are configured in `backend/src/config/rssConfig.ts`.
 You can add/remove feeds or change categories there.
@@ -117,6 +116,6 @@ RSS_CRON_SCHEDULE="*/30 * * * *" # Every 30 minutes
 
 - GitHub: [@machichiotte](https://github.com/machichiotte)
 
-## � License
+## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
