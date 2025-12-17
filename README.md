@@ -227,7 +227,7 @@ This project is licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
-This project was extracted from [machi00-shad](https://github.com/machichiotte/machi00_shad), a full-stack cryptocurrency trading platform.
+This project was extracted from [machi00_shad](https://github.com/machichiotte/machi00_shad), a full-stack cryptocurrency trading platform.
 
 ---
 
