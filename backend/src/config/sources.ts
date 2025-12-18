@@ -11,7 +11,7 @@ export const rssSources: RssCategoryConfig = {
         { name: 'CoinJournal', url: 'https://coinjournal.net/feed/', enabled: true, language: 'en' },
         { name: 'NewsBTC', url: 'https://www.newsbtc.com/feed/', enabled: true, language: 'en' },
         { name: 'CryptoSlate', url: 'https://cryptoslate.com/feed/', enabled: false, language: 'en' }, // Status code 403 (Forbidden)
-        { name: 'AMBCrypto', url: 'https://ambcrypto.com/feed/', enabled: true, language: 'en' },
+        { name: 'AMBCrypto', url: 'https://ambcrypto.com/feed/', enabled: false, language: 'en' }, // Request timed out recently
         { name: 'U.Today', url: 'https://u.today/rss', enabled: true, language: 'en' },
         { name: 'NullTX', url: 'https://nulltx.com/feed/', enabled: true, language: 'en' },
         { name: 'ZyCrypto', url: 'https://zycrypto.com/feed/', enabled: true, language: 'en' },
@@ -85,17 +85,17 @@ export const rssSources: RssCategoryConfig = {
 
         // French
         { name: '01net', url: 'https://www.01net.com/actualites/feed/', enabled: true, language: 'fr' },
-        { name: 'Frandroid', url: 'https://www.frandroid.com/feed', enabled: true, language: 'fr' },
+        { name: 'Frandroid', url: 'https://www.frandroid.com/feed', enabled: false, language: 'fr' }, // Request timed out recently
         { name: 'Numerama', url: 'https://www.numerama.com/feed', enabled: true, language: 'fr' },
         { name: 'Les Numériques', url: 'https://www.lesnumeriques.com/rss.xml', enabled: true, language: 'fr' },
         { name: 'ZDNet France', url: 'https://www.zdnet.fr/rss/', enabled: true, language: 'fr' },
         { name: 'Usine Digitale', url: 'https://www.usine-digitale.fr/rss', enabled: true, language: 'fr' },
-        { name: 'Next INpact', url: 'https://beta.next.ink/feed', enabled: true, language: 'fr' },
+        { name: 'Next INpact', url: 'https://beta.next.ink/feed', enabled: false, language: 'fr' }, // Invalid character in entity name (XML error)
         { name: 'Journal du Net', url: 'https://www.journaldunet.com/rss/', enabled: true, language: 'fr' },
         { name: 'Clubic', url: 'https://www.clubic.com/rss/news.rss', enabled: true, language: 'fr' },
         { name: 'Siècle Digital', url: 'https://siecledigital.fr/feed/', enabled: true, language: 'fr' },
         { name: 'Phonandroid', url: 'https://www.phonandroid.com/feed', enabled: true, language: 'fr' },
-        { name: 'CNET France', url: 'https://www.cnetfrance.fr/rss/news/', enabled: true, language: 'fr' },
+        { name: 'CNET France', url: 'https://www.cnetfrance.fr/rss/news/', enabled: false, language: 'fr' }, // Status code 404
         { name: 'Developpez.com', url: 'https://www.developpez.com/index/rss/', enabled: true, language: 'fr' },
     ],
     'General News': [
@@ -113,12 +113,12 @@ export const rssSources: RssCategoryConfig = {
         { name: '20 Minutes', url: 'https://www.20minutes.fr/feeds/rss-20minutes_fr_articles.xml', enabled: false, language: 'fr' }, // Status code 403 (Forbidden)
         { name: 'Le Figaro', url: 'http://www.lefigaro.fr/rss/figaro_actualites.xml', enabled: true, language: 'fr' },
         { name: 'L\'Express', url: 'https://www.lexpress.fr/rss/alaune.xml', enabled: true, language: 'fr' },
-        { name: 'Le Point', url: 'https://www.lepoint.fr/24h-infos/rss.xml', enabled: true, language: 'fr' },
+        { name: 'Le Point', url: 'https://www.lepoint.fr/24h-infos/rss.xml', enabled: false, language: 'fr' }, // Invalid character in tag name (XML error)
         { name: 'HuffPost FR', url: 'https://www.huffingtonpost.fr/feeds/index.xml', enabled: true, language: 'fr' },
         { name: 'Mediapart', url: 'https://www.mediapart.fr/articles/feed', enabled: true, language: 'fr' },
         { name: 'Ouest-France', url: 'https://www.ouest-france.fr/rss/une.xml', enabled: false, language: 'fr' }, // Status code 403 (Forbidden)
         { name: 'Le Parisien', url: 'https://feeds.leparisien.fr/leparisien/rss/actualites', enabled: false, language: 'fr' }, // Currently empty and causing parsing errors
-        { name: 'Courrier International', url: 'https://www.courrierinternational.com/rss/rss_a_la_une.xml', enabled: true, language: 'fr' },
+        { name: 'Courrier International', url: 'https://www.courrierinternational.com/rss/rss_a_la_une.xml', enabled: false, language: 'fr' }, // Attribute without value (XML error)
     ],
     'Politics': [
         { name: 'Bloomberg Politics', url: 'https://feeds.bloomberg.com/politics/news.rss', enabled: true, language: 'en' },

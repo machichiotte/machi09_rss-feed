@@ -9,8 +9,8 @@
         "build": "tsc && tsc-alias",
         "start": "node dist/index.js",
         "test": "vitest",
-        "lint": "eslint src --ext .ts",
-        "lint:complexity": "eslint src --ext .ts --max-warnings=0",
+        "lint": "eslint src",
+        "lint:complexity": "eslint src --max-warnings=0",
         "format": "prettier --write src/**/*.ts"
     },
     "keywords": [

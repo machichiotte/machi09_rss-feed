@@ -13,7 +13,7 @@ try {
     if (!fs.existsSync(NOTES_LOG_DIR)) {
         fs.mkdirSync(NOTES_LOG_DIR, { recursive: true });
     }
-} catch (error) {
+} catch {
     console.warn('Could not create log directory in notes, falling back to local logs');
 }
 

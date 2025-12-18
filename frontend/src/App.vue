@@ -205,6 +205,7 @@ watch([selectedCategory, selectedSentiment, selectedLanguage, selectedSource], (
     loadArticles(true);
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let searchTimeout: any = null;
 watch(searchQuery, () => {
     if (searchTimeout) clearTimeout(searchTimeout);
@@ -319,7 +320,6 @@ function cn(...inputs: (string | undefined | null | false)[]) {
       <div class="flex flex-col lg:flex-row gap-8">
         <!-- Sidebar Filters -->
         <aside class="w-full lg:w-64 flex-shrink-0 space-y-6">
-          
           <!-- Categories -->
           <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
             <h2 class="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-4 text-xs uppercase tracking-wide">
@@ -359,39 +359,38 @@ function cn(...inputs: (string | undefined | null | false)[]) {
           <!-- Language Filter -->
           <div v-if="languages.length > 0" class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
             <h2 class="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-3 text-xs uppercase tracking-wide">
-                <Globe class="h-4 w-4" /> Language
+              <Globe class="h-4 w-4" /> Language
             </h2>
             <div class="flex flex-wrap gap-2">
-                 <button 
-                    @click="selectedLanguage = null"
-                    :class="cn(
-                        'px-3 py-1.5 rounded-lg text-sm font-medium transition-all border',
-                        selectedLanguage === null
-                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
-                            : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-dashed border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                    )"
-                >
-                    All
-                </button>
-                <button 
-                    v-for="lang in languages" 
-                    :key="lang"
-                    @click="selectedLanguage = selectedLanguage === lang ? null : lang"
-                    :class="cn(
-                        'px-3 py-1.5 rounded-lg text-sm font-medium transition-all border flex items-center gap-1',
-                        selectedLanguage === lang
-                            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 ring-1 ring-indigo-500/20'
-                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-800'
-                    )"
-                >
-                    {{ getLangFlag(lang) }} <span class="uppercase">{{ lang }}</span>
-                </button>
+              <button 
+                @click="selectedLanguage = null"
+                :class="cn(
+                  'px-3 py-1.5 rounded-lg text-sm font-medium transition-all border',
+                  selectedLanguage === null
+                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                    : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-dashed border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                )"
+              >
+                All
+              </button>
+              <button 
+                v-for="lang in languages" 
+                :key="lang"
+                @click="selectedLanguage = selectedLanguage === lang ? null : lang"
+                :class="cn(
+                  'px-3 py-1.5 rounded-lg text-sm font-medium transition-all border flex items-center gap-1',
+                  selectedLanguage === lang
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 ring-1 ring-indigo-500/20'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-800'
+                )"
+              >
+                {{ getLangFlag(lang) }} <span class="uppercase">{{ lang }}</span>
+              </button>
             </div>
           </div>
 
           <!-- Sources & Sentiment -->
           <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 space-y-6">
-            
             <!-- Source Filter -->
             <div>
               <h2 class="font-semibold text-slate-900 dark:text-slate-100 mb-3 text-xs uppercase tracking-wide">
@@ -439,25 +438,24 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                 </button>
               </div>
             </div>
-
           </div>
 
           <!-- Stats -->
           <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
-              <h2 class="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-4 text-xs uppercase tracking-wide">
-                <TrendingUp class="h-4 w-4" /> Stats
-              </h2>
-              <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-sm border border-slate-100 dark:border-slate-700">
-                <div class="flex justify-between mb-2">
-                  <span class="text-slate-500 dark:text-slate-400">Articles</span>
-                  <span class="font-bold text-slate-900 dark:text-slate-100">{{ totalArticles }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-slate-500 dark:text-slate-400">Sources</span>
-                  <span class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-medium">{{ allSources.length }}</span>
-                </div>
+            <h2 class="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-4 text-xs uppercase tracking-wide">
+              <TrendingUp class="h-4 w-4" /> Stats
+            </h2>
+            <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-sm border border-slate-100 dark:border-slate-700">
+              <div class="flex justify-between mb-2">
+                <span class="text-slate-500 dark:text-slate-400">Articles</span>
+                <span class="font-bold text-slate-900 dark:text-slate-100">{{ totalArticles }}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Sources</span>
+                <span class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-medium">{{ allSources.length }}</span>
               </div>
             </div>
+          </div>
         </aside>
 
         <!-- Main Content -->
@@ -466,8 +464,8 @@ function cn(...inputs: (string | undefined | null | false)[]) {
           <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div v-for="i in 6" :key="i" class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 h-56 animate-pulse">
               <div class="flex gap-2 mb-4">
-                 <div class="h-5 bg-slate-200 dark:bg-slate-800 rounded-full w-20"></div>
-                 <div class="h-5 bg-slate-200 dark:bg-slate-800 rounded-full w-16"></div>
+                <div class="h-5 bg-slate-200 dark:bg-slate-800 rounded-full w-20"></div>
+                <div class="h-5 bg-slate-200 dark:bg-slate-800 rounded-full w-16"></div>
               </div>
               <div class="h-6 bg-slate-200 dark:bg-slate-800 rounded w-full mb-2"></div>
               <div class="h-6 bg-slate-200 dark:bg-slate-800 rounded w-2/3 mb-4"></div>
@@ -480,7 +478,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
           <!-- Empty State -->
           <div v-else-if="filteredArticles.length === 0" class="text-center py-24 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 border-dashed">
             <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <Newspaper class="h-8 w-8 text-slate-400 dark:text-slate-500" />
+              <Newspaper class="h-8 w-8 text-slate-400 dark:text-slate-500" />
             </div>
             <h3 class="text-lg font-medium text-slate-900 dark:text-slate-100">No articles found</h3>
             <p class="text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">Try adjusting your search or click refresh to fetch the latest news.</p>
@@ -507,7 +505,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
                       <!-- Lang Badge -->
                       <span v-if="languages.length > 1 && article.language" title="Language" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 cursor-help">
-                          {{ getLangFlag(article.language) }}
+                        {{ getLangFlag(article.language) }}
                       </span>
                       
                       <!-- AI Badge -->
@@ -557,7 +555,6 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                 </div>
               </article>
             </div>
-
           </div>
 
           <!-- Infinite Scroll Sentinel & End Message (Always in DOM structure for observer) -->

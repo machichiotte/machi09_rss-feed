@@ -4,7 +4,13 @@ import logger from '@/utils/logger';
 // Configure cache location to avoid re-downloading models in docker/tmp
 env.cacheDir = './models_cache';
 
+interface SentimentResult {
+    label: 'POSITIVE' | 'NEGATIVE';
+    score: number;
+}
+
 class AiService {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private sentimentPipeline: any = null;
     private isInitialized = false;
 
@@ -33,7 +39,7 @@ class AiService {
      * Analyze the sentiment of a text.
      * Returns 'POSITIVE' or 'NEGATIVE' with a score.
      */
-    async analyzeSentiment(text: string): Promise<{ label: 'POSITIVE' | 'NEGATIVE'; score: number } | null> {
+    async analyzeSentiment(text: string): Promise<SentimentResult | null> {
         if (!this.isInitialized) await this.init();
         if (!this.sentimentPipeline) return null;
 
@@ -42,10 +48,12 @@ class AiService {
             const truncatedText = text.slice(0, 512);
 
             const result = await this.sentimentPipeline(truncatedText);
-            // result is like [{ label: 'POSITIVE', score: 0.99 }]
+            // result is typically an array like [{ label: 'POSITIVE', score: 0.99 }]
+            const output = Array.isArray(result) ? result[0] : result;
+
             return {
-                label: result[0].label,
-                score: result[0].score
+                label: output.label as 'POSITIVE' | 'NEGATIVE',
+                score: output.score
             };
         } catch (error) {
             logger.error('Error analyzing sentiment:', error);

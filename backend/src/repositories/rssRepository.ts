@@ -2,7 +2,7 @@
 import { getDatabase } from '@/config/database';
 import { ProcessedArticleData } from '@/types/rss';
 import { databaseConfig } from '@/config/rssConfig';
-import { ObjectId } from 'mongodb';
+import { ObjectId, Filter } from 'mongodb';
 
 const COLLECTION_NAME = databaseConfig.collection.rssArticles;
 
@@ -20,9 +20,10 @@ export class RssRepository {
         feedName?: string;
     } = {}): Promise<{ articles: ProcessedArticleData[]; total: number }> {
         const db = getDatabase();
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
         const { page = 1, limit = 20, category, sentiment, language, search, feedName } = options;
 
-        const query: any = {};
+        const query: Filter<ProcessedArticleData> = {};
 
         if (category) query.category = category;
         if (language) query.language = language;
@@ -35,8 +36,8 @@ export class RssRepository {
             ];
         }
 
-        const total = await db.collection(COLLECTION_NAME).countDocuments(query);
-        const documents = await db.collection(COLLECTION_NAME)
+        const total = await collection.countDocuments(query);
+        const documents = await collection
             .find(query)
             .sort({ publicationDate: -1, fetchedAt: -1 })
             .skip((page - 1) * limit)
@@ -54,11 +55,12 @@ export class RssRepository {
      */
     public static async findPendingAnalysis(limit: number = 50): Promise<ProcessedArticleData[]> {
         const db = getDatabase();
-        const documents = await db.collection(COLLECTION_NAME)
-            .find({ analysis: { $exists: false } })
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+        const documents = await collection
+            .find({ analysis: null })
             .limit(limit)
             .toArray();
-        return documents as ProcessedArticleData[];
+        return documents;
     }
 
     /**
@@ -66,8 +68,9 @@ export class RssRepository {
      */
     public static async findByLink(link: string): Promise<ProcessedArticleData | null> {
         const db = getDatabase();
-        const document = await db.collection(COLLECTION_NAME).findOne({ link });
-        return document as ProcessedArticleData | null;
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+        const document = await collection.findOne({ link });
+        return document;
     }
 
     /**
@@ -75,7 +78,8 @@ export class RssRepository {
      */
     public static async deleteAll(): Promise<number> {
         const db = getDatabase();
-        const result = await db.collection(COLLECTION_NAME).deleteMany({});
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+        const result = await collection.deleteMany({});
         return result.deletedCount;
     }
 
@@ -84,7 +88,8 @@ export class RssRepository {
      */
     public static async save(articleData: ProcessedArticleData): Promise<void> {
         const db = getDatabase();
-        await db.collection(COLLECTION_NAME).insertOne(articleData);
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+        await collection.insertOne(articleData);
     }
 
     /**
@@ -95,9 +100,10 @@ export class RssRepository {
         updateData: Partial<ProcessedArticleData>
     ): Promise<boolean> {
         const db = getDatabase();
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
         const _id = typeof articleId === 'string' ? new ObjectId(articleId) : articleId;
-        const result = await db.collection(COLLECTION_NAME).updateOne(
-            { _id },
+        const result = await collection.updateOne(
+            { _id } as Filter<ProcessedArticleData>,
             { $set: updateData }
         );
         return result.modifiedCount > 0;
@@ -108,7 +114,8 @@ export class RssRepository {
      */
     public static async deleteByLink(link: string): Promise<boolean> {
         const db = getDatabase();
-        const result = await db.collection(COLLECTION_NAME).deleteOne({ link });
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+        const result = await collection.deleteOne({ link });
         return result.deletedCount > 0;
     }
 
@@ -123,8 +130,9 @@ export class RssRepository {
         }
 
         const db = getDatabase();
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
         const filter = { link: articleData.link };
-        const existing = await db.collection(COLLECTION_NAME).findOne(filter);
+        const existing = await collection.findOne(filter);
 
         if (existing) {
             // Update existing document
@@ -133,7 +141,7 @@ export class RssRepository {
             delete dataToSet._id;
 
             if (Object.keys(dataToSet).length > 0) {
-                const result = await db.collection(COLLECTION_NAME).updateOne(
+                const result = await collection.updateOne(
                     filter,
                     { $set: dataToSet }
                 );
@@ -142,7 +150,7 @@ export class RssRepository {
             return { updated: false, upserted: false };
         } else {
             // Insert new document
-            await db.collection(COLLECTION_NAME).insertOne(articleData as ProcessedArticleData);
+            await collection.insertOne(articleData as ProcessedArticleData);
             return { updated: false, upserted: true };
         }
     }
@@ -152,13 +160,14 @@ export class RssRepository {
      */
     public static async updateErrorStatus(link: string, errorMessage: string): Promise<boolean> {
         const db = getDatabase();
-        const result = await db.collection(COLLECTION_NAME).updateOne(
-            { link },
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+        const result = await collection.updateOne(
+            { link } as Filter<ProcessedArticleData>,
             {
                 $set: {
                     error: errorMessage,
                     processedAt: new Date().toISOString(),
-                },
+                } as Partial<ProcessedArticleData>,
             }
         );
         return result.modifiedCount > 0;

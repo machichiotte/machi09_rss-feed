@@ -38,7 +38,7 @@ export default [
             'max-nested-callbacks': ['error', 3],
 
             // TypeScript
-            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
             '@typescript-eslint/no-explicit-any': 'warn',
 
             // Désactiver certaines règles trop strictes
