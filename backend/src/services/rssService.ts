@@ -4,6 +4,7 @@ import { RssRepository } from '@/repositories/rssRepository';
 import { rssConfig } from '@/config/rssConfig';
 import { ProcessedArticleData, RssFeedConfig } from '@/types/rss';
 import logger from '@/utils/logger';
+import { aiService } from './aiService';
 
 const parser = new Parser();
 
@@ -13,6 +14,10 @@ export class RssService {
      */
     public static async processAllFeeds(): Promise<{ processed: number; errors: number }> {
         logger.info('Starting RSS feed processing...');
+
+        // Initialize AI service (loads model)
+        await aiService.init();
+
         let processedCount = 0;
         let errorCount = 0;
 
@@ -52,8 +57,22 @@ export class RssService {
             if (!item.link) continue;
 
             try {
+                // Optimization: Check existence BEFORE AI analysis
+                const existing = await RssRepository.findByLink(item.link);
+                if (existing) {
+                    // If already exists, we skip to save AI resources (unless you want to update analysis)
+                    continue;
+                }
+
+                const title = item.title || 'No title';
+                const summary = item.contentSnippet || item.content || null;
+
+                // 🧠 AI Analysis
+                logger.info(`🧠 Analyzing sentiment for: ${title}`);
+                const analysis = await aiService.analyzeArticle(title, summary);
+
                 const article: ProcessedArticleData = {
-                    title: item.title || 'No title',
+                    title: title,
                     link: item.link,
                     publicationDate: item.isoDate || item.pubDate || null,
                     sourceFeed: feed.url,
@@ -61,21 +80,17 @@ export class RssService {
                     category: category,
                     fetchedAt: new Date().toISOString(),
                     processedAt: new Date().toISOString(),
-                    summary: item.contentSnippet || item.content || null,
-                    analysis: null,
+                    summary: summary,
+                    analysis: analysis, // AI result attached
                     error: null,
                     scrapedContent: false,
                 };
 
-                // Upsert article (insert if new, update if exists)
-                const result = await RssRepository.upsertByLink(article);
+                // Save new article
+                await RssRepository.save(article);
 
-                if (result.upserted) {
-                    logger.info(`New article saved: ${article.title}`);
-                    count++;
-                } else if (result.updated) {
-                    logger.info(`Article updated: ${article.title}`);
-                }
+                logger.info(`New analysed article saved: ${article.title} [${analysis.sentiment} ${analysis.sentimentScore.toFixed(2)}]`);
+                count++;
 
                 // Delay between articles
                 await this.delay(rssConfig.delayBetweenArticlesMs);

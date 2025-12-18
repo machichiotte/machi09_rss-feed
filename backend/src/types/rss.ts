@@ -24,6 +24,11 @@ export interface ProcessedArticleData {
 }
 
 export interface FinancialAnalysis {
+    // Current AI Service fields
+    sentiment?: 'bullish' | 'bearish';
+    sentimentScore?: number;
+
+    // Future legacy fields
     isRelevant?: 'Yes' | 'No' | 'Partial';
     relevanceReason?: string;
     mentionedAssets?: string[];
