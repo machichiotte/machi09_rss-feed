@@ -6,17 +6,37 @@ import { handleControllerError } from '@/utils/errorHandler';
 import logger from '@/utils/logger';
 
 /**
- * Récupère les dernières données RSS de la base de données.
+ * Récupère les articles RSS avec pagination et filtrage.
  */
 async function getRssArticles(req: Request, res: Response): Promise<void> {
   try {
-    logger.info('Fetching RSS articles from database');
-    const data = await RssRepository.fetchAll();
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const category = req.query.category as string;
+    const sentiment = req.query.sentiment as string;
+    const language = req.query.language as string;
+    const search = req.query.search as string;
+    const feedName = req.query.source as string;
+
+    logger.info(`Fetching RSS articles: page=${page}, limit=${limit}, category=${category}, search=${search}, source=${feedName}`);
+
+    const { articles, total } = await RssRepository.fetchAll({
+      page,
+      limit,
+      category,
+      sentiment,
+      language,
+      search,
+      feedName
+    });
 
     res.status(200).json({
       message: 'Données RSS récupérées avec succès',
-      count: data.length,
-      data,
+      total,
+      page,
+      limit,
+      count: articles.length,
+      data: articles,
     });
   } catch (error) {
     handleControllerError(res, error, getRssArticles.name);
@@ -93,4 +113,32 @@ async function getRssArticleByLink(req: Request, res: Response): Promise<void> {
   }
 }
 
-export { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink };
+/**
+ * Récupère les métadonnées (catégories, sources, langues) depuis la configuration.
+ */
+async function getMetadata(req: Request, res: Response): Promise<void> {
+  try {
+    const { rssSources } = await import('@/config/sources');
+
+    const categories = Object.keys(rssSources);
+    const languages = new Set<string>();
+    const sources = new Set<string>();
+
+    for (const feeds of Object.values(rssSources)) {
+      for (const feed of feeds) {
+        if (feed.language) languages.add(feed.language);
+        sources.add(feed.name);
+      }
+    }
+
+    res.status(200).json({
+      categories,
+      languages: Array.from(languages).sort(),
+      sources: Array.from(sources).sort(),
+    });
+  } catch (error) {
+    handleControllerError(res, error, getMetadata.name);
+  }
+}
+
+export { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata };

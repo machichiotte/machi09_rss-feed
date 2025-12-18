@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
 import { 
@@ -40,6 +40,7 @@ interface Article {
 // State
 const articles = ref<Article[]>([]);
 const loading = ref(true);
+const loadingMore = ref(false);
 const processing = ref(false);
 const searchQuery = ref('');
 const selectedCategory = ref<string | null>(null);
@@ -48,10 +49,24 @@ const selectedSentiment = ref<'bullish' | 'bearish' | null>(null);
 const selectedLanguage = ref<string | null>(null);
 const isDark = ref(false);
 
+// Pagination State
+const currentPage = ref(1);
+const limit = ref(24);
+const totalArticles = ref(0);
+const hasMore = ref(false);
+
+// Metadata State
+const allCategories = ref<string[]>([]);
+const allSources = ref<string[]>([]);
+const allLanguages = ref<string[]>([]);
+
+// Observer for infinite scroll
+const loadMoreTrigger = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
+
 // Methods
 const toggleTheme = () => {
   isDark.value = !isDark.value;
-  console.log('🌓 Theme toggled to:', isDark.value ? 'dark' : 'light');
   applyTheme();
 };
 
@@ -67,68 +82,92 @@ const applyTheme = () => {
   }
 };
 
-// Computed
-const categories = computed(() => {
-  const cats = new Set(articles.value.map(a => a.category).filter(Boolean));
-  return Array.from(cats).sort();
-});
-
-const sources = computed(() => {
-  let relevant = articles.value;
-  if (selectedCategory.value) relevant = relevant.filter(a => a.category === selectedCategory.value);
-  if (selectedLanguage.value) relevant = relevant.filter(a => a.language === selectedLanguage.value);
-  const srcs = new Set(relevant.map(a => a.feedName).filter(Boolean));
-  return Array.from(srcs).sort();
-});
-
-const languages = computed(() => {
-  const langs = new Set(articles.value.map(a => a.language).filter(Boolean));
-  return Array.from(langs).sort();
-});
-
-const filteredArticles = computed(() => {
-  return articles.value.filter(article => {
-    const matchesSearch = article.title.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-                          article.summary?.toLowerCase().includes(searchQuery.value.toLowerCase());
-    const matchesCategory = selectedCategory.value ? article.category === selectedCategory.value : true;
-    const matchesSource = selectedSource.value ? article.feedName === selectedSource.value : true;
-    const matchesSentiment = selectedSentiment.value ? article.analysis?.sentiment === selectedSentiment.value : true;
-    const matchesLanguage = selectedLanguage.value ? article.language === selectedLanguage.value : true;
-    return matchesSearch && matchesCategory && matchesSource && matchesSentiment && matchesLanguage;
-  });
-});
-
-const selectCategory = (category: string | null) => {
-  selectedCategory.value = category;
-  selectedSource.value = null;
-};
-
-const fetchArticles = async () => {
-  loading.value = true;
+const fetchMetadata = async () => {
   try {
-    const response = await axios.get('/api/rss');
-    articles.value = response.data.data.sort((a: Article, b: Article) => 
-      new Date(b.publicationDate || b.fetchedAt).getTime() - new Date(a.publicationDate || a.fetchedAt).getTime()
-    );
+    const response = await axios.get('/api/rss/metadata');
+    allCategories.value = response.data.categories;
+    allSources.value = response.data.sources;
+    allLanguages.value = response.data.languages;
   } catch (error) {
-    console.error('Failed to fetch articles:', error);
-  } finally {
-    loading.value = false;
+    console.error('Failed to fetch metadata:', error);
   }
 };
+
+async function loadArticles(reset = false) {
+  if (reset) {
+    currentPage.value = 1;
+    articles.value = [];
+    loading.value = true;
+  } else {
+    if (loadingMore.value || loading.value) return;
+    loadingMore.value = true;
+  }
+
+  try {
+    const params = {
+      page: currentPage.value,
+      limit: limit.value,
+      category: selectedCategory.value,
+      sentiment: selectedSentiment.value,
+      language: selectedLanguage.value,
+      search: searchQuery.value,
+      source: selectedSource.value
+    };
+
+    const response = await axios.get('/api/rss', { params });
+    const newArticles = response.data.articles || response.data.data || [];
+    
+    if (reset) {
+      articles.value = newArticles;
+    } else {
+      articles.value = [...articles.value, ...newArticles];
+    }
+
+    totalArticles.value = response.data.total || 0;
+    hasMore.value = articles.value.length < totalArticles.value;
+    
+    currentPage.value++;
+
+    // Re-check after render
+    nextTick(() => {
+      checkAndLoadMore();
+    });
+  } catch (error) {
+    console.error('Failed to load articles:', error);
+  } finally {
+    loading.value = false;
+    loadingMore.value = false;
+  }
+}
+
+function checkAndLoadMore() {
+  if (!hasMore.value || loading.value || loadingMore.value || !loadMoreTrigger.value) return;
+  
+  const rect = loadMoreTrigger.value.getBoundingClientRect();
+  const isNearBottom = rect.top < window.innerHeight + 600;
+  
+  if (isNearBottom) {
+    loadArticles();
+  }
+}
 
 const triggerProcess = async () => {
   processing.value = true;
   try {
     await axios.post('/api/rss/process');
     setTimeout(() => {
-      fetchArticles();
+      loadArticles(true);
       processing.value = false;
     }, 4000); 
   } catch (error) {
     console.error('Failed to process feeds:', error);
     processing.value = false;
   }
+};
+
+const selectCategory = (category: string | null) => {
+  selectedCategory.value = category;
+  selectedSource.value = null;
 };
 
 const formatDate = (dateStr: string) => {
@@ -155,19 +194,62 @@ const getLangFlag = (lang?: string) => {
   return map[lang.toLowerCase()] || '🌍';
 };
 
+// Computed
+const categories = computed(() => allCategories.value);
+const sources = computed(() => allSources.value);
+const languages = computed(() => allLanguages.value);
+const filteredArticles = computed(() => articles.value); // Articles are already filtered on server
+
+// Watchers
+watch([selectedCategory, selectedSentiment, selectedLanguage, selectedSource], () => {
+    loadArticles(true);
+});
+
+let searchTimeout: any = null;
+watch(searchQuery, () => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        loadArticles(true);
+    }, 500);
+});
+
 onMounted(() => {
   // Theme initialization
   const savedTheme = localStorage.theme;
   const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  
-  if (savedTheme === 'dark' || (!savedTheme && isSystemDark)) {
-    isDark.value = true;
-  } else {
-    isDark.value = false;
-  }
-  
+  isDark.value = savedTheme === 'dark' || (!savedTheme && isSystemDark);
   applyTheme();
-  fetchArticles();
+
+  fetchMetadata();
+  loadArticles(true);
+
+  observer = new IntersectionObserver((entries) => {
+    const [entry] = entries;
+    if (entry && entry.isIntersecting) {
+      if (hasMore.value && !loading.value && !loadingMore.value) {
+        loadArticles();
+      }
+    }
+  }, { 
+    threshold: 0,
+    rootMargin: '600px'
+  });
+
+  if (loadMoreTrigger.value) {
+    observer.observe(loadMoreTrigger.value);
+  }
+});
+
+// Re-observe if elements change (e.g. after loading state)
+watch(loadMoreTrigger, (newVal) => {
+  if (newVal && observer) {
+    observer.disconnect();
+    observer.observe(newVal);
+  }
+});
+
+onUnmounted(() => {
+  if (observer) observer.disconnect();
 });
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -368,11 +450,11 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-sm border border-slate-100 dark:border-slate-700">
                 <div class="flex justify-between mb-2">
                   <span class="text-slate-500 dark:text-slate-400">Articles</span>
-                  <span class="font-bold text-slate-900 dark:text-slate-100">{{ articles.length }}</span>
+                  <span class="font-bold text-slate-900 dark:text-slate-100">{{ totalArticles }}</span>
                 </div>
                 <div class="flex justify-between items-center">
                   <span class="text-slate-500 dark:text-slate-400">Sources</span>
-                  <span class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-medium">{{ new Set(articles.map(a => a.feedName)).size }}</span>
+                  <span class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-medium">{{ allSources.length }}</span>
                 </div>
               </div>
             </div>
@@ -408,71 +490,97 @@ function cn(...inputs: (string | undefined | null | false)[]) {
           </div>
 
           <!-- Articles Grid -->
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <article 
-              v-for="article in filteredArticles" 
-              :key="article._id"
-              class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-lg dark:hover:shadow-indigo-900/10 hover:-translate-y-1 transition-[transform,box-shadow] duration-300 group flex flex-col h-full"
-            >
-              <div class="p-6 flex flex-col flex-1 relative">
-                <!-- Header -->
-                <div class="flex justify-between items-start mb-3">
-                  <div class="flex gap-2 flex-wrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                      {{ article.category }}
-                    </span>
+          <div v-else class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <article 
+                v-for="article in filteredArticles" 
+                :key="article._id"
+                class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-lg dark:hover:shadow-indigo-900/10 hover:-translate-y-1 transition-[transform,box-shadow] duration-300 group flex flex-col h-full"
+              >
+                <div class="p-6 flex flex-col flex-1 relative">
+                  <!-- Header -->
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex gap-2 flex-wrap">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        {{ article.category }}
+                      </span>
 
-                    <!-- Lang Badge -->
-                    <span v-if="languages.length > 1 && article.language" title="Language" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 cursor-help">
-                        {{ getLangFlag(article.language) }}
-                    </span>
-                    
-                    <!-- AI Badge -->
-                    <span 
-                      v-if="article.analysis" 
-                      :class="cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ring-1 ring-inset', getSentimentColor(article.analysis.sentiment))"
-                    >
-                      <TrendingUp v-if="article.analysis.sentiment === 'bullish'" class="h-3 w-3" />
-                      <TrendingUp v-else class="h-3 w-3 rotate-180" />
-                      {{ article.analysis.sentiment }} {{ Math.round(article.analysis.sentimentScore * 100) }}%
+                      <!-- Lang Badge -->
+                      <span v-if="languages.length > 1 && article.language" title="Language" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 cursor-help">
+                          {{ getLangFlag(article.language) }}
+                      </span>
+                      
+                      <!-- AI Badge -->
+                      <span 
+                        v-if="article.analysis" 
+                        :class="cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ring-1 ring-inset', getSentimentColor(article.analysis.sentiment))"
+                      >
+                        <TrendingUp v-if="article.analysis.sentiment === 'bullish'" class="h-3 w-3" />
+                        <TrendingUp v-else class="h-3 w-3 rotate-180" />
+                        {{ article.analysis.sentiment }} {{ Math.round(article.analysis.sentimentScore * 100) }}%
+                      </span>
+                    </div>
+                    <span class="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 whitespace-nowrap ml-2">
+                      <Clock class="h-3 w-3" />
+                      {{ formatDate(article.publicationDate || article.fetchedAt) }}
                     </span>
                   </div>
-                  <span class="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 whitespace-nowrap ml-2">
-                    <Clock class="h-3 w-3" />
-                    {{ formatDate(article.publicationDate || article.fetchedAt) }}
-                  </span>
-                </div>
-                
-                <!-- Title -->
-                <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                  <a :href="article.link" target="_blank" rel="noopener noreferrer">
-                    {{ article.title }}
-                  </a>
-                </h3>
-                
-                <!-- Summary -->
-                <p class="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-3 leading-relaxed">
-                  {{ article.summary?.replace(/<[^>]*>/g, '').slice(0, 160) }}...
-                </p>
-                
-                <!-- Footer -->
-                <div class="mt-auto pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-between items-center">
-                  <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded">
-                    {{ article.feedName }}
-                  </span>
                   
-                  <a 
-                    :href="article.link" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-sm font-bold flex items-center gap-1 group/link"
-                  >
-                    Read
-                    <ExternalLink class="h-3 w-3 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
-                  </a>
+                  <!-- Title -->
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <a :href="article.link" target="_blank" rel="noopener noreferrer">
+                      {{ article.title }}
+                    </a>
+                  </h3>
+                  
+                  <!-- Summary -->
+                  <p class="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-3 leading-relaxed">
+                    {{ article.summary?.replace(/<[^>]*>/g, '').slice(0, 160) }}...
+                  </p>
+                  
+                  <!-- Footer -->
+                  <div class="mt-auto pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-between items-center">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded">
+                      {{ article.feedName }}
+                    </span>
+                    
+                    <a 
+                      :href="article.link" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-sm font-bold flex items-center gap-1 group/link"
+                    >
+                      Read
+                      <ExternalLink class="h-3 w-3 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
+                    </a>
+                  </div>
                 </div>
+              </article>
+            </div>
+
+          </div>
+
+          <!-- Infinite Scroll Sentinel & End Message (Always in DOM structure for observer) -->
+          <div v-if="!loading" class="mt-8">
+            <!-- Load More Trigger -->
+            <div 
+              id="load-more-sentinel"
+              ref="loadMoreTrigger" 
+              class="h-32 flex items-center justify-center transition-all duration-300"
+              :class="hasMore ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 overflow-hidden'"
+            >
+              <div v-if="loadingMore" class="flex items-center gap-3 text-indigo-600 dark:text-indigo-400 font-medium">
+                <RefreshCw class="h-6 w-6 animate-spin" />
+                <span class="animate-pulse">Fetching more news...</span>
               </div>
-            </article>
+            </div>
+
+            <!-- End of list message -->
+            <div v-if="!hasMore && articles.length > 0" class="text-center py-12 border-t border-slate-100 dark:border-slate-800">
+              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm italic shadow-inner">
+                <span>✨ You've reached the end of the feed</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

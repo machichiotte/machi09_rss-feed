@@ -1,8 +1,15 @@
 // src/routes/rssRoutes.ts
 import { Router } from 'express';
-import { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink } from '@/controllers/rssController';
+import { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata } from '@/controllers/rssController';
 
 const router = Router();
+
+/**
+ * @route   GET /api/rss/metadata
+ * @desc    Get categories, sources and languages
+ * @access  Public
+ */
+router.get('/metadata', getMetadata);
 
 /**
  * @route   GET /api/rss

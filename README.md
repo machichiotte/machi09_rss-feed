@@ -17,11 +17,12 @@
 ## 🚀 Features
 
 - **⚡ High-Performance Fetching**: Parallelized feed retrieval (batch processing) for maximum speed.
-- **🔄 Asynchronous Processing**: "Fetch First, Analyze Later" strategy. Articles appear instantly in the UI while AI analysis runs in the background.
-- **🧠 Smart AI Analysis**: Local sentiment analysis (Bullish/Bearish) using `transformers.js` (running as a background worker).
-- **� Robust Logging**: Detailed persistent logging (`error.log`, `combined.log`) with automatic circular structure handling.
-- **�🔍 Advanced Filtering**: Filter by Source, Category, and AI Sentiment.
-- **Dashboard UI**: Modern Vue.js + TailwindCSS dashboard with real-time stats and instant Dark Mode.
+- **🔄 Asynchronous Processing**: "Fetch First, Analyze Later" strategy.
+- **🧠 Smart AI Analysis**: Local sentiment analysis (Bullish/Bearish) using `transformers.js`.
+- **📜 Server-Side Pagination**: Efficiently handles 2000+ articles with MongoDB-powered pagination.
+- **♾️ Infinite Scroll**: Seamless frontend experience that loads content as you scroll.
+- **🔍 Advanced Filtering**: Server-side filtering by Source, Category, Language, and Sentiment.
+- **🌓 Dynamic Design**: Modern dashboard with responsive layout and instant Dark Mode.
 
 ## 🛠 Tech Stack
 
@@ -93,7 +94,8 @@ yarn dev
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | **GET** | `/api/health` | Check server status |
-| **GET** | `/api/rss` | Get processed articles |
+| **GET** | `/api/rss` | Get paginated articles (`?page=1&limit=24&category=...`) |
+| **GET** | `/api/rss/metadata` | Get available filter options (categories, sources, lang) |
 | **POST** | `/api/rss/process` | Trigger manual feed fetch (asynchronous) |
 | **GET** | `/api/rss/search` | Search articles (`?link=...`) |
 

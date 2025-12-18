@@ -8,12 +8,45 @@ const COLLECTION_NAME = databaseConfig.collection.rssArticles;
 
 export class RssRepository {
     /**
-     * Récupère tous les articles RSS de la base de données.
+     * Récupère les articles RSS avec pagination et filtrage.
      */
-    public static async fetchAll(): Promise<ProcessedArticleData[]> {
+    public static async fetchAll(options: {
+        page?: number;
+        limit?: number;
+        category?: string;
+        sentiment?: string;
+        language?: string;
+        search?: string;
+        feedName?: string;
+    } = {}): Promise<{ articles: ProcessedArticleData[]; total: number }> {
         const db = getDatabase();
-        const documents = await db.collection(COLLECTION_NAME).find({}).toArray();
-        return documents as ProcessedArticleData[];
+        const { page = 1, limit = 20, category, sentiment, language, search, feedName } = options;
+
+        const query: any = {};
+
+        if (category) query.category = category;
+        if (language) query.language = language;
+        if (feedName) query.feedName = feedName;
+        if (sentiment) query['analysis.sentiment'] = sentiment;
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { summary: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const total = await db.collection(COLLECTION_NAME).countDocuments(query);
+        const documents = await db.collection(COLLECTION_NAME)
+            .find(query)
+            .sort({ publicationDate: -1, fetchedAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .toArray();
+
+        return {
+            articles: documents as ProcessedArticleData[],
+            total
+        };
     }
 
     /**

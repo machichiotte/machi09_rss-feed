@@ -10,12 +10,12 @@ export const rssSources: RssCategoryConfig = {
         { name: 'Crypto Briefing', url: 'https://cryptobriefing.com/feed/', enabled: true, language: 'en' },
         { name: 'CoinJournal', url: 'https://coinjournal.net/feed/', enabled: true, language: 'en' },
         { name: 'NewsBTC', url: 'https://www.newsbtc.com/feed/', enabled: true, language: 'en' },
-        { name: 'CryptoSlate', url: 'https://cryptoslate.com/feed/', enabled: true, language: 'en' },
+        { name: 'CryptoSlate', url: 'https://cryptoslate.com/feed/', enabled: false, language: 'en' }, // Status code 403 (Forbidden)
         { name: 'AMBCrypto', url: 'https://ambcrypto.com/feed/', enabled: true, language: 'en' },
         { name: 'U.Today', url: 'https://u.today/rss', enabled: true, language: 'en' },
         { name: 'NullTX', url: 'https://nulltx.com/feed/', enabled: true, language: 'en' },
         { name: 'ZyCrypto', url: 'https://zycrypto.com/feed/', enabled: true, language: 'en' },
-        { name: 'Coin Quora', url: 'https://coinquora.com/news/feed/', enabled: true, language: 'en' },
+        { name: 'Coin Quora', url: 'https://coinquora.com/feed/', enabled: false, language: 'en' }, // Consistently timing out
         { name: 'Blockworks', url: 'https://blockworks.co/feed/', enabled: true, language: 'en' },
 
         // French
@@ -43,7 +43,7 @@ export const rssSources: RssCategoryConfig = {
         { name: 'BeInCrypto BR', url: 'https://br.beincrypto.com/feed/', enabled: true, language: 'pt' },
         { name: 'CriptoFácil', url: 'https://www.criptofacil.com/feed/', enabled: true, language: 'pt' },
         { name: 'Livecoins', url: 'https://livecoins.com.br/feed/', enabled: true, language: 'pt' },
-        { name: 'Portal do Bitcoin', url: 'https://portaldobitcoin.uol.com.br/feed/', enabled: true, language: 'pt' },
+        { name: 'Portal do Bitcoin', url: 'https://portaldobitcoin.uol.com.br/feed/', enabled: false, language: 'pt' }, // Status code 403 (Forbidden)
 
         // Arabic
         { name: 'Cointelegraph Arabic', url: 'https://ar.cointelegraph.com/rss', enabled: true, language: 'ar' },
@@ -72,9 +72,9 @@ export const rssSources: RssCategoryConfig = {
         { name: 'Finance et Investissement', url: 'https://www.finance-investissement.com/rss/', enabled: true, language: 'fr' },
         { name: 'Actu Finance', url: 'https://www.actufinance.fr/feed/', enabled: true, language: 'fr' },
         { name: 'Le Figaro Économie', url: 'https://www.lefigaro.fr/rss/figaro_economie.xml', enabled: true, language: 'fr' },
-        { name: 'Capital Finance', url: 'https://www.capitalfinance.fr/rss', enabled: true, language: 'fr' },
-        { name: 'Boursier.com', url: 'https://www.boursier.com/rss/actualites/actualites.rss', enabled: true, language: 'fr' },
-        { name: 'L\'Opinion', url: 'https://www.lopinion.fr/abonnement/rss', enabled: true, language: 'fr' },
+        { name: 'Capital Finance', url: 'https://capitalfinance.lesechos.fr/rss', enabled: false, language: 'fr' }, // SSL or 403 issues recently
+        { name: 'Boursier.com', url: 'https://www.boursier.com/rss/actualites/actualites.rss', enabled: false, language: 'fr' }, // Status code 403 (Forbidden)
+        { name: 'L\'Opinion', url: 'https://www.lopinion.fr/abonnement/rss', enabled: false, language: 'fr' }, // URL frequently broken or restricted
     ],
     'Tech News': [
         // English
@@ -90,7 +90,7 @@ export const rssSources: RssCategoryConfig = {
         { name: 'Les Numériques', url: 'https://www.lesnumeriques.com/rss.xml', enabled: true, language: 'fr' },
         { name: 'ZDNet France', url: 'https://www.zdnet.fr/rss/', enabled: true, language: 'fr' },
         { name: 'Usine Digitale', url: 'https://www.usine-digitale.fr/rss', enabled: true, language: 'fr' },
-        { name: 'Next INpact', url: 'https://www.nextinpact.com/rss/news.xml', enabled: true, language: 'fr' },
+        { name: 'Next INpact', url: 'https://beta.next.ink/feed', enabled: true, language: 'fr' },
         { name: 'Journal du Net', url: 'https://www.journaldunet.com/rss/', enabled: true, language: 'fr' },
         { name: 'Clubic', url: 'https://www.clubic.com/rss/news.rss', enabled: true, language: 'fr' },
         { name: 'Siècle Digital', url: 'https://siecledigital.fr/feed/', enabled: true, language: 'fr' },
@@ -102,22 +102,22 @@ export const rssSources: RssCategoryConfig = {
         // English / International
         { name: 'France 24 English', url: 'https://www.france24.com/en/rss', enabled: true, language: 'en' },
         { name: 'Reuters Best', url: 'https://reutersbest.com/feed/', enabled: true, language: 'en' },
-        { name: 'Reuters My News', url: 'https://www.reuters.com/my-news/feed/', enabled: true, language: 'en' },
+        { name: 'Reuters My News', url: 'https://www.reuters.com/my-news/feed/', enabled: false, language: 'en' }, // Status code 401 (Unauthorized)
         { name: 'FT UK', url: 'https://www.ft.com/rss/home/uk', enabled: true, language: 'en' },
         { name: 'Dow Jones World', url: 'https://feeds.content.dowjones.io/public/rss/RSSWorldNews', enabled: true, language: 'en' },
 
         // French
         { name: 'AFP Actualités', url: 'https://www.afp.com/fr/actus/afp_actualite/792,31,9,7,33/feed', enabled: true, language: 'fr' },
         { name: 'Le Monde', url: 'https://www.lemonde.fr/rss/en_continu.xml', enabled: true, language: 'fr' },
-        { name: 'Libération', url: 'https://www.liberation.fr/rss/', enabled: true, language: 'fr' },
-        { name: '20 Minutes', url: 'https://www.20minutes.fr/feeds/rss-20minutes_fr_articles.xml', enabled: true, language: 'fr' },
-        { name: 'Le Figaro', url: 'https://www.lefigaro.fr/rss/figaro.xml', enabled: true, language: 'fr' },
+        { name: 'Libération', url: 'https://www.liberation.fr/rss/', enabled: false, language: 'fr' }, // 410 or invalid recently; disabling for stability
+        { name: '20 Minutes', url: 'https://www.20minutes.fr/feeds/rss-20minutes_fr_articles.xml', enabled: false, language: 'fr' }, // Status code 403 (Forbidden)
+        { name: 'Le Figaro', url: 'http://www.lefigaro.fr/rss/figaro_actualites.xml', enabled: true, language: 'fr' },
         { name: 'L\'Express', url: 'https://www.lexpress.fr/rss/alaune.xml', enabled: true, language: 'fr' },
         { name: 'Le Point', url: 'https://www.lepoint.fr/24h-infos/rss.xml', enabled: true, language: 'fr' },
         { name: 'HuffPost FR', url: 'https://www.huffingtonpost.fr/feeds/index.xml', enabled: true, language: 'fr' },
         { name: 'Mediapart', url: 'https://www.mediapart.fr/articles/feed', enabled: true, language: 'fr' },
-        { name: 'Ouest-France', url: 'https://www.ouest-france.fr/rss/une.xml', enabled: true, language: 'fr' },
-        { name: 'Le Parisien', url: 'https://feeds.leparisien.fr/leparisien/rss/actualites', enabled: true, language: 'fr' },
+        { name: 'Ouest-France', url: 'https://www.ouest-france.fr/rss/une.xml', enabled: false, language: 'fr' }, // Status code 403 (Forbidden)
+        { name: 'Le Parisien', url: 'https://feeds.leparisien.fr/leparisien/rss/actualites', enabled: false, language: 'fr' }, // Currently empty and causing parsing errors
         { name: 'Courrier International', url: 'https://www.courrierinternational.com/rss/rss_a_la_une.xml', enabled: true, language: 'fr' },
     ],
     'Politics': [
