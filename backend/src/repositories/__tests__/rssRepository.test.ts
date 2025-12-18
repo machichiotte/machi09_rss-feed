@@ -8,7 +8,6 @@ vi.mock('@/config/database', () => ({
     getDatabase: vi.fn()
 }));
 
-// Mock simplifié satisfaisant à la fois Collection et Cursor pour les tests
 const collectionMock = {
     find: vi.fn().mockReturnThis(),
     sort: vi.fn().mockReturnThis(),

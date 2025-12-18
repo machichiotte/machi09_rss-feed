@@ -18,7 +18,10 @@ export class RssService {
     private static isAnalyzing = false;
 
     /**
-     * Fetch and process all RSS feeds
+     * Orchestrates the fetching and processing of all enabled RSS feeds from configuration.
+     * This process is optimized with batching and background AI analysis.
+     * 
+     * @returns {Promise<{ processed: number; errors: number }>} Counts of processed articles and errors.
      */
     public static async processAllFeeds(): Promise<{ processed: number; errors: number }> {
         logger.info('🚀 Starting Optimized RSS feed processing...');
@@ -57,15 +60,19 @@ export class RssService {
 
         logger.info(`✅ Fetching complete. ${processedCount} new articles found.`);
 
-        // 2. Start AI Analysis in background (don't await it if we want the API to return fast, 
-        // but for a cron job we might want to wait. Let's run it non-blocking but track it).
+        // 2. Start AI Analysis in background
         this.runBackgroundAnalysis();
 
         return { processed: processedCount, errors: errorCount };
     }
 
     /**
-     * Fetch feed items and save new ones to DB without analysis
+     * Fetches a single RSS feed, parses items, and saves new ones to the database.
+     * Note: This does not trigger AI analysis immediately (saved as pending).
+     * 
+     * @param {RssFeedConfig} feed - The feed target configuration.
+     * @param {string} category - The category associated with this feed.
+     * @returns {Promise<number>} Number of new articles saved.
      */
     private static async fetchFeedOnly(feed: RssFeedConfig, category: string): Promise<number> {
         const rssFeed = await parser.parseURL(feed.url);
@@ -104,9 +111,11 @@ export class RssService {
     }
 
     /**
-     * Background worker for AI analysis
+     * Background worker that continuously processes pending articles for AI analysis.
+     * Uses a lock (isAnalyzing) to ensure only one worker runs at a time.
+     * @returns {Promise<void>}
      */
-    private static async runBackgroundAnalysis() {
+    private static async runBackgroundAnalysis(): Promise<void> {
         if (this.isAnalyzing) {
             logger.info('⏳ Analysis worker already running, skipping.');
             return;
@@ -130,7 +139,7 @@ export class RssService {
                             processedAt: new Date().toISOString()
                         });
 
-                        // Keep a small delay to not fry the CPU too hard if many items
+                        // Keep a small delay to avoid excessive CPU usage
                         await this.delay(200);
                     } catch (error) {
                         logger.error(`❌ AI Error on article ${article.link}:`, error);
@@ -150,13 +159,19 @@ export class RssService {
     }
 
     /**
-     * Fetch all articles from database
+     * Fetches all articles from the database.
+     * @returns {Promise<ProcessedArticleData[]>} Array of all articles.
      */
     public static async fetchDatabaseRss(): Promise<ProcessedArticleData[]> {
         const result = await RssRepository.fetchAll();
         return result.articles;
     }
 
+    /**
+     * Utility method to pause execution for a given time.
+     * @param {number} ms - Milliseconds to delay.
+     * @returns {Promise<void>}
+     */
     private static delay(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }

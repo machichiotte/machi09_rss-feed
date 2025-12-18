@@ -1,10 +1,15 @@
 import { MongoClient, Db } from 'mongodb';
+import logger from '@/utils/logger';
 
 let client: MongoClient | null = null;
 let database: Db | null = null;
 
 /**
- * Connect to MongoDB
+ * Connects to MongoDB using the MONGODB_URI environment variable.
+ * Initializes the singleton database instance.
+ * 
+ * @returns {Promise<Db>} The initialized database instance.
+ * @throws {Error} If MONGODB_URI is not defined or connection fails.
  */
 export async function connectToDatabase(): Promise<Db> {
     if (database) {
@@ -25,12 +30,12 @@ export async function connectToDatabase(): Promise<Db> {
         const dbName = process.env.MONGODB_DATABASE || 'rss_feed';
         database = client.db(dbName);
 
-        console.log('✅ Successfully connected to MongoDB Atlas');
-        console.log(`📊 Database: ${dbName}`);
+        logger.info('✅ Successfully connected to MongoDB Atlas');
+        logger.info(`📊 Database: ${dbName}`);
 
         return database;
     } catch (error) {
-        console.error('❌ MongoDB connection error:', error);
+        logger.error('❌ MongoDB connection error:', error);
         throw error;
     }
 }
@@ -46,14 +51,16 @@ export function getDatabase(): Db {
 }
 
 /**
- * Close MongoDB connection
+ * Closes the MongoDB connection and resets the singleton instances.
+ * 
+ * @returns {Promise<void>}
  */
 export async function closeDatabaseConnection(): Promise<void> {
     if (client) {
         await client.close();
         client = null;
         database = null;
-        console.log('🔌 MongoDB connection closed');
+        logger.info('🔌 MongoDB connection closed');
     }
 }
 

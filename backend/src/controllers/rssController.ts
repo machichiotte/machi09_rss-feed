@@ -6,7 +6,12 @@ import { handleControllerError } from '@/utils/errorHandler';
 import logger from '@/utils/logger';
 
 /**
- * Récupère les articles RSS avec pagination et filtrage.
+ * Retrieves RSS articles with pagination, sorting and filtering.
+ * Expects query parameters: page, limit, category, sentiment, language, search, source.
+ * 
+ * @param {Request} req - Express request object.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>}
  */
 async function getRssArticles(req: Request, res: Response): Promise<void> {
   try {
@@ -31,7 +36,7 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
     });
 
     res.status(200).json({
-      message: 'Données RSS récupérées avec succès',
+      message: 'RSS articles retrieved successfully',
       total,
       page,
       limit,
@@ -44,13 +49,18 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * Déclenche le traitement de tous les flux RSS.
+ * Triggers the background processing of all configured RSS feeds.
+ * Responds with a 202 status immediately while the task runs in the background.
+ * 
+ * @param {Request} _req - Express request object (unused).
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>}
  */
 async function processRssFeeds(_req: Request, res: Response): Promise<void> {
   try {
     logger.info('Manual RSS processing triggered');
     res.status(202).json({
-      message: 'Traitement RSS démarré...',
+      message: 'RSS processing started...',
       status: 'processing',
     });
 
@@ -68,7 +78,11 @@ async function processRssFeeds(_req: Request, res: Response): Promise<void> {
 }
 
 /**
- * Supprime tous les articles RSS de la base de données.
+ * Deletes all RSS articles from the database.
+ * 
+ * @param {Request} _req - Express request object (unused).
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>}
  */
 async function deleteAllRssArticles(_req: Request, res: Response): Promise<void> {
   try {
@@ -76,7 +90,7 @@ async function deleteAllRssArticles(_req: Request, res: Response): Promise<void>
     const deletedCount = await RssRepository.deleteAll();
 
     res.status(200).json({
-      message: 'Tous les articles RSS ont été supprimés',
+      message: 'All RSS articles have been deleted',
       deletedCount,
     });
   } catch (error) {
@@ -85,7 +99,11 @@ async function deleteAllRssArticles(_req: Request, res: Response): Promise<void>
 }
 
 /**
- * Récupère un article RSS par son lien.
+ * Retrieves a single RSS article by its unique link.
+ * 
+ * @param {Request} req - Express request object.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>}
  */
 async function getRssArticleByLink(req: Request, res: Response): Promise<void> {
   try {
@@ -105,7 +123,7 @@ async function getRssArticleByLink(req: Request, res: Response): Promise<void> {
     }
 
     res.status(200).json({
-      message: 'Article trouvé',
+      message: 'Article found',
       data: article,
     });
   } catch (error) {
@@ -114,7 +132,12 @@ async function getRssArticleByLink(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * Récupère les métadonnées (catégories, sources, langues) depuis la configuration.
+ * Compiles and returns metadata for the frontend to build filter UI.
+ * Aggregates categories, languages, and source names from feed configuration.
+ * 
+ * @param {Request} _req - Express request object (unused).
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>}
  */
 async function getMetadata(_req: Request, res: Response): Promise<void> {
   try {

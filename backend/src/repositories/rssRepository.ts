@@ -8,7 +8,18 @@ const COLLECTION_NAME = databaseConfig.collection.rssArticles;
 
 export class RssRepository {
     /**
-     * Récupère les articles RSS avec pagination et filtrage.
+     * Retrieves RSS articles with pagination, sorting, and flexible filtering.
+     * Sorts articles by publication date and fetch time (descending).
+     * 
+     * @param {Object} options - Search and pagination options.
+     * @param {number} [options.page=1] - Page number.
+     * @param {number} [options.limit=20] - Number of items per page.
+     * @param {string} [options.category] - Filter by category.
+     * @param {string} [options.sentiment] - Filter by AI-predicted sentiment ('bullish'|'bearish').
+     * @param {string} [options.language] - Filter by language.
+     * @param {string} [options.search] - Search term for titles and summaries.
+     * @param {string} [options.feedName] - Filter by source feed name.
+     * @returns {Promise<{ articles: ProcessedArticleData[]; total: number }>}
      */
     public static async fetchAll(options: {
         page?: number;
@@ -51,7 +62,10 @@ export class RssRepository {
     }
 
     /**
-     * Récupère les articles qui n'ont pas encore été analysés par l'IA.
+     * Retrieves articles that have been fetched but not yet analyzed by AI.
+     * 
+     * @param {number} [limit=50] - Maximum number of pending articles to retrieve.
+     * @returns {Promise<ProcessedArticleData[]>}
      */
     public static async findPendingAnalysis(limit: number = 50): Promise<ProcessedArticleData[]> {
         const db = getDatabase();
@@ -64,7 +78,10 @@ export class RssRepository {
     }
 
     /**
-     * Récupère un article RSS par son lien.
+     * Finds a single RSS article by its unique permanent link.
+     * 
+     * @param {string} link - The URL link of the article.
+     * @returns {Promise<ProcessedArticleData | null>}
      */
     public static async findByLink(link: string): Promise<ProcessedArticleData | null> {
         const db = getDatabase();
@@ -74,7 +91,10 @@ export class RssRepository {
     }
 
     /**
-     * Supprime tous les articles RSS de la base de données.
+     * Deletes all RSS articles in the database.
+     * WARNING: Destructive operation.
+     * 
+     * @returns {Promise<number>} The number of deleted documents.
      */
     public static async deleteAll(): Promise<number> {
         const db = getDatabase();
@@ -84,7 +104,10 @@ export class RssRepository {
     }
 
     /**
-     * Enregistre un nouvel article RSS dans la base de données.
+     * Saves a new processed article to the database.
+     * 
+     * @param {ProcessedArticleData} articleData - The article data to persist.
+     * @returns {Promise<void>}
      */
     public static async save(articleData: ProcessedArticleData): Promise<void> {
         const db = getDatabase();
@@ -93,7 +116,11 @@ export class RssRepository {
     }
 
     /**
-     * Met à jour un article RSS existant par son ID MongoDB.
+     * Updates an article by its unique MongoDB identifier.
+     * 
+     * @param {string | ObjectId} articleId - The ID of the article.
+     * @param {Partial<ProcessedArticleData>} updateData - The fields to update.
+     * @returns {Promise<boolean>} True if at least one document was modified.
      */
     public static async updateById(
         articleId: string | ObjectId,
@@ -110,7 +137,10 @@ export class RssRepository {
     }
 
     /**
-     * Supprime un article RSS par son lien.
+     * Deletes a single article by its permanent link.
+     * 
+     * @param {string} link - The URL link of the article.
+     * @returns {Promise<boolean>} True if a document was deleted.
      */
     public static async deleteByLink(link: string): Promise<boolean> {
         const db = getDatabase();
@@ -120,7 +150,11 @@ export class RssRepository {
     }
 
     /**
-     * Met à jour un article s'il existe par lien, sinon l'insère (upsert).
+     * Updates an article if it already exists (by link) or inserts it if it doesn't.
+     * 
+     * @param {Partial<ProcessedArticleData>} articleData - The article data (must include link).
+     * @returns {Promise<{ updated: boolean; upserted: boolean }>} Status of the operation.
+     * @throws {Error} If the link field is missing.
      */
     public static async upsertByLink(
         articleData: Partial<ProcessedArticleData>
@@ -156,7 +190,11 @@ export class RssRepository {
     }
 
     /**
-     * Met à jour le statut d'erreur pour un article.
+     * Records an error message for an article processing attempt.
+     * 
+     * @param {string} link - The article link.
+     * @param {string} errorMessage - The error description.
+     * @returns {Promise<boolean>} True if the article was found and updated.
      */
     public static async updateErrorStatus(link: string, errorMessage: string): Promise<boolean> {
         const db = getDatabase();

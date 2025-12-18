@@ -205,8 +205,7 @@ watch([selectedCategory, selectedSentiment, selectedLanguage, selectedSource], (
     loadArticles(true);
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let searchTimeout: any = null;
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 watch(searchQuery, () => {
     if (searchTimeout) clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {

@@ -73,6 +73,6 @@ export interface ServerRssConfig {
     delayBetweenFeedsMs: number;        // Délai entre les différents flux (URLs)
     minContentLengthForScraping: number; // Seuil pour le scraping
     scrapeRetryDelayMs: number;         // Délai après scraping réussi
-    geminiRequestDelayMs: number; // Délai avant chaque série d'appels Gemini (résumé/analyse)
+    aiRequestDelayMs: number; // Délai avant chaque série d'appels AI (résumé/analyse)
     categories: RssCategoryConfig;      // Les catégories et leurs flux
 }
