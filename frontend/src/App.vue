@@ -11,7 +11,8 @@ import {
   Newspaper,
   TrendingUp,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Globe
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -24,6 +25,7 @@ interface Article {
   sourceFeed: string;
   feedName: string;
   category: string;
+  language?: string; // e.g. 'fr', 'en'
   publicationDate: string;
   summary: string;
   fetchedAt: string;
@@ -41,6 +43,7 @@ const searchQuery = ref('');
 const selectedCategory = ref<string | null>(null);
 const selectedSource = ref<string | null>(null);
 const selectedSentiment = ref<'bullish' | 'bearish' | null>(null);
+const selectedLanguage = ref<string | null>(null);
 
 // Computed
 const categories = computed(() => {
@@ -49,13 +52,24 @@ const categories = computed(() => {
 });
 
 const sources = computed(() => {
-  // Get sources available for the selected category (or all if none selected)
-  const relevantArticles = selectedCategory.value 
-    ? articles.value.filter(a => a.category === selectedCategory.value)
-    : articles.value;
+  // Get sources available for the selected category + language
+  let relevant = articles.value;
+
+  if (selectedCategory.value) {
+    relevant = relevant.filter(a => a.category === selectedCategory.value);
+  }
+  
+  if (selectedLanguage.value) {
+    relevant = relevant.filter(a => a.language === selectedLanguage.value);
+  }
     
-  const srcs = new Set(relevantArticles.map(a => a.feedName).filter(Boolean));
+  const srcs = new Set(relevant.map(a => a.feedName).filter(Boolean));
   return Array.from(srcs).sort();
+});
+
+const languages = computed(() => {
+  const langs = new Set(articles.value.map(a => a.language).filter(Boolean));
+  return Array.from(langs).sort();
 });
 
 const filteredArticles = computed(() => {
@@ -75,7 +89,10 @@ const filteredArticles = computed(() => {
       ? article.analysis?.sentiment === selectedSentiment.value 
       : true;
 
-    return matchesSearch && matchesCategory && matchesSource && matchesSentiment;
+    // 5. Language Filter
+    const matchesLanguage = selectedLanguage.value ? article.language === selectedLanguage.value : true;
+
+    return matchesSearch && matchesCategory && matchesSource && matchesSentiment && matchesLanguage;
   });
 });
 
@@ -127,6 +144,16 @@ const getSentimentColor = (sentiment: string) => {
   return sentiment === 'bullish' 
     ? 'bg-green-100 text-green-700 ring-green-600/20' 
     : 'bg-red-100 text-red-700 ring-red-600/20';
+};
+
+const getLangFlag = (lang?: string) => {
+  if (!lang) return '🌍';
+  const map: Record<string, string> = {
+    'fr': '🇫🇷', 'en': '🇺🇸', 'es': '🇪🇸', 'de': '🇩🇪',
+    'it': '🇮🇹', 'pt': '🇵🇹', 'nl': '🇳🇱', 'ru': '🇷🇺',
+    'zh': '🇨🇳', 'ja': '🇯🇵', 'ar': '🇸🇦', 'cn': '🇨🇳'
+  };
+  return map[lang.toLowerCase()] || '🌍';
 };
 
 onMounted(() => {
@@ -224,6 +251,39 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                 {{ category }}
                 <ChevronRight v-if="selectedCategory === category" class="h-3 w-3" />
               </button>
+            </div>
+          </div>
+
+          <!-- Language Filter -->
+          <div v-if="languages.length > 0" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <h2 class="font-semibold text-slate-900 flex items-center gap-2 mb-3 text-xs uppercase tracking-wide">
+                <Globe class="h-4 w-4" /> Language
+            </h2>
+            <div class="flex flex-wrap gap-2">
+                 <button 
+                    @click="selectedLanguage = null"
+                    :class="cn(
+                        'px-3 py-1.5 rounded-lg text-sm font-medium transition-all border',
+                        selectedLanguage === null
+                            ? 'bg-slate-100 text-slate-800 border-slate-200'
+                            : 'bg-white text-slate-500 border-dashed border-slate-200 hover:border-slate-300'
+                    )"
+                >
+                    All
+                </button>
+                <button 
+                    v-for="lang in languages" 
+                    :key="lang"
+                    @click="selectedLanguage = selectedLanguage === lang ? null : lang"
+                    :class="cn(
+                        'px-3 py-1.5 rounded-lg text-sm font-medium transition-all border flex items-center gap-1',
+                        selectedLanguage === lang
+                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200 ring-1 ring-indigo-500/20'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200'
+                    )"
+                >
+                    {{ getLangFlag(lang) }} <span class="uppercase">{{ lang }}</span>
+                </button>
             </div>
           </div>
 
@@ -339,6 +399,11 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                   <div class="flex gap-2 flex-wrap">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
                       {{ article.category }}
+                    </span>
+
+                    <!-- Lang Badge (if multiple languages exist) -->
+                    <span v-if="languages.length > 1 && article.language" title="Language" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-slate-50 text-slate-500 border border-slate-100 cursor-help">
+                        {{ getLangFlag(article.language) }}
                     </span>
                     
                     <!-- AI Badge -->

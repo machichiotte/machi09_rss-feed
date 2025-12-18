@@ -81,6 +81,7 @@ export class RssService {
                     fetchedAt: new Date().toISOString(),
                     processedAt: new Date().toISOString(),
                     summary: summary,
+                    language: feed.language || 'en', // Add language
                     analysis: analysis, // AI result attached
                     error: null,
                     scrapedContent: false,

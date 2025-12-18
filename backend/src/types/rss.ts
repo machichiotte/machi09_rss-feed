@@ -14,11 +14,11 @@ export interface ProcessedArticleData {
     sourceFeed?: string | null;
     feedName?: string | null;
     category?: string | null;
+    language?: string | null; // 'fr' | 'en' | ...
     fetchedAt: string | null;
     processedAt?: string | null;
     summary?: string | null;
-    // analysis?: string | null; avant
-    analysis?: FinancialAnalysis | null; // maintenant
+    analysis?: FinancialAnalysis | null;
     error?: string | null;
     scrapedContent?: boolean;
 }
@@ -53,8 +53,9 @@ export interface RssArticle {
 export interface RssFeedConfig {
     name: string;         // Nom affichable du flux (ex: "CoinTribune")
     url: string;          // URL du flux RSS
-    enabled?: boolean;    // Activer/désactiver ce flux spécifique (défaut: true si absent)
-    category?: string;    // Catégorie (sera ajoutée dynamiquement lors du traitement)
+    enabled?: boolean;    // Activer/désactiver ce flux spécifique
+    category?: string;    // Catégorie (ajoutée dynamiquement)
+    language?: 'fr' | 'en' | 'es' | 'de' | 'it' | 'pt' | 'nl' | 'ru' | 'zh' | 'ja' | 'ar'; // Langue du flux
 }
 
 /**

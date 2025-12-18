@@ -6,6 +6,7 @@ import cron from 'node-cron';
 import { connectToDatabase } from './config/database';
 import rssRoutes from './routes/rssRoutes';
 import logger from './utils/logger';
+import { RssService } from './services/rssService';
 
 // Load environment variables
 dotenv.config();
@@ -79,10 +80,22 @@ async function startServer() {
             if (process.env.RSS_ENABLED === 'true') {
                 const schedule = process.env.RSS_CRON_SCHEDULE || '*/30 * * * *';
                 console.log(`⏰ RSS cron job scheduled: ${schedule}`);
-                // TODO: Implement cron job
-                // cron.schedule(schedule, async () => {
-                //   console.log('Running RSS feed processing...');
-                // });
+
+                // Cron Job
+                cron.schedule(schedule, async () => {
+                    try {
+                        logger.info('⏰ Cron job triggered: processing feeds...');
+                        await RssService.processAllFeeds();
+                    } catch (error) {
+                        logger.error('Error in cron job:', error);
+                    }
+                });
+
+                // Run immediately on start (after 5s delay)
+                setTimeout(async () => {
+                    logger.info('🚀 Initial processing starting...');
+                    await RssService.processAllFeeds();
+                }, 5000);
             }
         });
     } catch (error) {
