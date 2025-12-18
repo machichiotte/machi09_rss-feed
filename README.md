@@ -17,12 +17,20 @@
 ## 🚀 Features
 
 - **Automated Fetching**: Cron-based scheduler to fetch feeds every 30 minutes.
-- **Smart Processing**: Extracts entities, sentiment (planned), and categorizes content.
+- **🧠 Smart AI Analysis**: Local sentiment analysis (Bullish/Bearish) using `transformers.js`.
+- **🔍 Advanced Filtering**: Filter by Source, Category, and AI Sentiment.
 - **REST API**: Clean API to manage and query articles.
-- **Modern UI**: Vue.js + TailwindCSS dashboard to view and filter news.
+- **Modern UI**: Vue.js + TailwindCSS dashboard with real-time stats.
 - **MongoDB Storage**: Persists articles with flexible schema.
 
-## 🏗 Project Structure
+## 🛠 Tech Stack
+
+- **Frontend**: Vue.js 3, Vite, TailwindCSS, Lucide Icons
+- **Backend**: Node.js, Express, TypeScript
+- **AI Engine**: `@xenova/transformers` (Running locally, no API key required!)
+- **Database**: MongoDB Atlas
+- **RSS Engine**: rss-parser
+- **Utilities**: Winston (logging), Node-cron (scheduling)
 
 ```bash
 machi09_rss-feed/
