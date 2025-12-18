@@ -6,7 +6,6 @@ export const rssConfig = {
     delayBetweenFeedsMs: parseInt(process.env.RSS_DELAY_BETWEEN_FEEDS_MS || '500'),
     minContentLengthForScraping: parseInt(process.env.RSS_MIN_CONTENT_LENGTH || '250'),
     scrapeRetryDelayMs: parseInt(process.env.RSS_SCRAPE_RETRY_DELAY_MS || '1000'),
-    geminiRequestDelayMs: parseInt(process.env.GEMINI_REQUEST_DELAY_MS || '8000'),
 
     categories: rssSources,
 };
