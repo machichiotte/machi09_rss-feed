@@ -32,6 +32,7 @@
 - **Database**: MongoDB Atlas
 - **RSS Engine**: rss-parser (configured with custom User-Agents and Timeouts)
 - **Logging**: Winston + Node.js `util.inspect`
+- **Quality**: Husky + Lint-Staged (Pre-commit hooks for linting & complexity)
 
 ## 📂 Structure
 
@@ -48,8 +49,6 @@ machi09_rss-feed/
 │   ├── src/
 │   ├── package.json
 │   └── vite.config.ts
-└── notes/              # Persistent logs and project notes
-    └── machi09_rss-feed/logs/
 ```
 
 ## 🏁 Quick Start
@@ -105,7 +104,7 @@ yarn dev
 
 - **RSS Sources**: List of feeds is in `backend/src/config/sources.ts`.
 - **System Config**: Delays and categories are in `backend/src/config/rssConfig.ts`.
-- **Logs**: Logs are automatically saved in `notes/machi09_rss-feed/logs/`.
+
 - **Cron Schedule**: Adjusted in your `.env` file via `RSS_CRON_SCHEDULE`.
 
 ---
