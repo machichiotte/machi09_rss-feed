@@ -16,41 +16,40 @@
 
 ## 🚀 Features
 
-- **Automated Fetching**: Cron-based scheduler to fetch feeds every 30 minutes.
-- **🧠 Smart AI Analysis**: Local sentiment analysis (Bullish/Bearish) using `transformers.js`.
-- **🔍 Advanced Filtering**: Filter by Source, Category, and AI Sentiment.
-- **REST API**: Clean API to manage and query articles.
-- **Modern UI**: Vue.js + TailwindCSS dashboard with real-time stats.
-- **MongoDB Storage**: Persists articles with flexible schema.
+- **⚡ High-Performance Fetching**: Parallelized feed retrieval (batch processing) for maximum speed.
+- **🔄 Asynchronous Processing**: "Fetch First, Analyze Later" strategy. Articles appear instantly in the UI while AI analysis runs in the background.
+- **🧠 Smart AI Analysis**: Local sentiment analysis (Bullish/Bearish) using `transformers.js` (running as a background worker).
+- **� Robust Logging**: Detailed persistent logging (`error.log`, `combined.log`) with automatic circular structure handling.
+- **�🔍 Advanced Filtering**: Filter by Source, Category, and AI Sentiment.
+- **Dashboard UI**: Modern Vue.js + TailwindCSS dashboard with real-time stats and instant Dark Mode.
 
 ## 🛠 Tech Stack
 
-- **Frontend**: Vue.js 3, Vite, TailwindCSS, Lucide Icons
+- **Frontend**: Vue.js 3, Vite, TailwindCSS (v4), Lucide Icons
 - **Backend**: Node.js, Express, TypeScript
 - **AI Engine**: `@xenova/transformers` (Running locally, no API key required!)
 - **Database**: MongoDB Atlas
-- **RSS Engine**: rss-parser
-- **Utilities**: Winston (logging), Node-cron (scheduling)
+- **RSS Engine**: rss-parser (configured with custom User-Agents and Timeouts)
+- **Logging**: Winston + Node.js `util.inspect`
+
+## 📂 Structure
 
 ```bash
 machi09_rss-feed/
-├── backend/            # Express API & Cron Jobs
+├── backend/            # Express API & Background Jobs
 │   ├── src/
+│   │   ├── config/     # Sources and App config
+│   │   ├── services/   # RSS & AI Logic
+│   │   └── utils/      # Logger & Helpers
 │   ├── package.json
 │   └── .env
 ├── frontend/           # Vue.js 3 + TailwindCSS UI
 │   ├── src/
 │   ├── package.json
 │   └── vite.config.ts
-├── README.md
-└── LICENSE
+└── notes/              # Persistent logs and project notes
+    └── machi09_rss-feed/logs/
 ```
-
-## 🛠 Prerequisites
-
-- **Node.js**: v18+
-- **Yarn** or **NPM**
-- **MongoDB Atlas** Account
 
 ## 🏁 Quick Start
 
@@ -80,10 +79,10 @@ yarn dev
 Open a new terminal:
 ```bash
 cd frontend
-npm install
+yarn install
 
 # Start the Frontend
-npm run dev
+yarn dev
 # Dashboard running on http://localhost:5173
 ```
 
@@ -95,34 +94,23 @@ npm run dev
 | :--- | :--- | :--- |
 | **GET** | `/api/health` | Check server status |
 | **GET** | `/api/rss` | Get processed articles |
-| **POST** | `/api/rss/process` | Trigger manual feed fetch |
+| **POST** | `/api/rss/process` | Trigger manual feed fetch (asynchronous) |
 | **GET** | `/api/rss/search` | Search articles (`?link=...`) |
-
-## 📊 Usage
-
-1. **Dashboard**: Go to `http://localhost:5173` to browse news.
-2. **Refresh**: Click "Refresh Feeds" in the UI to trigger a new fetch.
-3. **Filters**: Use the sidebar to filter by category (Crypto, Tech, Finance).
 
 ---
 
 ## ⚙️ Configuration
 
-**RSS Feeds** are configured in `backend/src/config/rssConfig.ts`.
-You can add/remove feeds or change categories there.
-
-**Cron Schedule** is in `.env`:
-```env
-RSS_CRON_SCHEDULE="*/30 * * * *" # Every 30 minutes
-```
+- **RSS Sources**: List of feeds is in `backend/src/config/sources.ts`.
+- **System Config**: Delays and categories are in `backend/src/config/rssConfig.ts`.
+- **Logs**: Logs are automatically saved in `notes/machi09_rss-feed/logs/`.
+- **Cron Schedule**: Adjusted in your `.env` file via `RSS_CRON_SCHEDULE`.
 
 ---
 
 ## 👤 Author
 
-**machichiotte**
-
-- GitHub: [@machichiotte](https://github.com/machichiotte)
+**machichiotte** - [GitHub](https://github.com/machichiotte)
 
 ## 📜 License
 
