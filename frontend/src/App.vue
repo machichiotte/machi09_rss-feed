@@ -173,7 +173,7 @@ const selectCategory = (category: string | null) => {
 const formatDate = (dateStr: string) => {
   try {
     return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
-  } catch (e) {
+  } catch {
     return 'Recently';
   }
 };
