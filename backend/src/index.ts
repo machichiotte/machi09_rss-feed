@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
     res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
@@ -30,7 +30,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-app.get('/api', (req, res) => {
+app.get('/api', (_req, res) => {
     res.json({
         message: 'machi09_rss-feed API',
         version: '1.0.0',
@@ -55,7 +55,7 @@ app.use('/api/rss', rssRoutes);
 // }
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Error:', err);
     res.status(500).json({
         error: 'Internal Server Error',

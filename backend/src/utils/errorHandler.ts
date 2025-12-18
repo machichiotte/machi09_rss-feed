@@ -36,3 +36,15 @@ export function handleControllerError(
         });
     }
 }
+
+//Todo ajout handler service error
+
+export function handleServiceError(
+    error: unknown,
+    context: string,
+    message: string
+): void {
+    logger.error(`${message} | Context: ${context}`, { error });
+    // You might want to rethrow or handle differently depending on your architecture
+    // For now, we mainly log it as requested by the usage in rssProcessor
+}

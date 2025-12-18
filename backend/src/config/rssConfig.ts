@@ -1,4 +1,3 @@
-import { RssCategoryConfig } from '@/types/rss';
 import { rssSources } from './sources';
 
 export const rssConfig = {

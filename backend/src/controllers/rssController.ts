@@ -46,7 +46,7 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
 /**
  * Déclenche le traitement de tous les flux RSS.
  */
-async function processRssFeeds(req: Request, res: Response): Promise<void> {
+async function processRssFeeds(_req: Request, res: Response): Promise<void> {
   try {
     logger.info('Manual RSS processing triggered');
     res.status(202).json({
@@ -70,7 +70,7 @@ async function processRssFeeds(req: Request, res: Response): Promise<void> {
 /**
  * Supprime tous les articles RSS de la base de données.
  */
-async function deleteAllRssArticles(req: Request, res: Response): Promise<void> {
+async function deleteAllRssArticles(_req: Request, res: Response): Promise<void> {
   try {
     logger.info('Deleting all RSS articles from database');
     const deletedCount = await RssRepository.deleteAll();
@@ -116,7 +116,7 @@ async function getRssArticleByLink(req: Request, res: Response): Promise<void> {
 /**
  * Récupère les métadonnées (catégories, sources, langues) depuis la configuration.
  */
-async function getMetadata(req: Request, res: Response): Promise<void> {
+async function getMetadata(_req: Request, res: Response): Promise<void> {
   try {
     const { rssSources } = await import('@/config/sources');
 

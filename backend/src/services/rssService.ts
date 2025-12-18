@@ -153,7 +153,8 @@ export class RssService {
      * Fetch all articles from database
      */
     public static async fetchDatabaseRss(): Promise<ProcessedArticleData[]> {
-        return await RssRepository.fetchAll();
+        const result = await RssRepository.fetchAll();
+        return result.articles;
     }
 
     private static delay(ms: number): Promise<void> {
