@@ -56,7 +56,7 @@ class AiService {
     /**
      * Analyze an article (title + summary)
      */
-    async analyzeArticle(title: string, summary: string | null) {
+    async analyzeArticle(title: string, summary: string | null): Promise<{ sentiment: 'bullish' | 'bearish', sentimentScore: number }> {
         const textToAnalyze = `${title}. ${summary || ''}`;
 
         // Sentiment

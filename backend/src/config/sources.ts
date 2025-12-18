@@ -31,7 +31,7 @@ export const rssSources: RssCategoryConfig = {
         { name: 'BeInCrypto ES', url: 'https://es.beincrypto.com/feed/', enabled: true, language: 'es' },
         { name: 'DiarioBitcoin', url: 'https://www.diariobitcoin.com/feed/', enabled: true, language: 'es' },
         { name: 'CriptoNoticias', url: 'https://www.criptonoticias.com/feed/', enabled: true, language: 'es' },
-        { name: 'Xataka Cripto', url: 'https://www.xataka.com/categoria/criptomonedas/feed', enabled: true, language: 'es' },
+        { name: 'Xataka Cripto', url: 'https://www.xataka.com/feedburner.xml', enabled: true, language: 'es' },
 
         // German
         { name: 'Cointelegraph DE', url: 'https://de.cointelegraph.com/rss', enabled: true, language: 'de' },
@@ -74,7 +74,7 @@ export const rssSources: RssCategoryConfig = {
         { name: 'Le Figaro Économie', url: 'https://www.lefigaro.fr/rss/figaro_economie.xml', enabled: true, language: 'fr' },
         { name: 'Capital Finance', url: 'https://www.capitalfinance.fr/rss', enabled: true, language: 'fr' },
         { name: 'Boursier.com', url: 'https://www.boursier.com/rss/actualites/actualites.rss', enabled: true, language: 'fr' },
-        { name: 'L\'Opinion', url: 'https://www.lopinion.fr/flux-rss', enabled: true, language: 'fr' },
+        { name: 'L\'Opinion', url: 'https://www.lopinion.fr/abonnement/rss', enabled: true, language: 'fr' },
     ],
     'Tech News': [
         // English
@@ -89,13 +89,13 @@ export const rssSources: RssCategoryConfig = {
         { name: 'Numerama', url: 'https://www.numerama.com/feed', enabled: true, language: 'fr' },
         { name: 'Les Numériques', url: 'https://www.lesnumeriques.com/rss.xml', enabled: true, language: 'fr' },
         { name: 'ZDNet France', url: 'https://www.zdnet.fr/rss/', enabled: true, language: 'fr' },
-        { name: 'Usine Digitale', url: 'https://www.usine-digitale.fr/rss.xml', enabled: true, language: 'fr' },
+        { name: 'Usine Digitale', url: 'https://www.usine-digitale.fr/rss', enabled: true, language: 'fr' },
         { name: 'Next INpact', url: 'https://www.nextinpact.com/rss/news.xml', enabled: true, language: 'fr' },
         { name: 'Journal du Net', url: 'https://www.journaldunet.com/rss/', enabled: true, language: 'fr' },
         { name: 'Clubic', url: 'https://www.clubic.com/rss/news.rss', enabled: true, language: 'fr' },
         { name: 'Siècle Digital', url: 'https://siecledigital.fr/feed/', enabled: true, language: 'fr' },
         { name: 'Phonandroid', url: 'https://www.phonandroid.com/feed', enabled: true, language: 'fr' },
-        { name: 'CNET France', url: 'https://www.cnetfrance.fr/feeds/news/', enabled: true, language: 'fr' },
+        { name: 'CNET France', url: 'https://www.cnetfrance.fr/rss/news/', enabled: true, language: 'fr' },
         { name: 'Developpez.com', url: 'https://www.developpez.com/index/rss/', enabled: true, language: 'fr' },
     ],
     'General News': [
@@ -109,16 +109,16 @@ export const rssSources: RssCategoryConfig = {
         // French
         { name: 'AFP Actualités', url: 'https://www.afp.com/fr/actus/afp_actualite/792,31,9,7,33/feed', enabled: true, language: 'fr' },
         { name: 'Le Monde', url: 'https://www.lemonde.fr/rss/en_continu.xml', enabled: true, language: 'fr' },
-        { name: 'Libération', url: 'https://www.liberation.fr/rss/dernieres-infos/', enabled: true, language: 'fr' },
+        { name: 'Libération', url: 'https://www.liberation.fr/rss/', enabled: true, language: 'fr' },
         { name: '20 Minutes', url: 'https://www.20minutes.fr/feeds/rss-20minutes_fr_articles.xml', enabled: true, language: 'fr' },
-        { name: 'Le Figaro', url: 'https://www.lefigaro.fr/rss/figaro_electronique.xml', enabled: true, language: 'fr' },
+        { name: 'Le Figaro', url: 'https://www.lefigaro.fr/rss/figaro.xml', enabled: true, language: 'fr' },
         { name: 'L\'Express', url: 'https://www.lexpress.fr/rss/alaune.xml', enabled: true, language: 'fr' },
-        { name: 'Le Point', url: 'https://www.lepoint.fr/rss.xml', enabled: true, language: 'fr' },
+        { name: 'Le Point', url: 'https://www.lepoint.fr/24h-infos/rss.xml', enabled: true, language: 'fr' },
         { name: 'HuffPost FR', url: 'https://www.huffingtonpost.fr/feeds/index.xml', enabled: true, language: 'fr' },
         { name: 'Mediapart', url: 'https://www.mediapart.fr/articles/feed', enabled: true, language: 'fr' },
         { name: 'Ouest-France', url: 'https://www.ouest-france.fr/rss/une.xml', enabled: true, language: 'fr' },
-        { name: 'Le Parisien', url: 'https://www.leparisien.fr/actualites.rss.xml', enabled: true, language: 'fr' },
-        { name: 'Courrier International', url: 'https://www.courrierinternational.com/feed/category/168/rss', enabled: true, language: 'fr' },
+        { name: 'Le Parisien', url: 'https://feeds.leparisien.fr/leparisien/rss/actualites', enabled: true, language: 'fr' },
+        { name: 'Courrier International', url: 'https://www.courrierinternational.com/rss/rss_a_la_une.xml', enabled: true, language: 'fr' },
     ],
     'Politics': [
         { name: 'Bloomberg Politics', url: 'https://feeds.bloomberg.com/politics/news.rss', enabled: true, language: 'en' },

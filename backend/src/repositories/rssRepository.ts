@@ -17,6 +17,18 @@ export class RssRepository {
     }
 
     /**
+     * Récupère les articles qui n'ont pas encore été analysés par l'IA.
+     */
+    public static async findPendingAnalysis(limit: number = 50): Promise<ProcessedArticleData[]> {
+        const db = getDatabase();
+        const documents = await db.collection(COLLECTION_NAME)
+            .find({ analysis: { $exists: false } })
+            .limit(limit)
+            .toArray();
+        return documents as ProcessedArticleData[];
+    }
+
+    /**
      * Récupère un article RSS par son lien.
      */
     public static async findByLink(link: string): Promise<ProcessedArticleData | null> {
