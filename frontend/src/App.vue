@@ -19,6 +19,9 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+// API Configuration
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
 // Types
 interface Article {
   _id: string;
@@ -84,7 +87,7 @@ const applyTheme = () => {
 
 const fetchMetadata = async () => {
   try {
-    const response = await axios.get('/api/rss/metadata');
+    const response = await axios.get(`${API_BASE_URL}/api/rss/metadata`);
     allCategories.value = response.data.categories;
     allSources.value = response.data.sources;
     allLanguages.value = response.data.languages;
@@ -114,7 +117,7 @@ async function loadArticles(reset = false) {
       source: selectedSource.value
     };
 
-    const response = await axios.get('/api/rss', { params });
+    const response = await axios.get(`${API_BASE_URL}/api/rss`, { params });
     const newArticles = response.data.articles || response.data.data || [];
     
     if (reset) {
@@ -154,7 +157,7 @@ function checkAndLoadMore() {
 const triggerProcess = async () => {
   processing.value = true;
   try {
-    await axios.post('/api/rss/process');
+    await axios.post(`${API_BASE_URL}/api/rss/process`);
     setTimeout(() => {
       loadArticles(true);
       processing.value = false;
