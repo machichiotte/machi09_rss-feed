@@ -23,10 +23,8 @@ services:
       - mongodb
     networks:
       - rss-network
-    # Use a volume for models if we want to update them without rebuild, 
-    # but the Dockerfile already bakes in the defaults.
-    # volumes:
-    #   - ./backend/models_cache:/app/models_cache
+    volumes:
+      - /media/machi/Data/Dev/machi-workspace/machi-projects/machi00_ops/machi09_rss-feed/debug-logs:/app/logs
 
   frontend:
     build:

@@ -65,8 +65,8 @@ describe('AiService', () => {
             mockPipeline.mockResolvedValue(mockFn as unknown as never);
 
             const result = await aiService.analyzeArticle('title', 'summary');
-            expect(result.sentiment).toBe('bearish');
-            expect(result.sentimentScore).toBe(0.8);
+            expect(result.analysis.sentiment).toBe('bearish');
+            expect(result.analysis.sentimentScore).toBe(0.8);
         });
     });
 });

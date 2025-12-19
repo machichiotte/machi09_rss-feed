@@ -140,14 +140,20 @@ export class RssService {
 
                 for (const article of pending) {
                     try {
-                        const analysis = await aiService.analyzeArticle(article.title, article.summary || '');
+                        const { analysis, translations } = await aiService.analyzeArticle(
+                            article.title,
+                            article.summary || '',
+                            article.language || 'en'
+                        );
+
                         await RssRepository.updateById(article._id!, {
                             analysis,
+                            translations,
                             processedAt: new Date().toISOString()
                         });
 
                         // Keep a small delay to avoid excessive CPU usage
-                        await this.delay(200);
+                        await this.delay(300);
                     } catch (error) {
                         logger.error(`❌ AI Error on article ${article.link}:`, error);
                         await RssRepository.updateById(article._id!, {

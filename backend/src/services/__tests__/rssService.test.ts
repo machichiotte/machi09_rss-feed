@@ -83,7 +83,10 @@ describe('RssService Background Analysis', () => {
             .mockResolvedValueOnce(pending as unknown as ProcessedArticleData[])
             .mockResolvedValueOnce([]);
 
-        vi.mocked(aiService.analyzeArticle).mockResolvedValue({ sentiment: 'bullish', sentimentScore: 0.9 });
+        vi.mocked(aiService.analyzeArticle).mockResolvedValue({
+            analysis: { sentiment: 'bullish', sentimentScore: 0.9 },
+            translations: {}
+        });
 
         await serviceInternal.runBackgroundAnalysis();
 

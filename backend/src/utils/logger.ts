@@ -4,24 +4,24 @@ import path from 'path';
 import fs from 'fs';
 
 const logLevel = process.env.LOG_LEVEL || 'info';
-const isProduction = process.env.NODE_ENV === 'production';
 
 // Path to log errors in the ops directory as requested (local only)
-const OPS_LOG_DIR = '/media/machi/Data/Dev/machi-workspace/machi-projects/machi00_ops/machi09_rss-feed/debug-logs';
-let logDir = OPS_LOG_DIR;
-let useFileLogging = true;
+// Log directory resolution
+let logDir = path.join(process.cwd(), 'logs');
 
-// Ensure the directory exists or fallback to relative path
+// If running in the specific local dev environment (outside docker)
+const OPS_LOG_DIR = '/media/machi/Data/Dev/machi-workspace/machi-projects/machi00_ops/machi09_rss-feed/debug-logs';
+if (fs.existsSync(OPS_LOG_DIR)) {
+    logDir = OPS_LOG_DIR;
+}
+
+let useFileLogging = true;
 try {
     if (!fs.existsSync(logDir)) {
-        // Fallback to a local 'logs' directory if the absolute path is unavailable (e.g., in Docker/HF)
-        logDir = path.join(process.cwd(), 'logs');
-        if (!fs.existsSync(logDir)) {
-            fs.mkdirSync(logDir, { recursive: true });
-        }
+        fs.mkdirSync(logDir, { recursive: true });
     }
-} catch {
-    console.warn('Could not create log directory, falling back to console only');
+} catch (error) {
+    console.warn('⚠️ Could not initialize log directory, falling back to console:', error);
     useFileLogging = false;
 }
 
@@ -42,8 +42,8 @@ const transports: winston.transport[] = [
     })
 ];
 
-// Add file transports only if we are not in a restricted environment (like HF Spaces)
-if (useFileLogging && !isProduction) {
+// Add file transports
+if (useFileLogging) {
     transports.push(
         new winston.transports.File({
             filename: path.join(logDir, 'error.log'),

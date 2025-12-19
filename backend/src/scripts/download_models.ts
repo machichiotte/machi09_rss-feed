@@ -15,6 +15,18 @@ async function downloadModels() {
             'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
         );
 
+        console.log('📚 Downloading summarization model: Xenova/distilbart-cnn-6-6');
+        await pipeline(
+            'summarization',
+            'Xenova/distilbart-cnn-6-6'
+        );
+
+        console.log('🌐 Downloading translation model: Xenova/m2m100_418M');
+        await pipeline(
+            'translation',
+            'Xenova/m2m100_418M'
+        );
+
         console.log('✅ Models downloaded and cached successfully in:', path.resolve(env.cacheDir));
     } catch (error) {
         console.error('❌ Failed to download models:', error);

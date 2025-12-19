@@ -19,6 +19,11 @@ export interface ProcessedArticleData {
     processedAt?: string | null;
     summary?: string | null;
     analysis?: FinancialAnalysis | null;
+    translations?: Record<string, {
+        title: string;
+        summary: string;
+        iaSummary?: string;
+    }> | null;
     error?: string | null;
     scrapedContent?: boolean;
 }

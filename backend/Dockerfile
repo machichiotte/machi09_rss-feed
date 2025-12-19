@@ -9,12 +9,15 @@ COPY package.json yarn.lock ./
 # Install all dependencies
 RUN yarn install --frozen-lockfile
 
-# Copy the pre-download script and source
-COPY src ./src
+# Copy only the pre-download script for better caching
+COPY src/scripts/download_models.ts ./src/scripts/download_models.ts
 COPY tsconfig.json ./
 
-# Pre-download AI models
+# Pre-download AI models (this layer will be cached unless download_models.ts changes)
 RUN npx tsx src/scripts/download_models.ts
+
+# Now copy the rest of the source code
+COPY src ./src
 
 # Build the application (we still build to ensure types are correct)
 RUN yarn build

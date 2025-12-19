@@ -6,46 +6,31 @@ import { ObjectId, Filter } from 'mongodb';
 
 const COLLECTION_NAME = databaseConfig.collection.rssArticles;
 
+export interface FetchOptions {
+    page?: number;
+    limit?: number;
+    category?: string;
+    sentiment?: string;
+    language?: string;
+    search?: string;
+    feedName?: string;
+    translationStatus?: 'all' | 'translated' | 'original';
+}
+
 export class RssRepository {
     /**
      * Retrieves RSS articles with pagination, sorting, and flexible filtering.
      * Sorts articles by publication date and fetch time (descending).
      * 
-     * @param {Object} options - Search and pagination options.
-     * @param {number} [options.page=1] - Page number.
-     * @param {number} [options.limit=20] - Number of items per page.
-     * @param {string} [options.category] - Filter by category.
-     * @param {string} [options.sentiment] - Filter by AI-predicted sentiment ('bullish'|'bearish').
-     * @param {string} [options.language] - Filter by language.
-     * @param {string} [options.search] - Search term for titles and summaries.
-     * @param {string} [options.feedName] - Filter by source feed name.
+     * @param {FetchOptions} options - Search and pagination options.
      * @returns {Promise<{ articles: ProcessedArticleData[]; total: number }>}
      */
-    public static async fetchAll(options: {
-        page?: number;
-        limit?: number;
-        category?: string;
-        sentiment?: string;
-        language?: string;
-        search?: string;
-        feedName?: string;
-    } = {}): Promise<{ articles: ProcessedArticleData[]; total: number }> {
+    public static async fetchAll(options: FetchOptions = {}): Promise<{ articles: ProcessedArticleData[]; total: number }> {
         const db = getDatabase();
         const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
-        const { page = 1, limit = 20, category, sentiment, language, search, feedName } = options;
+        const { page = 1, limit = 20 } = options;
 
-        const query: Filter<ProcessedArticleData> = {};
-
-        if (category) query.category = category;
-        if (language) query.language = language;
-        if (feedName) query.feedName = feedName;
-        if (sentiment) query['analysis.sentiment'] = sentiment;
-        if (search) {
-            query.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { summary: { $regex: search, $options: 'i' } }
-            ];
-        }
+        const query = this.buildFilterQuery(options);
 
         const total = await collection.countDocuments(query);
         const documents = await collection
@@ -62,6 +47,36 @@ export class RssRepository {
     }
 
     /**
+     * Builds a MongoDB filter query based on the provided options.
+     */
+    private static buildFilterQuery(options: FetchOptions): Filter<ProcessedArticleData> {
+        const query: Filter<ProcessedArticleData> = {};
+        const { category, sentiment, language, search, feedName, translationStatus = 'all' } = options;
+
+        if (category) query.category = category;
+        if (language) {
+            query.language = language.includes(',') ? { $in: language.split(',') } : language;
+        }
+        if (feedName) query.feedName = feedName;
+        if (sentiment) query['analysis.sentiment'] = sentiment;
+
+        if (translationStatus === 'translated') {
+            query.translations = { $exists: true, $ne: {} };
+        } else if (translationStatus === 'original') {
+            query.translations = { $exists: false };
+        }
+
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { summary: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        return query;
+    }
+
+    /**
      * Retrieves articles that have been fetched but not yet analyzed by AI.
      * 
      * @param {number} [limit=50] - Maximum number of pending articles to retrieve.
@@ -72,6 +87,7 @@ export class RssRepository {
         const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
         const documents = await collection
             .find({ analysis: null })
+            .sort({ publicationDate: -1, fetchedAt: -1 })
             .limit(limit)
             .toArray();
         return documents;

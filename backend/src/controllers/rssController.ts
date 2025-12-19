@@ -22,8 +22,9 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
     const language = req.query.language as string;
     const search = req.query.search as string;
     const feedName = req.query.source as string;
+    const translationStatus = req.query.translationStatus as 'all' | 'translated' | 'original';
 
-    logger.info(`Fetching RSS articles: page=${page}, limit=${limit}, category=${category}, search=${search}, source=${feedName}`);
+    logger.info(`Fetching RSS articles: page=${page}, limit=${limit}, category=${category}, search=${search}, source=${feedName}, translationStatus=${translationStatus}`);
 
     const { articles, total } = await RssRepository.fetchAll({
       page,
@@ -32,7 +33,8 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
       sentiment,
       language,
       search,
-      feedName
+      feedName,
+      translationStatus
     });
 
     res.status(200).json({

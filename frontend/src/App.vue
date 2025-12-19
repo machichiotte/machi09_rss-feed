@@ -13,7 +13,9 @@ import {
   ChevronRight,
   Moon,
   Sun,
-  Sparkles
+  Sparkles, 
+  Languages,
+  ArrowRight
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -38,6 +40,11 @@ interface Article {
     sentimentScore: number;
     iaSummary?: string;
   };
+  translations?: Record<string, {
+    title: string;
+    summary: string;
+    iaSummary?: string;
+  }>;
 }
 
 // State
@@ -49,8 +56,15 @@ const searchQuery = ref('');
 const selectedCategory = ref<string | null>(null);
 const selectedSource = ref<string | null>(null);
 const selectedSentiment = ref<'bullish' | 'bearish' | null>(null);
-const selectedLanguage = ref<string | null>(null);
+const selectedLanguages = ref<string[]>([]);
+const globalMagicMode = ref(localStorage.globalMagicMode === 'true');
+const preferredLanguage = ref(localStorage.preferredLanguage || 'fr');
+if (!localStorage.preferredLanguage) localStorage.preferredLanguage = 'fr';
+const insightVisibility = ref<Record<string, boolean>>({}); // articleId -> visible
+const translationToggles = ref<Record<string, boolean>>({}); // articleId -> isTranslated
+const showLangDropdown = ref(false);
 const isDark = ref(false);
+const error = ref<string | null>(null);
 
 // Pagination State
 const currentPage = ref(1);
@@ -101,46 +115,53 @@ async function loadArticles(reset = false) {
     currentPage.value = 1;
     articles.value = [];
     loading.value = true;
+    error.value = null;
   } else {
     if (loadingMore.value || loading.value) return;
     loadingMore.value = true;
   }
 
   try {
-    const params = {
-      page: currentPage.value,
-      limit: limit.value,
-      category: selectedCategory.value,
-      sentiment: selectedSentiment.value,
-      language: selectedLanguage.value,
-      search: searchQuery.value,
-      source: selectedSource.value
-    };
-
+    const params = getFetchParams();
     const response = await axios.get(`${API_BASE_URL}/api/rss`, { params });
-    const newArticles = response.data.articles || response.data.data || [];
+    const data = response.data;
+    const newArticles = data.articles || data.data || [];
     
-    if (reset) {
-      articles.value = newArticles;
-    } else {
-      articles.value = [...articles.value, ...newArticles];
-    }
-
-    totalArticles.value = response.data.total || 0;
+    articles.value = reset ? newArticles : [...articles.value, ...newArticles];
+    totalArticles.value = data.total || 0;
     hasMore.value = articles.value.length < totalArticles.value;
-    
     currentPage.value++;
 
-    // Re-check after render
-    nextTick(() => {
-      checkAndLoadMore();
-    });
-  } catch (error) {
-    console.error('Failed to load articles:', error);
+    nextTick(() => checkAndLoadMore());
+  } catch (err) {
+    handleFetchError(err);
   } finally {
     loading.value = false;
     loadingMore.value = false;
   }
+}
+
+function getFetchParams() {
+  return {
+    page: currentPage.value,
+    limit: limit.value,
+    category: selectedCategory.value,
+    sentiment: selectedSentiment.value,
+    language: selectedLanguages.value.length > 0 ? selectedLanguages.value.join(',') : null,
+    search: searchQuery.value,
+    source: selectedSource.value
+  };
+}
+
+function handleFetchError(err: unknown) {
+  console.error('Failed to load articles:', err);
+  let status: number | undefined;
+  if (axios.isAxiosError(err)) {
+    status = err.status || err.response?.status;
+  }
+  error.value = status === 504 
+    ? "Nexus is currently busy processing AI insights. Please wait a moment." 
+    : "Failed to synchronize with Nexus. Check your connection.";
 }
 
 function checkAndLoadMore() {
@@ -173,6 +194,46 @@ const selectCategory = (category: string | null) => {
   selectedSource.value = null;
 };
 
+const setPreferredLanguage = (lang: string) => {
+  preferredLanguage.value = lang;
+  localStorage.preferredLanguage = lang;
+};
+
+const setGlobalMagic = (val: boolean) => {
+  globalMagicMode.value = val;
+  localStorage.globalMagicMode = val.toString();
+};
+
+const getArticleTitle = (article: Article) => {
+  return article.title;
+};
+
+const getArticleInsightTitle = (article: Article) => {
+  const translations = article.translations;
+  const isTranslated = translationToggles.value[article._id];
+  const translation = translations?.[preferredLanguage.value];
+  
+  if (isTranslated && translation) {
+    return translation.title;
+  }
+  return '';
+};
+
+const getArticleInsight = (article: Article) => {
+  const translations = article.translations;
+  const translation = translations ? translations[preferredLanguage.value] : undefined;
+  const isTranslated = translationToggles.value[article._id];
+  
+  if (isTranslated && translation) {
+    return translation.iaSummary || translation.summary;
+  }
+  return article.analysis?.iaSummary || article.summary || 'No AI Insight available';
+};
+
+const hasTranslation = (article: Article) => {
+  return !!(article.translations && article.translations[preferredLanguage.value]);
+};
+
 const formatDate = (dateStr: string) => {
   try {
     return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
@@ -192,14 +253,33 @@ const getLangFlag = (lang?: string) => {
   return map[lang.toLowerCase()] || '🌍';
 };
 
+const toggleSelectedLanguage = (lang: string) => {
+  if (selectedLanguages.value.includes(lang)) {
+    selectedLanguages.value = selectedLanguages.value.filter(l => l !== lang);
+  } else {
+    selectedLanguages.value.push(lang);
+  }
+};
+
 // Computed
 const categories = computed(() => allCategories.value);
 const languages = computed(() => allLanguages.value);
 const filteredArticles = computed(() => articles.value); // Articles are already filtered on server
 
 // Watchers
-watch([selectedCategory, selectedSentiment, selectedLanguage, selectedSource], () => {
-    loadArticles(true);
+let filterTimeout: ReturnType<typeof setTimeout> | null = null;
+watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, preferredLanguage], () => {
+    if (filterTimeout) clearTimeout(filterTimeout);
+    filterTimeout = setTimeout(() => {
+        loadArticles(true);
+    }, 300);
+}, { deep: true });
+
+watch(globalMagicMode, (val) => {
+  articles.value.forEach(article => {
+    insightVisibility.value[article._id] = val;
+    translationToggles.value[article._id] = val;
+  });
 });
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -363,7 +443,49 @@ function cn(...inputs: (string | undefined | null | false)[]) {
           </div>
 
           <!-- Language & Sentiment Hub -->
-          <div class="glass rounded-3xl p-6 space-y-8">
+          <div class="glass rounded-3xl p-6 space-y-8 relative z-20">
+            <!-- Reading Preference -->
+            <div>
+              <h2 class="font-black text-slate-400 mb-2 text-[10px] uppercase tracking-[0.25em]">My Language</h2>
+              <div class="relative group">
+                <select 
+                  v-model="preferredLanguage"
+                  @change="setPreferredLanguage(preferredLanguage)"
+                  class="w-full bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                >
+                  <option v-for="lang in languages" :key="lang" :value="lang">
+                    {{ getLangFlag(lang) }} {{ lang.toUpperCase() }}
+                  </option>
+                </select>
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <ChevronDown class="h-3 w-3" />
+                </div>
+              </div>
+              <p class="text-[9px] text-slate-400 mt-2 italic">Dashboard language priority.</p>
+            </div>
+
+            <!-- Translation State -->
+            <div class="flex items-center justify-between p-3 rounded-2xl bg-amber-500/5 border border-amber-500/10">
+              <div>
+                <h2 class="font-black text-amber-600 text-[10px] uppercase tracking-widest">Intelligence Hub</h2>
+                <p class="text-[9px] text-amber-600/60 uppercase font-bold">Auto-Insights</p>
+              </div>
+              <button 
+                @click="setGlobalMagic(!globalMagicMode)"
+                :class="cn(
+                  'w-10 h-6 rounded-full transition-all relative',
+                  globalMagicMode ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700'
+                )"
+              >
+                <div 
+                  :class="cn(
+                    'absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm',
+                    globalMagicMode ? 'translate-x-4' : 'translate-x-0'
+                  )"
+                ></div>
+              </button>
+            </div>
+
             <!-- Sentiment Hub -->
             <div>
               <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em]">Intelligence</h2>
@@ -395,29 +517,42 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               </div>
             </div>
 
-            <!-- Language Hub -->
-            <div>
-              <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em]">Network</h2>
-              <div class="flex flex-wrap gap-2">
+            <!-- Language Hub (Filtering) -->
+            <div class="relative">
+              <h2 class="font-black text-slate-400 mb-2 text-[10px] uppercase tracking-[0.25em]">Network Filter</h2>
+              <div class="relative">
                 <button 
-                  v-for="lang in languages" 
-                  :key="lang"
-                  @click="selectedLanguage = selectedLanguage === lang ? null : lang"
-                  :class="cn(
-                    'px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-2',
-                    selectedLanguage === lang
-                      ? 'bg-indigo-600 text-white border-transparent shadow-md'
-                      : 'bg-white/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-white/20 dark:border-slate-800 hover:scale-105'
-                  )"
+                  @click="showLangDropdown = !showLangDropdown"
+                  class="w-full bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-left flex items-center justify-between relative z-10"
                 >
-                  {{ getLangFlag(lang) }} <span class="uppercase tracking-tighter">{{ lang }}</span>
+                  <span v-if="selectedLanguages.length === 0">All Languages</span>
+                  <span v-else class="truncate">{{ selectedLanguages.join(', ').toUpperCase() }}</span>
+                  <ChevronDown class="h-3 w-3 text-slate-400" />
                 </button>
+                
+                <div v-if="showLangDropdown" class="absolute z-[100] w-full mt-2 bg-white dark:bg-slate-900 border border-white/20 dark:border-slate-800 rounded-2xl shadow-2xl p-2 max-h-60 overflow-y-auto">
+                  <button 
+                    v-for="lang in languages" 
+                    :key="lang"
+                    @click="toggleSelectedLanguage(lang)"
+                    :class="cn(
+                      'w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between transition-colors',
+                      selectedLanguages.includes(lang) ? 'bg-indigo-500/10 text-indigo-600' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                    )"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span>{{ getLangFlag(lang) }}</span>
+                      <span class="uppercase">{{ lang }}</span>
+                    </div>
+                    <div v-if="selectedLanguages.includes(lang)" class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Quick Stats -->
-          <div class="glass rounded-3xl p-6 bg-indigo-600/5 border-indigo-500/10 dark:bg-indigo-400/5">
+          <div class="glass rounded-3xl p-6 bg-indigo-600/5 border-indigo-500/10 dark:bg-indigo-400/5 relative z-10">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-[9px] font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400">Total Insights</p>
@@ -446,8 +581,20 @@ function cn(...inputs: (string | undefined | null | false)[]) {
             </div>
           </div>
 
+          <!-- Error State -->
+          <div v-if="error" class="glass rounded-[2.5rem] p-12 text-center border-rose-500/20">
+            <div class="h-16 w-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <RefreshCw class="h-8 w-8 text-rose-500" />
+            </div>
+            <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2">Nexus Sync Interrupted</h3>
+            <p class="text-slate-500 text-sm font-medium mb-8 max-w-xs mx-auto text-balance">{{ error }}</p>
+            <button @click="loadArticles(true)" class="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
+              Retry Synchronization
+            </button>
+          </div>
+
           <!-- Loading Skeleton Grid -->
-          <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div v-else-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div v-for="i in 6" :key="i" class="glass-card rounded-[2.5rem] p-8 h-80 animate-pulse">
               <div class="flex justify-between mb-8">
                 <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-24"></div>
@@ -475,8 +622,18 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               <!-- Card Header -->
               <div class="flex justify-between items-start mb-6">
                 <div class="flex gap-2 flex-wrap">
-                  <span class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-white/5 text-slate-500 dark:text-slate-400">
+                  <span class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-white/5 text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                     {{ article.category }}
+                    <template v-if="translationToggles[article._id] && article.translations?.[preferredLanguage]">
+                      <span class="mx-1 opacity-50">•</span>
+                      {{ getLangFlag(article.language || 'en') }}
+                      <ArrowRight class="h-2.5 w-2.5 text-slate-400 mx-0.5" />
+                      {{ getLangFlag(preferredLanguage) }}
+                    </template>
+                    <template v-else>
+                      <span class="mx-1 opacity-50">•</span>
+                      {{ getLangFlag(article.language || 'en') }}
+                    </template>
                   </span>
                   
                   <!-- AI Sentiment Hub -->
@@ -484,13 +641,13 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                     v-if="article.analysis" 
                     :class="cn(
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border',
-                      article.analysis.sentiment === 'bullish' 
+                      article.analysis?.sentiment === 'bullish' 
                         ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
                         : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                     )"
                   >
-                    <TrendingUp :class="cn('h-3 w-3', article.analysis.sentiment === 'bearish' && 'rotate-180')" />
-                    {{ Math.round(article.analysis.sentimentScore * 100) }}%
+                    <TrendingUp :class="cn('h-3 w-3', article.analysis?.sentiment === 'bearish' && 'rotate-180')" />
+                    {{ Math.round((article.analysis?.sentimentScore || 0) * 100) }}%
                   </div>
                 </div>
                 
@@ -502,24 +659,72 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               
               <!-- Title & Body -->
               <div class="flex-1 mb-8">
-                <h3 class="text-xl font-extrabold text-slate-900 dark:text-white mb-4 leading-[1.3] group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer">
-                  <a :href="article.link" target="_blank" rel="noopener noreferrer">
-                    {{ article.title }}
-                  </a>
-                </h3>
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-xl font-extrabold text-slate-900 dark:text-white leading-[1.3] group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer flex-1 mr-4">
+                    <a :href="article.link" target="_blank" rel="noopener noreferrer">
+                      {{ getArticleTitle(article) }}
+                    </a>
+                  </h3>
+
+                  <!-- Action Buttons -->
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <!-- Insight Toggle Button (Magic) -->
+                    <button 
+                      @click="insightVisibility[article._id] = !insightVisibility[article._id]"
+                      :class="cn(
+                        'p-2 rounded-xl border transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest min-w-[40px] justify-center',
+                        insightVisibility[article._id]
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-white/5 text-slate-500 dark:text-slate-400'
+                      )"
+                      title="Toggle AI Insight"
+                    >
+                      <Sparkles class="h-3.5 w-3.5" />
+                    </button>
+
+                    <!-- Translation Toggle Button -->
+                    <button 
+                      v-if="hasTranslation(article) && insightVisibility[article._id]"
+                      @click="translationToggles[article._id] = !translationToggles[article._id]"
+                      :class="cn(
+                        'p-2 rounded-xl border transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest min-w-[40px] justify-center',
+                        translationToggles[article._id]
+                          ? 'bg-amber-500 border-amber-500 text-white'
+                          : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-white/5 text-slate-500 dark:text-slate-400'
+                      )"
+                      title="Translate Insight"
+                    >
+                      <Languages class="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
                 
                 <!-- AI Summary (If available) -->
-                <div v-if="article.analysis?.iaSummary" class="mb-4 p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 dark:bg-indigo-400/5 relative overflow-hidden group/ia">
+                <div v-if="insightVisibility[article._id] && (article.analysis?.iaSummary || hasTranslation(article))" class="mb-4 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 dark:bg-indigo-400/5 relative overflow-hidden group/ia transition-all duration-300">
                   <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
-                  <p class="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1 flex items-center gap-1">
-                    <Sparkles class="h-3 w-3" /> AI Insight
-                  </p>
+                  
+                  <div class="flex justify-between items-center mb-2">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-1">
+                      <Sparkles class="h-3 w-3" /> 
+                      AI Insight
+                      <span v-if="translationToggles[article._id]" class="ml-2 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[8px] flex items-center gap-1">
+                        {{ getLangFlag(article.language || 'en') }} 
+                        <ArrowRight class="h-2 w-2" /> 
+                        {{ getLangFlag(preferredLanguage) }}
+                      </span>
+                    </p>
+                  </div>
+
+                  <h4 v-if="translationToggles[article._id] && getArticleInsightTitle(article)" class="text-xs font-bold text-slate-800 dark:text-indigo-100 mb-2 leading-tight">
+                    {{ getArticleInsightTitle(article) }}
+                  </h4>
+
                   <p class="text-slate-600 dark:text-indigo-200 text-xs font-semibold leading-relaxed italic">
-                    "{{ article.analysis.iaSummary }}"
+                    "{{ getArticleInsight(article) }}"
                   </p>
                 </div>
 
-                <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed line-clamp-3">
+                <p v-if="!insightVisibility[article._id]" class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed line-clamp-3">
                   {{ article.summary?.replace(/<[^>]*>/g, '').slice(0, 160) }}...
                 </p>
               </div>
