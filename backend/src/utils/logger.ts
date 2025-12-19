@@ -6,9 +6,9 @@ import fs from 'fs';
 const logLevel = process.env.LOG_LEVEL || 'info';
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Path to log errors in the notes directory as requested (local only)
-const NOTES_LOG_DIR = '/media/machi/Data/Dev/machi-workspace/machi-projects/notes/machi09_rss-feed/logs';
-let logDir = NOTES_LOG_DIR;
+// Path to log errors in the ops directory as requested (local only)
+const OPS_LOG_DIR = '/media/machi/Data/Dev/machi-workspace/machi-projects/machi00_ops/machi09_rss-feed/debug-logs';
+let logDir = OPS_LOG_DIR;
 let useFileLogging = true;
 
 // Ensure the directory exists or fallback to relative path
