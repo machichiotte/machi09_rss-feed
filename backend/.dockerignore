@@ -1,0 +1,9 @@
+node_modules
+dist
+models_cache
+.env
+*.log
+.git
+.github
+.vscode
+.husky

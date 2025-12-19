@@ -1,0 +1,47 @@
+services:
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - rss-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/rss_feed
+      - RSS_ENABLED=true
+    depends_on:
+      - mongodb
+    networks:
+      - rss-network
+    # Use a volume for models if we want to update them without rebuild, 
+    # but the Dockerfile already bakes in the defaults.
+    # volumes:
+    #   - ./backend/models_cache:/app/models_cache
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    networks:
+      - rss-network
+    depends_on:
+      - backend
+
+networks:
+  rss-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
