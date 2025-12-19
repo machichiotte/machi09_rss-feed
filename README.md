@@ -12,7 +12,7 @@
 
 > **Note:** This project has been extracted from [machi00_shad](https://github.com/machichiotte/machi00_shad) and is now a standalone application with a full-stack architecture.
 
-**MachiFeed** is a powerful RSS feed aggregator designed to fetch, process, and analyze financial and crypto news from multiple sources. It features a Node.js/Express backend with MongoDB storage and a modern Vue.js frontend for visualization.
+**Kognit** is a powerful RSS feed aggregator designed to fetch, process, and analyze financial and crypto news from multiple sources. It features a Node.js/Express backend with MongoDB storage and a modern Vue.js frontend for visualization.
 
 ---
 

@@ -272,7 +272,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
             </div>
             <div>
               <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
-                MachiFeed
+                Kognit
               </h1>
               <p class="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold">AI News Aggregator</p>
             </div>

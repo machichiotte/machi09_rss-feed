@@ -70,7 +70,6 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
  * Main entry point to initialize the server and its dependencies.
  */
 async function startServer(): Promise<void> {
-    // 1. Start Express server FIRST (so Hugging Face health check passes)
     app.listen(PORT, () => {
         logger.info(`🚀 machi09_rss-feed server running on port ${PORT}`);
         logger.info(`📡 Health check: http://localhost:${PORT}/health`);
