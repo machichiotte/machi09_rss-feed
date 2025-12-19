@@ -15,7 +15,8 @@ import {
   Sun,
   Sparkles, 
   Languages,
-  ArrowRight
+  ArrowRight,
+  Minus
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -36,9 +37,10 @@ interface Article {
   summary: string;
   fetchedAt: string;
   analysis?: {
-    sentiment: 'bullish' | 'bearish';
+    sentiment: 'bullish' | 'bearish' | 'neutral';
     sentimentScore: number;
     iaSummary?: string;
+    isPromotional?: boolean;
   };
   translations?: Record<string, {
     title: string;
@@ -55,7 +57,7 @@ const processing = ref(false);
 const searchQuery = ref('');
 const selectedCategory = ref<string | null>(null);
 const selectedSource = ref<string | null>(null);
-const selectedSentiment = ref<'bullish' | 'bearish' | null>(null);
+const selectedSentiment = ref<'bullish' | 'bearish' | 'neutral' | null>(null);
 const selectedLanguages = ref<string[]>([]);
 const globalMagicMode = ref(localStorage.globalMagicMode === 'true');
 const preferredLanguage = ref(localStorage.preferredLanguage || 'fr');
@@ -489,30 +491,43 @@ function cn(...inputs: (string | undefined | null | false)[]) {
             <!-- Sentiment Hub -->
             <div>
               <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em]">Intelligence</h2>
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 gap-2">
+                <div class="grid grid-cols-2 gap-2">
+                  <button 
+                    @click="selectedSentiment = selectedSentiment === 'bullish' ? null : 'bullish'"
+                    :class="cn(
+                      'group relative py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden',
+                      selectedSentiment === 'bullish'
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                        : 'bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 hover:bg-emerald-500/10'
+                    )"
+                  >
+                    Bullish
+                    <TrendingUp class="absolute -right-2 -bottom-2 h-8 w-8 opacity-10 group-hover:scale-125 transition-transform" />
+                  </button>
+                  <button 
+                    @click="selectedSentiment = selectedSentiment === 'bearish' ? null : 'bearish'"
+                    :class="cn(
+                      'group relative py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden',
+                      selectedSentiment === 'bearish'
+                        ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
+                        : 'bg-rose-500/5 text-rose-600 dark:text-rose-400 border border-rose-500/10 hover:bg-rose-500/10'
+                    )"
+                  >
+                    Bearish
+                    <TrendingUp class="absolute -right-2 -bottom-2 h-8 w-8 opacity-10 rotate-180 group-hover:scale-125 transition-transform" />
+                  </button>
+                </div>
                 <button 
-                  @click="selectedSentiment = selectedSentiment === 'bullish' ? null : 'bullish'"
+                  @click="selectedSentiment = selectedSentiment === 'neutral' ? null : 'neutral'"
                   :class="cn(
-                    'group relative py-3 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden',
-                    selectedSentiment === 'bullish'
-                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                      : 'bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 hover:bg-emerald-500/10'
+                    'group relative py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden',
+                    selectedSentiment === 'neutral'
+                      ? 'bg-slate-500 text-white shadow-lg shadow-slate-500/20'
+                      : 'bg-slate-500/5 text-slate-600 dark:text-slate-400 border border-slate-500/10 hover:bg-slate-500/10'
                   )"
                 >
-                  Bullish
-                  <TrendingUp class="absolute -right-2 -bottom-2 h-8 w-8 opacity-10 group-hover:scale-125 transition-transform" />
-                </button>
-                <button 
-                  @click="selectedSentiment = selectedSentiment === 'bearish' ? null : 'bearish'"
-                  :class="cn(
-                    'group relative py-3 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden',
-                    selectedSentiment === 'bearish'
-                      ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
-                      : 'bg-rose-500/5 text-rose-600 dark:text-rose-400 border border-rose-500/10 hover:bg-rose-500/10'
-                  )"
-                >
-                  Bearish
-                  <TrendingUp class="absolute -right-2 -bottom-2 h-8 w-8 opacity-10 rotate-180 group-hover:scale-125 transition-transform" />
+                  Neutral / Stable
                 </button>
               </div>
             </div>
@@ -635,6 +650,10 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                       {{ getLangFlag(article.language || 'en') }}
                     </template>
                   </span>
+
+                  <span v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse">
+                    Promotional
+                  </span>
                   
                   <!-- AI Sentiment Hub -->
                   <div 
@@ -643,10 +662,13 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border',
                       article.analysis?.sentiment === 'bullish' 
                         ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
-                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                        : article.analysis?.sentiment === 'bearish'
+                          ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                          : 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'
                     )"
                   >
-                    <TrendingUp :class="cn('h-3 w-3', article.analysis?.sentiment === 'bearish' && 'rotate-180')" />
+                    <TrendingUp v-if="article.analysis?.sentiment !== 'neutral'" :class="cn('h-3 w-3', article.analysis?.sentiment === 'bearish' && 'rotate-180')" />
+                    <Minus v-else class="h-3 w-3" />
                     {{ Math.round((article.analysis?.sentimentScore || 0) * 100) }}%
                   </div>
                 </div>

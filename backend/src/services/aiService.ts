@@ -22,8 +22,8 @@ const M2M100_MAP: Record<string, string> = {
  * Result of a sentiment analysis operation.
  */
 interface SentimentResult {
-    /** The predicted label: 'POSITIVE' or 'NEGATIVE' */
-    label: 'POSITIVE' | 'NEGATIVE';
+    /** The predicted label: 'Positive', 'Neutral', or 'Negative' (or LABEL_X mapped) */
+    label: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
     /** The confidence score between 0 and 1 */
     score: number;
 }
@@ -33,11 +33,13 @@ interface SentimentResult {
  */
 interface ArticleAnalysis {
     /** Overall sentiment mapping */
-    sentiment: 'bullish' | 'bearish';
+    sentiment: 'bullish' | 'bearish' | 'neutral';
     /** Confidence score */
     sentimentScore: number;
     /** AI generated summary */
     iaSummary?: string;
+    /** Whether the content is identified as promotional/spam */
+    isPromotional?: boolean;
 }
 
 /**
@@ -89,11 +91,12 @@ class AiService {
         try {
             logger.info('🤖 Initializing AI models (loading from local or downloading)...');
 
-            // Load sentiment analysis model
+            // Load multilingual sentiment analysis model (XLM-RoBERTa)
             if (!this.sentimentPipeline) {
+                logger.info('🧠 Loading advanced sentiment engine (cardiffnlp/twitter-xlm-roberta-base-sentiment)...');
                 this.sentimentPipeline = await pipeline(
                     'sentiment-analysis',
-                    'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
+                    'cardiffnlp/twitter-xlm-roberta-base-sentiment'
                 ) as TextClassificationPipeline;
             }
 
@@ -153,14 +156,26 @@ class AiService {
                 return null;
             }
 
+            const sentimentOutput = output as Record<string, string | number>;
             return {
-                label: output.label as 'POSITIVE' | 'NEGATIVE',
-                score: output.score as number
+                label: this.mapRawLabel(String(sentimentOutput.label)),
+                score: Number(sentimentOutput.score)
             };
         } catch (error) {
             logger.error('Error analyzing sentiment:', error);
             return null;
         }
+    }
+
+    /**
+     * Maps raw model labels (LABEL_0, LABEL_1, etc.) to internal POSITIVE/NEUTRAL/NEGATIVE.
+     */
+    private mapRawLabel(rawLabel: string): 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' {
+        // LABEL_0 -> Negative, LABEL_1 -> Neutral, LABEL_2 -> Positive
+        if (rawLabel === 'LABEL_0' || rawLabel === 'Negative') return 'NEGATIVE';
+        if (rawLabel === 'LABEL_1' || rawLabel === 'Neutral') return 'NEUTRAL';
+        if (rawLabel === 'LABEL_2' || rawLabel === 'Positive') return 'POSITIVE';
+        return 'NEUTRAL';
     }
 
     /**
@@ -259,7 +274,10 @@ class AiService {
 
         const analysis = this.mapSentiment(sentiment, iaSummary);
 
-        // 2. Translations
+        // 2. Promotional Content Detection
+        analysis.isPromotional = this.detectPromotionalContent(title, summaryText);
+
+        // 3. Translations
         const translations = await this.translateArticle(
             title,
             iaSummary || summaryText,
@@ -271,11 +289,30 @@ class AiService {
     }
 
     /**
+     * Simple keyword-based promotional content detection.
+     */
+    private detectPromotionalContent(title: string, summary: string): boolean {
+        const promoKeywords = [
+            'sale', 'discount', 'limited offer', 'buy now', 'off', 'promo',
+            'soldes', 'réduction', 'promotion', 'acheter', 'prix cassé',
+            'giveaway', 'airdrop', 'whitelist', 'presale'
+        ];
+        const combined = `${title} ${summary}`.toLowerCase();
+        return promoKeywords.some(keyword => combined.includes(keyword));
+    }
+
+    /**
      * Maps the AI sentiment result to ArticleAnalysis.
      */
     private mapSentiment(sentiment: SentimentResult | null, iaSummary: string | null): ArticleAnalysis {
+        let sentimentLabel: 'bullish' | 'bearish' | 'neutral' = 'neutral';
+
+        if (sentiment?.label === 'POSITIVE') sentimentLabel = 'bullish';
+        else if (sentiment?.label === 'NEGATIVE') sentimentLabel = 'bearish';
+        else sentimentLabel = 'neutral';
+
         return {
-            sentiment: sentiment?.label === 'POSITIVE' ? 'bullish' : 'bearish',
+            sentiment: sentimentLabel,
             sentimentScore: sentiment?.score || 0,
             iaSummary: iaSummary || undefined
         };

@@ -30,9 +30,10 @@ export interface ProcessedArticleData {
 
 export interface FinancialAnalysis {
     // Current AI Service fields
-    sentiment?: 'bullish' | 'bearish';
+    sentiment?: 'bullish' | 'bearish' | 'neutral';
     sentimentScore?: number;
     iaSummary?: string;
+    isPromotional?: boolean;
 
     // Future legacy fields
     isRelevant?: 'Yes' | 'No' | 'Partial';
