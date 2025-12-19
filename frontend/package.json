@@ -2,7 +2,18 @@
   "name": "frontend",
   "private": true,
   "version": "0.0.0",
+  "description": "Vue 3 frontend for the MachiFeed RSS aggregator dashboard.",
   "type": "module",
+  "keywords": [
+    "vuejs",
+    "vite",
+    "tailwindcss",
+    "fullstack",
+    "dashboard",
+    "rss-reader"
+  ],
+  "author": "machichiotte",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
