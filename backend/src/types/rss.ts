@@ -27,6 +27,7 @@ export interface FinancialAnalysis {
     // Current AI Service fields
     sentiment?: 'bullish' | 'bearish';
     sentimentScore?: number;
+    iaSummary?: string;
 
     // Future legacy fields
     isRelevant?: 'Yes' | 'No' | 'Partial';

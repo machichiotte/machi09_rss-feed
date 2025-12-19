@@ -1,4 +1,4 @@
-import { pipeline, env, TextClassificationPipeline } from '@xenova/transformers';
+import { pipeline, env, TextClassificationPipeline, SummarizationPipeline } from '@xenova/transformers';
 import logger from '@/utils/logger';
 
 // Configure cache location to avoid re-downloading models in docker/tmp
@@ -22,6 +22,8 @@ interface ArticleAnalysis {
     sentiment: 'bullish' | 'bearish';
     /** Confidence score */
     sentimentScore: number;
+    /** AI generated summary */
+    iaSummary?: string;
 }
 
 /**
@@ -29,8 +31,10 @@ interface ArticleAnalysis {
  * Uses local Transformers.js models for privacy and performance.
  */
 class AiService {
-    /** The Transformers.js pipeline instance */
+    /** The Transformers.js sentiment pipeline instance */
     private sentimentPipeline: TextClassificationPipeline | null = null;
+    /** The Transformers.js summarization pipeline instance */
+    private summarizationPipeline: SummarizationPipeline | null = null;
     /** Guard to prevent multiple simultaneous initializations */
     private isInitialized = false;
 
@@ -40,23 +44,33 @@ class AiService {
      * @returns {Promise<void>}
      */
     async init(): Promise<void> {
-        if (this.isInitialized && this.sentimentPipeline) return;
+        if (this.isInitialized && this.sentimentPipeline && this.summarizationPipeline) return;
 
         try {
             logger.info('🤖 Initializing AI models (loading from local or downloading)...');
 
             // Load sentiment analysis model
-            // We use a small, fast model suitable for running on CPU
-            this.sentimentPipeline = await pipeline(
-                'sentiment-analysis',
-                'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
-            ) as TextClassificationPipeline;
+            if (!this.sentimentPipeline) {
+                this.sentimentPipeline = await pipeline(
+                    'sentiment-analysis',
+                    'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
+                ) as TextClassificationPipeline;
+            }
+
+            // Load summarization model (More powerful engine)
+            if (!this.summarizationPipeline) {
+                logger.info('📚 Loading translation/summarization engine (Xenova/distilbart-cnn-6-6)...');
+                this.summarizationPipeline = await pipeline(
+                    'summarization',
+                    'Xenova/distilbart-cnn-6-6'
+                ) as SummarizationPipeline;
+            }
 
             this.isInitialized = true;
             logger.info('✅ AI models initialized successfully');
         } catch (error) {
             logger.error('❌ Failed to initialize AI models:', error);
-            throw error; // Re-throw to handle initialization failure upstream
+            throw error;
         }
     }
 
@@ -101,8 +115,37 @@ class AiService {
     }
 
     /**
+     * Summarize a text using the local AI model.
+     * 
+     * @param {string} text - The content to summarize.
+     * @returns {Promise<string | null>}
+     */
+    async summarize(text: string): Promise<string | null> {
+        if (!this.isInitialized) await this.init();
+        if (!this.summarizationPipeline) return null;
+
+        try {
+            // Only summarize if text is long enough to be interesting
+            if (text.length < 200) return null;
+
+            logger.info(`📝 Summarizing text (${text.length} chars)...`);
+            const result = await this.summarizationPipeline(text, {
+                max_new_tokens: 60,
+                min_new_tokens: 20,
+            });
+
+            const output = Array.isArray(result) ? result[0] : result;
+            return output.summary_text || null;
+        } catch (error) {
+            logger.error('Error during summarization:', error);
+            return null;
+        }
+    }
+
+    /**
      * Performs a full analysis of an article (title + summary).
      * Maps the underlying model output to business-level bullish/bearish signals.
+     * Also generates a higher-quality AI summary if possible.
      * 
      * @param {string} title - The article title.
      * @param {string | null} summary - The article summary or content snippet.
@@ -111,12 +154,16 @@ class AiService {
     async analyzeArticle(title: string, summary: string | null): Promise<ArticleAnalysis> {
         const textToAnalyze = `${title}. ${summary || ''}`;
 
-        // Sentiment
-        const sentiment = await this.analyzeSentiment(textToAnalyze);
+        // Parallel processing for performance
+        const [sentiment, iaSummary] = await Promise.all([
+            this.analyzeSentiment(textToAnalyze),
+            summary ? this.summarize(`${title}. ${summary}`) : Promise.resolve(null)
+        ]);
 
         return {
             sentiment: sentiment?.label === 'POSITIVE' ? 'bullish' : 'bearish',
             sentimentScore: sentiment?.score || 0,
+            iaSummary: iaSummary || undefined
         };
     }
 }

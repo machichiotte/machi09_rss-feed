@@ -12,7 +12,8 @@ import {
   Clock,
   ChevronRight,
   Moon,
-  Sun
+  Sun,
+  Sparkles
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -35,6 +36,7 @@ interface Article {
   analysis?: {
     sentiment: 'bullish' | 'bearish';
     sentimentScore: number;
+    iaSummary?: string;
   };
 }
 
@@ -505,6 +507,18 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                     {{ article.title }}
                   </a>
                 </h3>
+                
+                <!-- AI Summary (If available) -->
+                <div v-if="article.analysis?.iaSummary" class="mb-4 p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 dark:bg-indigo-400/5 relative overflow-hidden group/ia">
+                  <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                  <p class="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1 flex items-center gap-1">
+                    <Sparkles class="h-3 w-3" /> AI Insight
+                  </p>
+                  <p class="text-slate-600 dark:text-indigo-200 text-xs font-semibold leading-relaxed italic">
+                    "{{ article.analysis.iaSummary }}"
+                  </p>
+                </div>
+
                 <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed line-clamp-3">
                   {{ article.summary?.replace(/<[^>]*>/g, '').slice(0, 160) }}...
                 </p>
