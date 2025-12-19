@@ -4,56 +4,63 @@ import path from 'path';
 import fs from 'fs';
 
 const logLevel = process.env.LOG_LEVEL || 'info';
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Path to log errors in the notes directory as requested
+// Path to log errors in the notes directory as requested (local only)
 const NOTES_LOG_DIR = '/media/machi/Data/Dev/machi-workspace/machi-projects/notes/machi09_rss-feed/logs';
+let logDir = NOTES_LOG_DIR;
+let useFileLogging = true;
 
-// Ensure the directory exists
+// Ensure the directory exists or fallback to relative path
 try {
-    if (!fs.existsSync(NOTES_LOG_DIR)) {
-        fs.mkdirSync(NOTES_LOG_DIR, { recursive: true });
+    if (!fs.existsSync(logDir)) {
+        // Fallback to a local 'logs' directory if the absolute path is unavailable (e.g., in Docker/HF)
+        logDir = path.join(process.cwd(), 'logs');
+        if (!fs.existsSync(logDir)) {
+            fs.mkdirSync(logDir, { recursive: true });
+        }
     }
 } catch {
-    console.warn('Could not create log directory in notes, falling back to local logs');
+    console.warn('Could not create log directory, falling back to console only');
+    useFileLogging = false;
+}
+
+// Build transports
+const transports: winston.transport[] = [
+    new winston.transports.Console({
+        format: winston.format.combine(
+            winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+            winston.format.colorize(),
+            winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
+                let msg = `${timestamp} [${service}] ${level}: ${message}`;
+                if (Object.keys(meta).length > 0) {
+                    msg += ` ${util.inspect(meta, { depth: 2, colors: true, breakLength: Infinity })}`;
+                }
+                return msg;
+            })
+        ),
+    })
+];
+
+// Add file transports only if we are not in a restricted environment (like HF Spaces)
+if (useFileLogging && !isProduction) {
+    transports.push(
+        new winston.transports.File({
+            filename: path.join(logDir, 'error.log'),
+            level: 'error',
+            format: winston.format.combine(winston.format.timestamp(), winston.format.json())
+        }),
+        new winston.transports.File({
+            filename: path.join(logDir, 'combined.log'),
+            format: winston.format.combine(winston.format.timestamp(), winston.format.json())
+        })
+    );
 }
 
 export const logger = winston.createLogger({
     level: logLevel,
-    defaultMeta: { service: 'machi09_rss-feed' },
-    transports: [
-        // Console logging (Beautiful & Colored)
-        new winston.transports.Console({
-            format: winston.format.combine(
-                winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-                winston.format.colorize(),
-                winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
-                    let msg = `${timestamp} [${service}] ${level}: ${message}`;
-                    // Special handling for errors to avoid printing them twice if they are already in the message
-                    if (Object.keys(meta).length > 0) {
-                        msg += ` ${util.inspect(meta, { depth: 2, colors: true, breakLength: Infinity })}`;
-                    }
-                    return msg;
-                })
-            ),
-        }),
-        // Error logging in the notes directory (JSON format for parsing)
-        new winston.transports.File({
-            filename: path.join(NOTES_LOG_DIR, 'error.log'),
-            level: 'error',
-            format: winston.format.combine(
-                winston.format.timestamp(),
-                winston.format.json()
-            )
-        }),
-        // Combined logging (JSON format for parsing)
-        new winston.transports.File({
-            filename: path.join(NOTES_LOG_DIR, 'combined.log'),
-            format: winston.format.combine(
-                winston.format.timestamp(),
-                winston.format.json()
-            )
-        })
-    ],
+    defaultMeta: { service: 'kognit-service' },
+    transports,
 });
 
 export default logger;
