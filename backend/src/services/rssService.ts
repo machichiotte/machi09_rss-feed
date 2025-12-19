@@ -45,10 +45,17 @@ export class RssService {
             const batch = allFeeds.slice(i, i + batchSize);
             const batchPromises = batch.map(async ({ feed, category }) => {
                 try {
-                    logger.info(`📡 Fetching feed: ${feed.name} (${category})`);
-                    return await this.fetchFeedOnly(feed, category);
+                    logger.info(`📡 Fetching feed: ${feed.name} [${feed.url}] (${category})`);
+                    const count = await this.fetchFeedOnly(feed, category);
+                    if (count > 0) {
+                        logger.info(`✨ Successfully saved ${count} new articles from ${feed.name}`);
+                    } else {
+                        logger.info(`ℹ️ No new articles for ${feed.name}`);
+                    }
+                    return count;
                 } catch (error) {
-                    logger.error(`❌ Error fetching feed ${feed.name}:`, error);
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    logger.error(`❌ Error fetching feed ${feed.name}: ${errorMessage}`);
                     errorCount++;
                     return 0;
                 }
