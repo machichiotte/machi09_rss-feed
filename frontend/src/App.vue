@@ -88,9 +88,9 @@ const applyTheme = () => {
 const fetchMetadata = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/api/rss/metadata`);
-    allCategories.value = response.data.categories;
-    allSources.value = response.data.sources;
-    allLanguages.value = response.data.languages;
+    allCategories.value = response.data.categories || [];
+    allSources.value = response.data.sources || [];
+    allLanguages.value = response.data.languages || [];
   } catch (error) {
     console.error('Failed to fetch metadata:', error);
   }
@@ -454,7 +454,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-slate-500 dark:text-slate-400">Sources</span>
-                <span class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-medium">{{ allSources.length }}</span>
+                <span class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-medium">{{ allSources?.length || 0 }}</span>
               </div>
             </div>
           </div>
