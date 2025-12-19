@@ -1,7 +1,7 @@
 {
-    "name": "machi09_rss-feed",
+    "name": "kognit-service",
     "version": "1.0.0",
-    "description": "Backend API for RSS aggregation and AI sentiment analysis processing.",
+    "description": "Kognit Service - Backend API for RSS aggregation and AI sentiment analysis processing.",
     "main": "dist/index.js",
     "type": "module",
     "scripts": {

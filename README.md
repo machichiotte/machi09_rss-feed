@@ -1,4 +1,4 @@
-# 📰 MachiFeed - Intelligent RSS Aggregator
+# 🧠 Kognit - Intelligent RSS Aggregator
 
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.5-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
 ![NodeJS](https://img.shields.io/badge/Node.js-18%2B-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)

@@ -1,7 +1,7 @@
 {
-  "name": "machi09_rss-feed",
+  "name": "kognit",
   "version": "1.0.0",
-  "description": "Full-stack RSS aggregator with local AI sentiment analysis. Built with Vue 3, Express, and MongoDB. Docker-ready for automated news processing.",
+  "description": "Kognit - Full-stack RSS aggregator with local AI sentiment analysis. Built with Vue 3, Express, and MongoDB. Docker-ready for automated news processing.",
   "scripts": {
     "prepare": "husky"
   },
