@@ -8,6 +8,8 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 
+![Dockerify](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+
 > **Note:** This project has been extracted from [machi00_shad](https://github.com/machichiotte/machi00_shad) and is now a standalone application with a full-stack architecture.
 
 **MachiFeed** is a powerful RSS feed aggregator designed to fetch, process, and analyze financial and crypto news from multiple sources. It features a Node.js/Express backend with MongoDB storage and a modern Vue.js frontend for visualization.
@@ -23,13 +25,15 @@
 - **♾️ Infinite Scroll**: Seamless frontend experience that loads content as you scroll.
 - **🔍 Advanced Filtering**: Server-side filtering by Source, Category, Language, and Sentiment.
 - **🌓 Dynamic Design**: Modern dashboard with responsive layout and instant Dark Mode.
+- **🐳 Docker Support**: Fully containerized with Docker and Docker Compose.
 
 ## 🛠 Tech Stack
 
 - **Frontend**: Vue.js 3, Vite, TailwindCSS (v4), Lucide Icons
 - **Backend**: Node.js, Express, TypeScript
 - **AI Engine**: `@xenova/transformers` (Running locally, no API key required!)
-- **Database**: MongoDB Atlas
+- **Database**: MongoDB (Atlas or Local via Docker)
+- **Infrastructure**: Docker, Nginx (for serving the frontend)
 - **RSS Engine**: rss-parser (configured with custom User-Agents and Timeouts)
 - **Logging**: Winston + Node.js `util.inspect`
 - **Quality**: Husky + Lint-Staged (Pre-commit hooks for linting & complexity)
@@ -42,24 +46,47 @@ machi09_rss-feed/
 │   ├── src/
 │   │   ├── config/     # Sources and App config
 │   │   ├── services/   # RSS & AI Logic
-│   │   └── utils/      # Logger & Helpers
-│   ├── package.json
-│   └── .env
+│   │   └── scripts/    # Pre-download models & utilities
+│   ├── Dockerfile
+│   └── package.json
 ├── frontend/           # Vue.js 3 + TailwindCSS UI
 │   ├── src/
-│   ├── package.json
-│   └── vite.config.ts
+│   ├── Dockerfile
+│   └── nginx.conf      # Production server config
+├── docker-compose.yml  # Orchestrates MongoDB, API, and Frontend
+└── README.md
 ```
 
 ## 🏁 Quick Start
 
-### 1. Clone the repository
+### 🐳 The Easy Way (Docker)
+
+The fastest way to get started is using Docker Compose. This starts MongoDB, the Backend, and the Frontend simultaneously.
+
+1. **Clone the repository**
 ```bash
 git clone https://github.com/machichiotte/machi09_rss-feed.git
 cd machi09_rss-feed
 ```
 
-### 2. Setup Backend
+2. **Configure Environment**
+```bash
+cp backend/.env.example backend/.env
+# If using Docker, the default MONGODB_URI/DB_HOST in .env should point to 'mongodb'
+```
+
+3. **Run with Docker**
+```bash
+docker compose up --build
+```
+- **Frontend**: http://localhost
+- **Backend API**: http://localhost/api
+
+---
+
+### 🛠 Manual Setup (Development)
+
+#### 1. Setup Backend
 ```bash
 cd backend
 yarn install
@@ -75,7 +102,7 @@ yarn dev
 # Server running on http://localhost:3000
 ```
 
-### 3. Setup Frontend
+#### 2. Setup Frontend
 Open a new terminal:
 ```bash
 cd frontend
@@ -104,8 +131,8 @@ yarn dev
 
 - **RSS Sources**: List of feeds is in `backend/src/config/sources.ts`.
 - **System Config**: Delays and categories are in `backend/src/config/rssConfig.ts`.
-
 - **Cron Schedule**: Adjusted in your `.env` file via `RSS_CRON_SCHEDULE`.
+- **AI Optimization**: AI models are pre-downloaded during Docker build to `models_cache` for instant startup.
 
 ---
 
