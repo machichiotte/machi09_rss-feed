@@ -32,6 +32,15 @@ app.use((req, res, next) => {
     next();
 });
 
+// Root route to prevent 404 on Hugging Face main page
+app.get('/', (_req, res) => {
+    res.json({
+        message: 'Kognit Service is running',
+        api: '/api',
+        health: '/health'
+    });
+});
+
 // Health check endpoint
 app.get('/health', (_req, res) => {
     res.json({
@@ -70,7 +79,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
  * Main entry point to initialize the server and its dependencies.
  */
 async function startServer(): Promise<void> {
-    app.listen(PORT, () => {
+    // 1. Start Express server FIRST (so Hugging Face health check passes)
+    app.listen(Number(PORT), '0.0.0.0', () => {
         logger.info(`🚀 machi09_rss-feed server running on port ${PORT}`);
         logger.info(`📡 Health check: http://localhost:${PORT}/health`);
         logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
