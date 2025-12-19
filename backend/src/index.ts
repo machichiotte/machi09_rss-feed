@@ -68,49 +68,44 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 /**
  * Main entry point to initialize the server and its dependencies.
- * Sequence: Database connection -> Cron setup -> HTTP Server start.
- * 
- * @returns {Promise<void>}
  */
 async function startServer(): Promise<void> {
+    // 1. Start Express server FIRST (so Hugging Face health check passes)
+    app.listen(PORT, () => {
+        logger.info(`🚀 machi09_rss-feed server running on port ${PORT}`);
+        logger.info(`📡 Health check: http://localhost:${PORT}/health`);
+        logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+
     try {
-        // Connect to MongoDB first
+        // 2. Connect to MongoDB in the background
         await connectToDatabase();
 
-        // Then start Express server
-        app.listen(PORT, () => {
-            logger.info(`🚀 machi09_rss-feed server running on port ${PORT}`);
-            logger.info(`📡 Health check: http://localhost:${PORT}/health`);
-            logger.info(`📰 API: http://localhost:${PORT}/api`);
-            logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+        // 3. Setup cron job if RSS is enabled
+        if (process.env.RSS_ENABLED === 'true') {
+            const schedule = process.env.RSS_CRON_SCHEDULE || '*/30 * * * *';
+            logger.info(`⏰ RSS cron job scheduled: ${schedule}`);
 
-            // Setup cron job if RSS is enabled
-            if (process.env.RSS_ENABLED === 'true') {
-                const schedule = process.env.RSS_CRON_SCHEDULE || '*/30 * * * *';
-                logger.info(`⏰ RSS cron job scheduled: ${schedule}`);
+            cron.schedule(schedule, async () => {
+                try {
+                    logger.info('⏰ Cron job triggered: processing feeds...');
+                    await RssService.processAllFeeds();
+                } catch (error) {
+                    logger.error('Error in cron job:', error);
+                }
+            });
 
-                // Cron Job
-                cron.schedule(schedule, async () => {
-                    try {
-                        logger.info('⏰ Cron job triggered: processing feeds...');
-                        await RssService.processAllFeeds();
-                    } catch (error) {
-                        logger.error('Error in cron job:', error);
-                    }
+            // Run initial processing
+            setTimeout(async () => {
+                logger.info('🚀 Initial processing starting...');
+                await RssService.processAllFeeds().catch(err => {
+                    logger.error('Failed initial processing:', err);
                 });
-
-                // Run immediately on start (after a small delay to allow database/models to warm up)
-                setTimeout(async () => {
-                    logger.info('🚀 Initial processing starting...');
-                    await RssService.processAllFeeds().catch(err => {
-                        logger.error('Failed initial processing:', err);
-                    });
-                }, 5000);
-            }
-        });
+            }, 5000);
+        }
     } catch (error) {
-        logger.error('❌ Failed to start server:', error);
-        process.exit(1);
+        logger.error('❌ Database connection failed:', error);
+        // We don't exit immediately so we can at least see logs via health check
     }
 }
 
