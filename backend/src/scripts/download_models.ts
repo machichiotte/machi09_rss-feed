@@ -9,10 +9,10 @@ async function downloadModels() {
     console.log('📥 Starting model download...');
 
     try {
-        console.log('🤖 Downloading sentiment analysis model: Xenova/distilbert-base-uncased-finetuned-sst-2-english');
+        console.log('🤖 Downloading sentiment analysis model: Xenova/bert-base-multilingual-uncased-sentiment');
         await pipeline(
             'sentiment-analysis',
-            'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
+            'Xenova/bert-base-multilingual-uncased-sentiment'
         );
 
         console.log('📚 Downloading summarization model: Xenova/distilbart-cnn-6-6');

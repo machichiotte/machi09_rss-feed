@@ -91,12 +91,12 @@ class AiService {
         try {
             logger.info('🤖 Initializing AI models (loading from local or downloading)...');
 
-            // Load multilingual sentiment analysis model (XLM-RoBERTa)
+            // Load multilingual sentiment analysis model (BERT Multilingual Sentiment)
             if (!this.sentimentPipeline) {
-                logger.info('🧠 Loading advanced sentiment engine (cardiffnlp/twitter-xlm-roberta-base-sentiment)...');
+                logger.info('🧠 Loading advanced sentiment engine (Xenova/bert-base-multilingual-uncased-sentiment)...');
                 this.sentimentPipeline = await pipeline(
                     'sentiment-analysis',
-                    'cardiffnlp/twitter-xlm-roberta-base-sentiment'
+                    'Xenova/bert-base-multilingual-uncased-sentiment'
                 ) as TextClassificationPipeline;
             }
 
@@ -171,10 +171,14 @@ class AiService {
      * Maps raw model labels (LABEL_0, LABEL_1, etc.) to internal POSITIVE/NEUTRAL/NEGATIVE.
      */
     private mapRawLabel(rawLabel: string): 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' {
-        // LABEL_0 -> Negative, LABEL_1 -> Neutral, LABEL_2 -> Positive
-        if (rawLabel === 'LABEL_0' || rawLabel === 'Negative') return 'NEGATIVE';
-        if (rawLabel === 'LABEL_1' || rawLabel === 'Neutral') return 'NEUTRAL';
-        if (rawLabel === 'LABEL_2' || rawLabel === 'Positive') return 'POSITIVE';
+        // Xenova/bert-base-multilingual-uncased-sentiment labels are "1 star" to "5 stars"
+        if (rawLabel === '5 stars' || rawLabel === '4 stars') return 'POSITIVE';
+        if (rawLabel === '3 stars') return 'NEUTRAL';
+        if (rawLabel === '2 stars' || rawLabel === '1 star') return 'NEGATIVE';
+
+        // Fallback for previous models or unexpected output
+        if (rawLabel === 'POSITIVE' || rawLabel === 'LABEL_2') return 'POSITIVE';
+        if (rawLabel === 'NEGATIVE' || rawLabel === 'LABEL_0') return 'NEGATIVE';
         return 'NEUTRAL';
     }
 
