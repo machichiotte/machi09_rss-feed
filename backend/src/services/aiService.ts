@@ -226,9 +226,12 @@ class AiService {
      */
     private logTranslation(text: string, fromLang: string, toLang: string, translated: string | null): void {
         const preview = text.slice(0, 60).replace(/\n/g, ' ');
-        logger.info(`🌐 Translating: '${preview}...' (${fromLang} → ${toLang})`);
 
-        if (translated) {
+        if (!translated) {
+            // Message de début
+            logger.info(`🌐 Translating: '${preview}...' (${fromLang} → ${toLang})`);
+        } else {
+            // Message de fin (résultat)
             const translatedPreview = translated.slice(0, 60).replace(/\n/g, ' ');
             logger.info(`   ✅ Result: '${translatedPreview}...'`);
         }
