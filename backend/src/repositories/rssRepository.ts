@@ -28,23 +28,38 @@ export class RssRepository {
     public static async fetchAll(options: FetchOptions = {}): Promise<{ articles: ProcessedArticleData[]; total: number }> {
         const db = getDatabase();
         const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
-        const { page = 1, limit = 20 } = options;
+        const { page = 1, limit = 20, category, sentiment, language, feedName } = options;
 
         const query = this.buildFilterQuery(options);
-
         const total = await collection.countDocuments(query);
-        const documents = await collection
-            .find(query)
-            .sort({ publicationDate: -1, fetchedAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit)
-            .toArray();
+
+        let documents;
+
+        if (category || sentiment || language || feedName) {
+            // Optimization: If filtering by specific field, use simpler sort to leverage compound indexes
+            // The compound indexes are all { field: 1, publicationDate: -1 }
+            documents = await collection
+                .find(query)
+                .sort({ publicationDate: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit)
+                .toArray();
+        } else {
+            // Default view: use compound sort
+            documents = await collection
+                .find(query)
+                .sort({ publicationDate: -1, fetchedAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit)
+                .toArray();
+        }
 
         return {
             articles: documents as ProcessedArticleData[],
             total
         };
     }
+
 
     /**
      * Builds a MongoDB filter query based on the provided options.
@@ -67,10 +82,8 @@ export class RssRepository {
         }
 
         if (search) {
-            query.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { summary: { $regex: search, $options: 'i' } }
-            ];
+            // Use optimized Text Index search instead of slow Regex
+            query.$text = { $search: search };
         }
 
         return query;

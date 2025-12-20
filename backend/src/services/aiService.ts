@@ -96,7 +96,8 @@ class AiService {
                 logger.info('🧠 Loading advanced sentiment engine (Xenova/bert-base-multilingual-uncased-sentiment)...');
                 this.sentimentPipeline = await pipeline(
                     'sentiment-analysis',
-                    'Xenova/bert-base-multilingual-uncased-sentiment'
+                    'Xenova/bert-base-multilingual-uncased-sentiment',
+                    { quantized: true }
                 ) as TextClassificationPipeline;
             }
 
@@ -105,7 +106,8 @@ class AiService {
                 logger.info('📚 Loading summarization engine (Xenova/distilbart-cnn-6-6)...');
                 this.summarizationPipeline = await pipeline(
                     'summarization',
-                    'Xenova/distilbart-cnn-6-6'
+                    'Xenova/distilbart-cnn-6-6',
+                    { quantized: true }
                 ) as SummarizationPipeline;
             }
 
@@ -114,7 +116,8 @@ class AiService {
                 logger.info('🌐 Loading translation engine (Xenova/m2m100_418M)...');
                 this.translationPipeline = await pipeline(
                     'translation',
-                    'Xenova/m2m100_418M'
+                    'Xenova/m2m100_418M',
+                    { quantized: true }
                 ) as TranslationPipeline;
             }
 
