@@ -1,27 +1,16 @@
 <script setup lang="ts">
-/* global performance */
-import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import axios from 'axios';
-import { formatDistanceToNow } from 'date-fns';
-import { 
-  Rss, 
-  RefreshCw, 
-  Search, 
-  ExternalLink, 
-  Filter,
-  TrendingUp,
-  Clock,
-  Moon,
-  Sun,
-  Sparkles, 
-  Languages,
-  ArrowRight,
-  Minus,
-  ChevronDown,
-  FileText
-} from 'lucide-vue-next';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { RefreshCw } from 'lucide-vue-next';
+
+// Layout Components
+import AuroraBackground from './components/layout/AuroraBackground.vue';
+import Navbar from './components/layout/Navbar.vue';
+import Sidebar from './components/layout/Sidebar.vue';
+import Footer from './components/layout/Footer.vue';
+
+// Feed Components
+import ArticleFeed from './components/feed/ArticleFeed.vue';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -62,7 +51,7 @@ const selectedSource = ref<string | null>(null);
 const selectedSentiment = ref<'bullish' | 'bearish' | 'neutral' | null>(null);
 const selectedLanguages = ref<string[]>([]);
 const globalInsightMode = ref(localStorage.globalInsightMode === 'true');
-const globalReaderMode = ref(localStorage.globalReaderMode === 'true');
+const globalSummaryMode = ref(localStorage.globalSummaryMode === 'true');
 const autoTranslate = ref(localStorage.autoTranslate !== 'false'); // Default true
 const preferredLanguage = ref(localStorage.preferredLanguage || 'fr');
 if (!localStorage.preferredLanguage) localStorage.preferredLanguage = 'fr';
@@ -85,8 +74,8 @@ const allCategories = ref<string[]>([]);
 const allSources = ref<string[]>([]);
 const allLanguages = ref<string[]>([]);
 
-// Observer for infinite scroll
-const loadMoreTrigger = ref<HTMLElement | null>(null);
+// Feed Ref for infinite scroll
+const feedRef = ref<{ loadMoreTrigger: HTMLElement | null } | null>(null);
 let observer: IntersectionObserver | null = null;
 
 // Methods
@@ -108,52 +97,46 @@ const applyTheme = () => {
 };
 
 const fetchMetadata = async () => {
-  const startTime = performance.now();
-  console.log('🔍 [Frontend] Fetching metadata...');
-  
   try {
     const response = await axios.get(`${API_BASE_URL}/api/rss/metadata`);
-    const duration = Math.round(performance.now() - startTime);
-    
     allCategories.value = response.data.categories || [];
     allSources.value = response.data.sources || [];
     allLanguages.value = response.data.languages || [];
-    
-    console.log(`✅ [Frontend] Metadata received in ${duration}ms:`, {
-      categories: allCategories.value.length,
-      sources: allSources.value.length,
-      languages: allLanguages.value.length
-    });
-  } catch (error) {
-    const duration = Math.round(performance.now() - startTime);
-    console.error(`❌ [Frontend] Failed to fetch metadata after ${duration}ms:`, error);
+  } catch {
+    console.error('Failed to fetch metadata');
   }
 };
 
+/**
+ * Fetches articles from the Nexus API with current filters and pagination.
+ * @param reset If true, resets pagination and clears current articles.
+ */
 // eslint-disable-next-line complexity
 async function loadArticles(reset = false) {
-  const startTime = performance.now();
-  const requestType = reset ? 'INITIAL/RESET' : 'PAGINATION';
-  
   if (reset) {
     currentPage.value = 1;
     articles.value = [];
     loading.value = true;
     error.value = null;
-    console.log(`📡 [Frontend] Loading articles (${requestType})...`);
   } else {
     if (loadingMore.value || loading.value) return;
     loadingMore.value = true;
-    console.log(`📡 [Frontend] Loading more articles (page ${currentPage.value})...`);
   }
 
   try {
-    const params = getFetchParams();
-    console.log('   📋 Request params:', params);
+    const params = {
+      page: currentPage.value,
+      limit: limit.value,
+      category: selectedCategory.value,
+      sentiment: selectedSentiment.value,
+      language: selectedLanguages.value.length > 0 ? selectedLanguages.value.join(',') : null,
+      search: searchQuery.value,
+      source: selectedSource.value,
+      onlyInsights: showOnlyInsights.value,
+      dateRange: dateRange.value
+    };
     
     const response = await axios.get(`${API_BASE_URL}/api/rss`, { params });
-    const networkTime = Math.round(performance.now() - startTime);
-    
     const data = response.data;
     const newArticles = data.articles || data.data || [];
     
@@ -162,18 +145,8 @@ async function loadArticles(reset = false) {
     hasMore.value = articles.value.length < totalArticles.value;
     currentPage.value++;
 
-    const totalTime = Math.round(performance.now() - startTime);
-    console.log(`✅ [Frontend] Articles loaded in ${totalTime}ms (network: ${networkTime}ms):`, {
-      received: newArticles.length,
-      total: totalArticles.value,
-      currentlyDisplayed: articles.value.length,
-      hasMore: hasMore.value
-    });
-
     nextTick(() => checkAndLoadMore());
   } catch (err) {
-    const duration = Math.round(performance.now() - startTime);
-    console.error(`❌ [Frontend] Failed to load articles after ${duration}ms:`, err);
     handleFetchError(err);
   } finally {
     loading.value = false;
@@ -181,22 +154,7 @@ async function loadArticles(reset = false) {
   }
 }
 
-function getFetchParams() {
-  return {
-    page: currentPage.value,
-    limit: limit.value,
-    category: selectedCategory.value,
-    sentiment: selectedSentiment.value,
-    language: selectedLanguages.value.length > 0 ? selectedLanguages.value.join(',') : null,
-    search: searchQuery.value,
-    source: selectedSource.value,
-    onlyInsights: showOnlyInsights.value,
-    dateRange: dateRange.value
-  };
-}
-
 function handleFetchError(err: unknown) {
-  console.error('Failed to load articles:', err);
   let status: number | undefined;
   if (axios.isAxiosError(err)) {
     status = err.status || err.response?.status;
@@ -207,9 +165,9 @@ function handleFetchError(err: unknown) {
 }
 
 function checkAndLoadMore() {
-  if (!hasMore.value || loading.value || loadingMore.value || !loadMoreTrigger.value) return;
+  if (!hasMore.value || loading.value || loadingMore.value || !feedRef.value?.loadMoreTrigger) return;
   
-  const rect = loadMoreTrigger.value.getBoundingClientRect();
+  const rect = feedRef.value.loadMoreTrigger.getBoundingClientRect();
   const isNearBottom = rect.top < window.innerHeight + 600;
   
   if (isNearBottom) {
@@ -218,23 +176,14 @@ function checkAndLoadMore() {
 }
 
 const triggerProcess = async () => {
-  const startTime = performance.now();
-  console.log('🔄 [Frontend] Triggering RSS feed processing...');
-  
   processing.value = true;
   try {
     await axios.post(`${API_BASE_URL}/api/rss/process`);
-    const duration = Math.round(performance.now() - startTime);
-    console.log(`✅ [Frontend] Process triggered in ${duration}ms, waiting 4s before reload...`);
-    
     setTimeout(() => {
-      console.log('🔄 [Frontend] Reloading articles after processing...');
       loadArticles(true);
       processing.value = false;
     }, 4000); 
-  } catch (error) {
-    const duration = Math.round(performance.now() - startTime);
-    console.error(`❌ [Frontend] Failed to trigger process after ${duration}ms:`, error);
+  } catch {
     processing.value = false;
   }
 };
@@ -244,74 +193,6 @@ const selectCategory = (category: string | null) => {
   selectedSource.value = null;
 };
 
-const setPreferredLanguage = (lang: string) => {
-  preferredLanguage.value = lang;
-  localStorage.preferredLanguage = lang;
-};
-
-const setGlobalInsight = (val: boolean) => {
-  globalInsightMode.value = val;
-  localStorage.globalInsightMode = val.toString();
-};
-
-const setGlobalReader = (val: boolean) => {
-  globalReaderMode.value = val;
-  localStorage.globalReaderMode = val.toString();
-};
-
-const setAutoTranslate = (val: boolean) => {
-  autoTranslate.value = val;
-  localStorage.autoTranslate = val.toString();
-};
-
-const getArticleTitle = (article: Article) => {
-  return article.title;
-};
-
-const getArticleInsightTitle = (article: Article) => {
-  const translations = article.translations;
-  const isTranslated = translationToggles.value[article._id];
-  const translation = translations?.[preferredLanguage.value];
-  
-  if (isTranslated && translation) {
-    return translation.title;
-  }
-  return '';
-};
-
-const getArticleInsight = (article: Article) => {
-  const translations = article.translations;
-  const translation = translations ? translations[preferredLanguage.value] : undefined;
-  const isTranslated = translationToggles.value[article._id];
-  
-  if (isTranslated && translation) {
-    return translation.iaSummary || translation.summary;
-  }
-  return article.analysis?.iaSummary || article.summary || 'No AI Insight available';
-};
-
-const hasTranslation = (article: Article) => {
-  return !!(article.translations && article.translations[preferredLanguage.value]);
-};
-
-const formatDate = (dateStr: string) => {
-  try {
-    return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
-  } catch {
-    return 'Recently';
-  }
-};
-
-
-const getLangFlag = (lang?: string) => {
-  if (!lang) return '🌍';
-  const map: Record<string, string> = {
-    'fr': '🇫🇷', 'en': '🇺🇸', 'es': '🇪🇸', 'de': '🇩🇪',
-    'it': '🇮🇹', 'pt': '🇵🇹', 'nl': '🇳🇱', 'ru': '🇷🇺',
-    'zh': '🇨🇳', 'ja': '🇯🇵', 'ar': '🇸🇦', 'cn': '🇨🇳'
-  };
-  return map[lang.toLowerCase()] || '🌍';
-};
 
 const toggleSelectedLanguage = (lang: string) => {
   if (selectedLanguages.value.includes(lang)) {
@@ -326,39 +207,30 @@ const toggleSentiment = (sent: string) => {
   selectedSentiment.value = selectedSentiment.value === s ? null : s;
 };
 
-// Computed
-const categories = computed(() => allCategories.value);
-const languages = computed(() => allLanguages.value);
-const filteredArticles = computed(() => articles.value); // Articles are already filtered on server
-
 // Watchers
 let filterTimeout: ReturnType<typeof setTimeout> | null = null;
 watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, preferredLanguage, showOnlyInsights, dateRange], (newValues) => {
-    console.log('🎯 [Frontend] Filter changed:', {
-      category: newValues[0],
-      sentiment: newValues[1],
-      languages: newValues[2],
-      source: newValues[3],
-      preferredLanguage: newValues[4],
-      onlyInsights: newValues[5],
-      dateRange: newValues[6]
-    });
+    const newPreferredLanguage = newValues[4] as string;
+    localStorage.preferredLanguage = newPreferredLanguage;
     
     if (filterTimeout) clearTimeout(filterTimeout);
-    filterTimeout = setTimeout(() => {
-        console.log('🔄 [Frontend] Applying filters (300ms debounce)...');
-        loadArticles(true);
-    }, 300);
+    filterTimeout = setTimeout(() => loadArticles(true), 300);
 }, { deep: true });
 
 watch(globalInsightMode, (val) => {
+  localStorage.globalInsightMode = val.toString();
   articles.value.forEach(article => {
     insightVisibility.value[article._id] = val;
     translationToggles.value[article._id] = val && autoTranslate.value;
   });
 });
 
+watch(globalSummaryMode, (val) => {
+  localStorage.globalSummaryMode = val.toString();
+});
+
 watch(autoTranslate, (val) => {
+  localStorage.autoTranslate = val.toString();
   if (globalInsightMode.value) {
     articles.value.forEach(article => {
       translationToggles.value[article._id] = val;
@@ -367,22 +239,12 @@ watch(autoTranslate, (val) => {
 });
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
-watch(searchQuery, (newVal, oldVal) => {
-    if (newVal !== oldVal) {
-      console.log(`🔍 [Frontend] Search query changed: "${newVal}"`);
-    }
-    
+watch(searchQuery, () => {
     if (searchTimeout) clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        if (newVal) {
-          console.log(`🔄 [Frontend] Executing search for: "${newVal}" (500ms debounce)...`);
-        }
-        loadArticles(true);
-    }, 500);
+    searchTimeout = setTimeout(() => loadArticles(true), 500);
 });
 
 onMounted(() => {
-  // Theme initialization
   const savedTheme = localStorage.theme;
   const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   isDark.value = savedTheme === 'dark' || (!savedTheme && isSystemDark);
@@ -403,494 +265,86 @@ onMounted(() => {
     rootMargin: '600px'
   });
 
-  if (loadMoreTrigger.value) {
-    observer.observe(loadMoreTrigger.value);
-  }
-});
-
-// Re-observe if elements change (e.g. after loading state)
-watch(loadMoreTrigger, (newVal) => {
-  if (newVal && observer) {
-    observer.disconnect();
-    observer.observe(newVal);
-  }
+  watch(() => feedRef.value?.loadMoreTrigger, (newVal) => {
+    if (newVal && observer) {
+      observer.disconnect();
+      observer.observe(newVal);
+    }
+  }, { immediate: true });
 });
 
 onUnmounted(() => {
   if (observer) observer.disconnect();
 });
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col text-slate-900 dark:text-slate-100 font-sans selection:bg-indigo-500/30 dark:selection:bg-indigo-500/30">
-    <!-- Aurora Background -->
-    <div class="aurora-bg">
-      <div class="aurora-blob blob-1"></div>
-      <div class="aurora-blob blob-2"></div>
-      <div class="aurora-blob blob-3"></div>
-    </div>
+  <div class="min-h-screen flex flex-col font-sans selection:bg-brand/30 text-text-secondary">
+    <AuroraBackground />
 
-    <!-- Navbar -->
-    <header class="sticky top-0 z-30 glass border-b-white/10 h-20 overflow-hidden">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-20 items-center">
-          <div class="flex items-center gap-4 group cursor-pointer">
-            <div class="bg-indigo-600 p-2.5 rounded-2xl shadow-xl shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
-              <Rss class="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 class="text-2xl font-extrabold tracking-tight bg-gradient-to-br from-slate-900 via-indigo-900 to-indigo-600 dark:from-white dark:via-indigo-200 dark:to-indigo-400 bg-clip-text text-transparent italic">
-                Kognit
-              </h1>
-              <div class="flex items-center gap-2">
-                <span class="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 font-black">Intelligent Feed</p>
-              </div>
-            </div>
-          </div>
-          
-          <div class="flex items-center gap-3 md:gap-6">
-            <div class="relative hidden md:block">
-              <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
-              <input 
-                v-model="searchQuery"
-                type="text" 
-                placeholder="Search the nexus..." 
-                class="pl-12 pr-6 py-2.5 rounded-2xl border border-white/20 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none w-72 text-sm transition-all dark:text-slate-200"
-              />
-            </div>
-
-            <div class="hidden md:flex items-center gap-3">
-              <div class="relative group">
-                <select 
-                  v-model="preferredLanguage"
-                  @change="setPreferredLanguage(preferredLanguage)"
-                  class="appearance-none bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none cursor-pointer uppercase min-w-[100px] text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
-                >
-                  <option v-for="lang in languages" :key="lang" :value="lang">
-                    {{ getLangFlag(lang) }} {{ lang.toUpperCase() }}
-                  </option>
-                </select>
-                <ChevronDown class="h-3 w-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
-              </div>
-
-              <!-- Global Translate Toggle -->
-              <button 
-                @click="setAutoTranslate(!autoTranslate)"
-                :class="cn(
-                  'flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all shadow-sm',
-                  autoTranslate 
-                    ? 'bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400' 
-                    : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-800 text-slate-400'
-                )"
-                title="Auto-translate insights"
-              >
-                <Languages class="h-4 w-4" />
-                <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">Translate</span>
-              </button>
-
-              <div class="hidden lg:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-
-              <!-- Insight Mode Toggle (Orange) -->
-              <button 
-                @click="setGlobalInsight(!globalInsightMode)"
-                :class="cn(
-                  'flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all shadow-sm',
-                  globalInsightMode 
-                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' 
-                    : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-800 text-slate-400'
-                )"
-                title="Toggle AI Insight Mode"
-              >
-                <Sparkles class="h-4 w-4" />
-                <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">Insights</span>
-              </button>
-
-              <div class="hidden lg:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-
-              <!-- Reader Mode Toggle (Emerald) -->
-              <button 
-                @click="setGlobalReader(!globalReaderMode)"
-                :class="cn(
-                  'flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all shadow-sm',
-                  globalReaderMode 
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
-                    : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-800 text-slate-400'
-                )"
-                title="Toggle Original Summary Mode"
-              >
-                <FileText class="h-4 w-4" />
-                <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">Reader</span>
-              </button>
-            </div>
-
-            <div class="flex items-center p-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl border border-white/20 dark:border-slate-800">
-              <!-- Theme Toggle -->
-              <button 
-                @click="toggleTheme"
-                class="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 transition-all duration-300"
-                title="Toggle theme"
-              >
-                <Sun v-if="isDark" class="h-4 w-4" />
-                <Moon v-else class="h-4 w-4" />
-              </button>
-
-              <div class="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1"></div>
-              
-              <button 
-                @click="triggerProcess" 
-                :disabled="processing"
-                class="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 transition-all duration-300 group"
-                title="Refresh nexus"
-              >
-                <RefreshCw :class="cn('h-4 w-4 group-hover:rotate-180 transition-transform duration-700', processing && 'animate-spin')" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
+    <Navbar 
+      v-model:search-query="searchQuery"
+      v-model:preferred-language="preferredLanguage"
+      v-model:auto-translate="autoTranslate"
+      v-model:global-insight-mode="globalInsightMode"
+      v-model:global-summary-mode="globalSummaryMode"
+      :languages="allLanguages"
+      :is-dark="isDark"
+      :processing="processing"
+      @toggle-theme="toggleTheme"
+      @trigger-process="triggerProcess"
+    />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-10 relative">
       <div class="flex flex-col lg:flex-row gap-10 pt-0">
-        <!-- Sidebar Filters -->
-        <aside class="w-full lg:w-72 flex-shrink-0 space-y-3 lg:fixed lg:top-20 h-[calc(100vh-5rem)] overflow-y-auto no-scrollbar pb-10">
-          <!-- 1. Quick Stats (Moved to Top) -->
-          <div class="glass rounded-3xl p-4 bg-indigo-600/5 border-indigo-500/10 dark:bg-indigo-400/5 relative overflow-hidden group">
-            <div class="absolute -right-4 -top-4 bg-indigo-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
-            <div class="relative z-10">
-              <p class="text-[9px] font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400 mb-1">Total Insights</p>
-              <div class="flex items-baseline gap-2">
-                <span class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{{ totalArticles.toLocaleString() }}</span>
-                <span class="text-[10px] font-bold text-slate-400">articles</span>
-              </div>
-            </div>
-          </div>
+        <Sidebar 
+          :total-articles="totalArticles"
+          :categories="allCategories"
+          :selected-category="selectedCategory"
+          :selected-sentiment="selectedSentiment"
+          v-model:show-only-insights="showOnlyInsights"
+          v-model:date-range="dateRange"
+          :languages="allLanguages"
+          :selected-languages="selectedLanguages"
+          v-model:show-lang-dropdown="showLangDropdown"
+          @select-category="selectCategory"
+          @toggle-sentiment="toggleSentiment"
+          @toggle-selected-language="toggleSelectedLanguage"
+        />
 
-          <!-- 2. Discovery (Redesigned as Pills) -->
-          <div class="glass rounded-3xl p-4">
-            <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em] flex items-center gap-2">
-              <Filter class="h-3 w-3" /> Discovery
-            </h2>
-            <div class="flex flex-wrap gap-2">
-              <button 
-                @click="selectCategory(null)"
-                :class="cn(
-                  'px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border',
-                  selectedCategory === null 
-                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-lg shadow-slate-900/10' 
-                    : 'bg-white/50 text-slate-500 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400 hover:border-indigo-500/50'
-                )"
-              >
-                All
-              </button>
-              <button 
-                v-for="category in categories" 
-                :key="category"
-                @click="selectCategory(category)"
-                :class="cn(
-                  'px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border',
-                  selectedCategory === category
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/20' 
-                    : 'bg-white/50 text-slate-500 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400 hover:border-indigo-500/50'
-                )"
-              >
-                {{ category }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 3. Market Sentiment (Renamed Intelligence) -->
-          <div class="glass rounded-3xl p-4">
-            <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em]">Market Sentiment</h2>
-            
-            <div class="space-y-1">
-              <button 
-                v-for="sent in ['bullish', 'bearish', 'neutral']"
-                :key="sent"
-                @click="toggleSentiment(sent)"
-                :class="cn(
-                  'w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border',
-                  selectedSentiment === sent
-                    ? sent === 'bullish' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : sent === 'bearish' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' : 'bg-slate-500/10 text-slate-600 border-slate-500/20'
-                    : 'border-transparent text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                )"
-              >
-                <span>{{ sent }}</span>
-                <div :class="cn('w-2 h-2 rounded-full', sent === 'bullish' ? 'bg-emerald-500' : sent === 'bearish' ? 'bg-rose-500' : 'bg-slate-400', selectedSentiment === sent ? 'opacity-100' : 'opacity-30')"></div>
-              </button>
-            </div>
-          </div>
-
-          <!-- 4. Content Origin (Renamed Network Filter) -->
-          <div class="glass rounded-3xl p-4 space-y-4">
-            <h2 class="font-black text-slate-400 text-[10px] uppercase tracking-[0.25em]">Content Origin</h2>
-            
-            <!-- Show Only Insights Toggle -->
-            <button 
-              @click="showOnlyInsights = !showOnlyInsights"
-              :class="cn(
-                'w-full flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest',
-                showOnlyInsights 
-                  ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600' 
-                  : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-800 text-slate-400'
-              )"
-            >
-              <span>Only Insights</span>
-              <Sparkles :class="cn('h-3 w-3', showOnlyInsights ? 'text-indigo-500' : 'text-slate-400')" />
-            </button>
-
-            <!-- Date Range Selector -->
-            <div class="relative group">
-              <select 
-                v-model="dateRange"
-                class="w-full appearance-none bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
-              >
-                <option value="all">Anytime</option>
-                <option value="1h">Last Hour</option>
-                <option value="24h">Last 24 Hours</option>
-                <option value="7d">Last 7 Days</option>
-              </select>
-              <ChevronDown class="h-3 w-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
-            </div>
-
-            <!-- Language Dropdown -->
-            <div>
-              <button 
-                @click="showLangDropdown = !showLangDropdown"
-                class="w-full flex items-center justify-between bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-all"
-              >
-                <span v-if="selectedLanguages.length === 0">All Languages</span>
-                <span v-else>{{ selectedLanguages.length }} Selected</span>
-                <ChevronDown :class="cn('h-3 w-3 text-slate-400 transition-transform', showLangDropdown && 'rotate-180')" />
-              </button>
-
-              <div v-if="showLangDropdown" class="mt-2 space-y-1 max-h-48 overflow-y-auto no-scrollbar">
-                <button 
-                  v-for="lang in languages" 
-                  :key="lang"
-                  @click="toggleSelectedLanguage(lang)"
-                  :class="cn(
-                    'w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                    selectedLanguages.includes(lang) ? 'bg-indigo-500/10 text-indigo-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  )"
-                >
-                  <div class="flex items-center gap-2">
-                    <span>{{ getLangFlag(lang) }}</span>
-                    <span class="uppercase">{{ lang }}</span>
-                  </div>
-                  <div v-if="selectedLanguages.includes(lang)" class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <!-- Main Content Area -->
-        <div class="flex-1 space-y-8 pt-6 lg:ml-80">
+        <div class="flex-1">
           <!-- Processing State Banner -->
-          <div v-if="processing" class="glass rounded-3xl p-6 border-indigo-500/20 flex items-center justify-between animate-pulse">
+          <div v-if="processing" class="glass rounded-3xl p-6 border-brand/20 flex items-center justify-between animate-pulse mb-8">
             <div class="flex items-center gap-4">
-              <div class="h-10 w-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center">
-                <RefreshCw class="h-5 w-5 text-indigo-600 dark:text-indigo-400 animate-spin" />
+              <div class="h-10 w-10 bg-brand/20 rounded-full flex items-center justify-center">
+                <RefreshCw class="h-5 w-5 text-brand animate-spin" />
               </div>
               <div>
-                <p class="font-bold text-slate-900 dark:text-white">Synchronizing Nexus</p>
-                <p class="text-xs text-slate-500">Retrieving intelligence from all sectors...</p>
+                <p class="font-bold text-text-primary">Synchronizing Nexus</p>
+                <p class="text-xs text-text-muted">Retrieving intelligence from all sectors...</p>
               </div>
             </div>
             <div class="hidden sm:flex gap-1.5">
-              <div v-for="i in 3" :key="i" class="h-1.5 w-6 bg-indigo-500 rounded-full animate-bounce" :style="{ animationDelay: `${i*0.2}s` }"></div>
+              <div v-for="i in 3" :key="i" class="h-1.5 w-6 bg-brand rounded-full animate-bounce" :style="{ animationDelay: `${i*0.2}s` }"></div>
             </div>
           </div>
 
-          <!-- Error State -->
-          <div v-if="error" class="glass rounded-[2.5rem] p-12 text-center border-rose-500/20">
-            <div class="h-16 w-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <RefreshCw class="h-8 w-8 text-rose-500" />
-            </div>
-            <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2">Nexus Sync Interrupted</h3>
-            <p class="text-slate-500 text-sm font-medium mb-8 max-w-xs mx-auto text-balance">{{ error }}</p>
-            <button @click="loadArticles(true)" class="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
-              Retry Synchronization
-            </button>
-          </div>
-
-          <!-- Loading Skeleton Grid -->
-          <div v-else-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div v-for="i in 6" :key="i" class="glass-card rounded-[2.5rem] p-8 h-80 animate-pulse">
-              <div class="flex justify-between mb-8">
-                <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-24"></div>
-                <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-12"></div>
-              </div>
-              <div class="space-y-4">
-                <div class="h-8 bg-slate-200 dark:bg-slate-800 rounded-2xl w-full"></div>
-                <div class="h-8 bg-slate-200 dark:bg-slate-800 rounded-2xl w-3/4"></div>
-                <div class="pt-4 space-y-2">
-                  <div class="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-full"></div>
-                  <div class="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-full"></div>
-                  <div class="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-2/3"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Articles Discovery Grid -->
-          <div v-else-if="filteredArticles.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <article 
-              v-for="article in filteredArticles" 
-              :key="article._id"
-              class="group glass-card rounded-[2.5rem] p-8 flex flex-col h-full hover:scale-[1.02] hover:shadow-2xl dark:hover:shadow-indigo-500/10"
-            >
-              <!-- Card Header -->
-              <div class="flex justify-between items-center mb-6">
-                <div class="flex gap-2 flex-wrap">
-                  <span class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-white/5 text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    {{ article.category }}
-                    <span class="mx-1 opacity-50">•</span>
-                    {{ getLangFlag(article.language || 'en') }}
-                  </span>
-
-                  <span v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse">
-                    Promotional
-                  </span>
-                  
-                  <!-- AI Sentiment Hub -->
-                  <div 
-                    v-if="article.analysis" 
-                    :class="cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border',
-                      article.analysis?.sentiment === 'bullish' 
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
-                        : article.analysis?.sentiment === 'bearish'
-                          ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                          : 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'
-                    )"
-                  >
-                    <TrendingUp v-if="article.analysis?.sentiment !== 'neutral'" :class="cn('h-3 w-3', article.analysis?.sentiment === 'bearish' && 'rotate-180')" />
-                    <Minus v-else class="h-3 w-3" />
-                    {{ Math.round((article.analysis?.sentimentScore || 0) * 100) }}%
-                  </div>
-                </div>
-                
-                <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
-                  <Clock class="h-3 w-3" />
-                  {{ formatDate(article.publicationDate || article.fetchedAt) }}
-                </span>
-              </div>
-              
-              <!-- Title & Body -->
-              <div class="flex-1 mb-8">
-                <div class="flex items-center justify-between mb-4">
-                  <h3 class="text-xl font-extrabold text-slate-900 dark:text-white leading-[1.3] group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer flex-1">
-                    <a :href="article.link" target="_blank" rel="noopener noreferrer">
-                      {{ getArticleTitle(article) }}
-                    </a>
-                  </h3>
-                </div>
-                
-                <!-- AI Summary Block (Orange/Amber) -->
-                <div v-if="globalInsightMode && (article.analysis?.iaSummary || hasTranslation(article))" class="mb-4 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 dark:bg-amber-400/5 relative overflow-hidden group/ia transition-all duration-300">
-                  <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
-                  
-                  <div class="flex justify-between items-center mb-2">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                      <Sparkles class="h-3 w-3" /> 
-                      AI Insight
-                      <span v-if="translationToggles[article._id] && article.language?.toLowerCase() !== preferredLanguage.toLowerCase()" class="ml-2 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[8px] flex items-center gap-1">
-                        {{ getLangFlag(article.language || 'en') }} 
-                        <ArrowRight class="h-2 w-2" /> 
-                        {{ getLangFlag(preferredLanguage) }}
-                      </span>
-                    </p>
-                  </div>
-
-                  <h4 v-if="translationToggles[article._id] && getArticleInsightTitle(article)" class="text-xs font-bold text-slate-800 dark:text-amber-100 mb-2 leading-tight">
-                    {{ getArticleInsightTitle(article) }}
-                  </h4>
-
-                  <p class="text-slate-600 dark:text-amber-200/80 text-xs font-semibold leading-relaxed italic">
-                    "{{ getArticleInsight(article) }}"
-                  </p>
-                </div>
-
-                <!-- Reader Block (Emerald) - Original RSS Summary -->
-                <div v-if="globalReaderMode && article.summary" class="mb-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 dark:bg-emerald-400/5 relative overflow-hidden group/reader transition-all duration-300">
-                  <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
-                  
-                  <div class="flex justify-between items-center mb-2">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      <FileText class="h-3 w-3" /> 
-                      Source Summary
-                    </p>
-                  </div>
-
-                  <p class="text-slate-500 dark:text-emerald-200/70 text-xs leading-relaxed">
-                    {{ article.summary.replace(/<[^>]*>/g, '').slice(0, 300) }}...
-                  </p>
-                </div>
-              </div>
-              
-              <!-- Card Footer -->
-              <div class="pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-black text-slate-400 uppercase tracking-tighter">{{ article.feedName }}</span>
-                </div>
-                
-                <a 
-                  :href="article.link" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  class="group/btn flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg active:scale-95"
-                >
-                  View Source
-                  <ExternalLink class="h-3 w-3 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
-                </a>
-              </div>
-            </article>
-          </div>
-
-          <!-- Empty Nexus State -->
-          <div v-else class="glass rounded-[3rem] py-24 px-6 text-center">
-            <div class="h-20 w-20 bg-indigo-100 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-indigo-200 dark:border-indigo-800">
-              <Search class="h-10 w-10 text-indigo-500" />
-            </div>
-            <h3 class="text-2xl font-black text-slate-900 dark:text-white">Coordinate Mismatch</h3>
-            <p class="text-slate-500 max-w-sm mx-auto mt-4 text-sm font-medium">No signals detected in this sector. Try recalibrating your search parameters or synchronize with the network.</p>
-            <button @click="selectedCategory = null; searchQuery = ''" class="mt-10 px-8 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/30 hover:-translate-y-1 transition-all active:scale-95">
-              Reset Nexus
-            </button>
-          </div>
-
-          <!-- Loading More Scroll Sentinel -->
-          <div v-if="hasMore && !loading" ref="loadMoreTrigger" class="h-40 flex items-center justify-center">
-            <div class="flex flex-col items-center gap-4">
-              <RefreshCw class="h-8 w-8 text-indigo-500 animate-spin" />
-              <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 animate-pulse">Syncing...</span>
-            </div>
-          </div>
-          
-          <div v-if="!hasMore && articles.length > 0" class="py-20 text-center">
-            <div class="h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent mb-10 w-full"></div>
-            <p class="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 flex items-center justify-center gap-4">
-              <span class="h-px w-8 bg-slate-300 dark:bg-slate-700"></span>
-              Pulse of the Nexus Completed
-              <span class="h-px w-8 bg-slate-300 dark:bg-slate-700"></span>
-            </p>
-          </div>
+          <ArticleFeed 
+            ref="feedRef"
+            :articles="articles"
+            :loading="loading"
+            :error="error"
+            :has-more="hasMore"
+            :global-insight-mode="globalInsightMode"
+            :global-summary-mode="globalSummaryMode"
+            :preferred-language="preferredLanguage"
+            :translation-toggles="translationToggles"
+            @retry="loadArticles(true)"
+          />
         </div>
       </div>
     </main>
 
-    <!-- Footer Nexus -->
-    <footer class="mt-auto py-4 glass border-t-white/10 text-center">
-      <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-        &copy; 2025 Kognit &bull; Engineered by Machi
-      </p>
-    </footer>
+    <Footer />
   </div>
 </template>

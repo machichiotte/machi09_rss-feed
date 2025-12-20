@@ -1,16 +1,88 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@theme {
+    --font-sans: "Inter", system-ui, sans-serif;
+    --font-display: "Outfit", sans-serif;
+
+    --color-brand: var(--brand);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-danger: var(--danger);
+
+    --color-insight: var(--insight);
+    --color-summary: var(--summary);
+    --color-translate: var(--translate);
+
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-muted: var(--text-muted);
+
+    --color-bg-main: var(--bg-main);
+    --color-bg-card: var(--bg-card);
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-    --color-indigo-50: #eef2ff;
-    --font-sans: 'Inter', system-ui, sans-serif;
-    --font-display: 'Outfit', sans-serif;
+    /* Éléments de surface */
+    --bg-main: #f8fafc;
+    /* slate-50 */
+    --bg-card: #ffffff;
+
+    /* Textes */
+    --text-primary: #0f172a;
+    /* slate-900 - Titres Outfit */
+    --text-secondary: #475569;
+    /* slate-600 - Corps Inter */
+    --text-muted: #94a3b8;
+    /* slate-400 - Dates, tags */
+
+    /* Accents (Sentiment & Actions) */
+    --brand: #6366f1;
+    /* indigo-500 */
+    --success: #10b981;
+    /* emerald-500 - Sentiment Positif */
+    --warning: #f59e0b;
+    /* amber-500 - Sentiment Neutre */
+    --danger: #ef4444;
+    /* red-500 - Sentiment Négatif */
+
+    /* UI Logic Accents */
+    --insight: #f59e0b;
+    /* amber-500 */
+    --summary: #0ea5e9;
+    /* sky-500 */
+    --translate: #f43f5e;
+    /* rose-500 */
+}
+
+.dark {
+    --bg-main: #020617;
+    /* slate-950 */
+    --bg-card: #0f172a;
+    /* slate-900 */
+
+    --text-primary: #f1f5f9;
+    /* slate-100 */
+    --text-secondary: #94a3b8;
+    /* slate-400 */
+    --text-muted: #475569;
+    /* slate-600 */
+
+    --brand: #818cf8;
+    /* indigo-400 */
+
+    --insight: #fbbf24;
+    /* amber-400 */
+    --summary: #38bdf8;
+    /* sky-400 */
+    --translate: #fb7185;
+    /* rose-400 */
 }
 
 body {
-    font-family: var(--font-sans);
+    @apply bg-bg-main text-text-secondary font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -18,18 +90,61 @@ body {
 h1,
 h2,
 h3,
-h4,
-.font-display {
-    font-family: var(--font-display);
+h4 {
+    @apply font-display text-text-primary;
 }
 
 /* Glassmorphism utilities */
 .glass {
-    @apply backdrop-blur-md bg-white/70 dark:bg-slate-950/70 border border-white/20 dark:border-slate-800/50 shadow-xl;
+    @apply backdrop-blur-xl bg-bg-card/80 border border-brand/10 shadow-2xl;
 }
 
 .glass-card {
-    @apply backdrop-blur-sm bg-white/40 dark:bg-slate-900/40 border border-white/40 dark:border-slate-800/40 shadow-sm transition-all duration-300;
+    @apply backdrop-blur-md transition-all duration-300;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(226, 232, 240, 0.5);
+    /* slate-200/50 */
+    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.05), 0 4px 6px -4px rgba(99, 102, 241, 0.05);
+    /* indigo shadow */
+}
+
+.dark .glass-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(2, 6, 17, 0.95) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    /* Effect Border Beam / Reflection */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.6);
+}
+
+.glass-card:hover {
+    @apply -translate-y-1;
+    box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.1), 0 8px 10px -6px rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* Hiérarchie de texte */
+.title-news {
+    @apply font-display font-bold leading-tight;
+    color: var(--text-primary);
+}
+
+.body-news {
+    @apply font-sans text-sm leading-relaxed;
+    color: var(--text-secondary);
+}
+
+.meta-news {
+    @apply text-xs font-medium uppercase tracking-wider;
+    color: var(--text-muted);
+}
+
+/* Effet Glow pour les icônes actives ou sentiments */
+.icon-glow-brand {
+    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));
+}
+
+.icon-glow-success {
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
 }
 
 /* Animations Aurora */
@@ -41,45 +156,42 @@ h4,
     bottom: 0;
     z-index: -1;
     overflow: hidden;
-    background: radial-gradient(circle at 50% 50%, #f1f5f9 0%, #ffffff 100%);
-}
-
-.dark .aurora-bg {
-    background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
+    background: radial-gradient(circle at 50% 50%, var(--bg-main) 0%, var(--bg-main) 100%);
 }
 
 .aurora-blob {
     position: absolute;
-    width: 600px;
-    height: 600px;
+    width: 60vh;
+    height: 60vh;
     border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.15;
-    animation: float 20s infinite alternate;
+    filter: blur(100px);
+    opacity: 0.2;
+    animation: float 25s infinite alternate ease-in-out;
 }
 
 .dark .aurora-blob {
-    opacity: 0.1;
+    opacity: 0.12;
 }
 
 .blob-1 {
-    background: #6366f1;
-    top: -100px;
-    right: -100px;
+    background: var(--brand);
+    top: -10%;
+    right: -5%;
 }
 
 .blob-2 {
-    background: #a855f7;
-    bottom: -100px;
-    left: -100px;
+    background: #7c3aed;
+    /* violet-600 */
+    bottom: -10%;
+    left: -5%;
     animation-delay: -5s;
 }
 
 .blob-3 {
-    background: #22d3ee;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    background: #06b6d4;
+    /* cyan-500 */
+    top: 40%;
+    left: 40%;
     animation-delay: -10s;
 }
 
@@ -89,11 +201,11 @@ h4,
     }
 
     33% {
-        transform: translate(10%, 15%) scale(1.1);
+        transform: translate(15vw, 15vh) scale(1.15);
     }
 
     66% {
-        transform: translate(-5%, 10%) scale(0.9);
+        transform: translate(-10vw, 20vh) scale(0.9);
     }
 
     100% {
@@ -103,7 +215,7 @@ h4,
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -111,9 +223,18 @@ h4,
 }
 
 ::-webkit-scrollbar-thumb {
-    @apply bg-slate-200 dark:bg-slate-800 rounded-full;
+    @apply bg-slate-300 dark:bg-slate-800 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-300 dark:bg-slate-700;
+    @apply bg-slate-400 dark:bg-slate-700;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
