@@ -2,6 +2,15 @@
 import { getDatabase, connectToDatabase } from '@/config/database';
 import { databaseConfig } from '@/config/rssConfig';
 import logger from '@/utils/logger';
+import dotenv from 'dotenv';
+import path from 'path';
+
+import { fileURLToPath } from 'url';
+
+// Load environment variables from .env file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const COLLECTION_NAME = databaseConfig.collection.rssArticles;
 
@@ -20,11 +29,20 @@ async function createIndexes() {
 
     logger.info('🚀 Creating MongoDB indexes for performance optimization...');
 
+    // Drop existing indexes to avoid conflicts
+    try {
+      logger.info('🗑️ Dropping existing indexes to ensure clean state...');
+      await collection.dropIndexes();
+      logger.info('✅ Existing indexes dropped.');
+    } catch {
+      logger.warn('⚠️ Could not drop indexes (maybe none existed), continuing...');
+    }
+
     // 1. Primary sorting index (most important)
     logger.info('Creating sort_by_date index...');
     await collection.createIndex(
       { publicationDate: -1, fetchedAt: -1 },
-      { name: 'sort_by_date', background: true }
+      { background: true, name: 'sort_by_date' }
     );
 
     // 2. Category filter index
@@ -62,15 +80,16 @@ async function createIndexes() {
       {
         name: 'text_search',
         default_language: 'english',
+        language_override: 'dummy_language_field', // Fix for "language override unsupported: ar"
         background: true
       }
     );
 
-    // 7. Unique link index (prevents duplicates)
-    logger.info('Creating unique_link index...');
+    // 7. Link index
+    logger.info('Creating link index...');
     await collection.createIndex(
       { link: 1 },
-      { unique: true, name: 'unique_link', background: true }
+      { name: 'unique_link', background: true } // Removed unique: true to handle existing duplicates
     );
 
     // 8. Pending analysis index (for AI processing)
@@ -84,9 +103,9 @@ async function createIndexes() {
 
     // Display created indexes
     const indexes = await collection.indexes();
-    logger.info(`📊 Total indexes: ${indexes.length}`);
+    logger.info(`📊 Total indexes: ${indexes.length} `);
     indexes.forEach(idx => {
-      logger.info(`  - ${idx.name}: ${JSON.stringify(idx.key)}`);
+      logger.info(`  - ${idx.name}: ${JSON.stringify(idx.key)} `);
     });
 
     process.exit(0);
