@@ -408,7 +408,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
     </div>
 
     <!-- Navbar -->
-    <header class="sticky top-0 z-30 glass border-b-white/10">
+    <header class="sticky top-0 z-30 glass border-b-white/10 h-20 overflow-hidden">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-20 items-center">
           <div class="flex items-center gap-4 group cursor-pointer">
@@ -477,10 +477,10 @@ function cn(...inputs: (string | undefined | null | false)[]) {
       </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-10 relative">
-      <div class="flex flex-col lg:flex-row gap-10">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-10 relative">
+      <div class="flex flex-col lg:flex-row gap-10 pt-0">
         <!-- Sidebar Filters -->
-        <aside class="w-full lg:w-72 flex-shrink-0 space-y-6 sticky top-24 h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar pb-10">
+        <aside class="w-full lg:w-72 flex-shrink-0 space-y-6 lg:fixed lg:top-20 h-[calc(100vh-5rem)] overflow-y-auto no-scrollbar pb-10">
           <!-- 1. Quick Stats (Moved to Top) -->
           <div class="glass rounded-3xl p-5 bg-indigo-600/5 border-indigo-500/10 dark:bg-indigo-400/5 relative overflow-hidden group">
             <div class="absolute -right-4 -top-4 bg-indigo-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
@@ -595,7 +595,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
         </aside>
 
         <!-- Main Content Area -->
-        <div class="flex-1 space-y-8">
+        <div class="flex-1 space-y-8 pt-6 lg:ml-80">
           <!-- Processing State Banner -->
           <div v-if="processing" class="glass rounded-3xl p-6 border-indigo-500/20 flex items-center justify-between animate-pulse">
             <div class="flex items-center gap-4">
