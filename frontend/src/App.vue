@@ -11,7 +11,6 @@ import {
   Filter,
   TrendingUp,
   Clock,
-  ChevronRight,
   Moon,
   Sun,
   Sparkles, 
@@ -305,6 +304,11 @@ const toggleSelectedLanguage = (lang: string) => {
   }
 };
 
+const toggleSentiment = (sent: string) => {
+  const s = sent as 'bullish' | 'bearish' | 'neutral';
+  selectedSentiment.value = selectedSentiment.value === s ? null : s;
+};
+
 // Computed
 const categories = computed(() => allCategories.value);
 const languages = computed(() => allLanguages.value);
@@ -476,155 +480,116 @@ function cn(...inputs: (string | undefined | null | false)[]) {
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
       <div class="flex flex-col lg:flex-row gap-10">
         <!-- Sidebar Filters -->
-        <aside class="w-full lg:w-72 flex-shrink-0 space-y-8 sticky top-24 h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar">
-          <!-- Main Categories -->
-          <div class="glass rounded-3xl p-6">
-            <h2 class="font-black text-slate-400 mb-6 text-[10px] uppercase tracking-[0.25em] flex items-center gap-2">
-              <Filter class="h-3.5 w-3.5" /> Discovery
+        <aside class="w-full lg:w-72 flex-shrink-0 space-y-6 sticky top-24 h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar pb-10">
+          <!-- 1. Quick Stats (Moved to Top) -->
+          <div class="glass rounded-3xl p-5 bg-indigo-600/5 border-indigo-500/10 dark:bg-indigo-400/5 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 bg-indigo-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
+            <div class="relative z-10">
+              <p class="text-[9px] font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400 mb-1">Total Insights</p>
+              <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{{ totalArticles.toLocaleString() }}</span>
+                <span class="text-[10px] font-bold text-slate-400">articles</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Discovery (Redesigned as Pills) -->
+          <div class="glass rounded-3xl p-5">
+            <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em] flex items-center gap-2">
+              <Filter class="h-3 w-3" /> Discovery
             </h2>
-            
-            <nav class="space-y-1.5">
+            <div class="flex flex-wrap gap-2">
               <button 
                 @click="selectCategory(null)"
                 :class="cn(
-                  'w-full text-left px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 flex items-center justify-between group',
+                  'px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border',
                   selectedCategory === null 
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:translate-x-1'
+                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-lg shadow-slate-900/10' 
+                    : 'bg-white/50 text-slate-500 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400 hover:border-indigo-500/50'
                 )"
               >
-                All Feeds
-                <ChevronRight class="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                All
               </button>
-              
               <button 
                 v-for="category in categories" 
                 :key="category"
                 @click="selectCategory(category)"
                 :class="cn(
-                  'w-full text-left px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 flex items-center justify-between group',
+                  'px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border',
                   selectedCategory === category
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:translate-x-1'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/20' 
+                    : 'bg-white/50 text-slate-500 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-400 hover:border-indigo-500/50'
                 )"
               >
                 {{ category }}
-                <ChevronRight v-if="selectedCategory === category" class="h-4 w-4" />
-                <ChevronRight v-else class="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
-            </nav>
+            </div>
           </div>
 
-          <!-- Language & Sentiment Hub -->
-          <div class="glass rounded-3xl p-6 space-y-8 relative z-20">
-            <!-- Translation State -->
-            <div class="flex items-center justify-between p-3 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-              <div>
-                <h2 class="font-black text-amber-600 text-[10px] uppercase tracking-widest">Intelligence Hub</h2>
-                <p class="text-[9px] text-amber-600/60 uppercase font-bold">Auto-Insights</p>
+          <!-- 3. Intelligence (Redesigned as Filter List) -->
+          <div class="glass rounded-3xl p-5">
+            <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em]">Intelligence</h2>
+            
+            <div class="space-y-3">
+              <!-- Auto-Insight Toggle (Compact) -->
+              <div class="flex items-center justify-between p-3 rounded-2xl bg-amber-500/5 border border-amber-500/10">
+                <span class="text-[10px] font-black uppercase text-amber-600/80">Magic Mode</span>
+                <button 
+                  @click="setGlobalMagic(!globalMagicMode)"
+                  :class="cn('w-8 h-4 rounded-full transition-all relative', globalMagicMode ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700')"
+                >
+                  <div :class="cn('absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-all shadow-sm', globalMagicMode ? 'translate-x-4' : 'translate-x-0')"></div>
+                </button>
               </div>
+
+              <!-- Sentiment Filters (List) -->
+              <div class="space-y-1">
+                <button 
+                  v-for="sent in ['bullish', 'bearish', 'neutral']"
+                  :key="sent"
+                  @click="toggleSentiment(sent)"
+                  :class="cn(
+                    'w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border',
+                    selectedSentiment === sent
+                      ? sent === 'bullish' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : sent === 'bearish' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' : 'bg-slate-500/10 text-slate-600 border-slate-500/20'
+                      : 'border-transparent text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                  )"
+                >
+                  <span>{{ sent }}</span>
+                  <div :class="cn('w-2 h-2 rounded-full', sent === 'bullish' ? 'bg-emerald-500' : sent === 'bearish' ? 'bg-rose-500' : 'bg-slate-400', selectedSentiment === sent ? 'opacity-100' : 'opacity-30')"></div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Content Origin (Renamed Network Filter) -->
+          <div class="glass rounded-3xl p-5">
+            <h2 class="font-black text-slate-400 mb-3 text-[10px] uppercase tracking-[0.25em]">Content Origin</h2>
+            <button 
+              @click="showLangDropdown = !showLangDropdown"
+              class="w-full flex items-center justify-between bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-all"
+            >
+              <span v-if="selectedLanguages.length === 0">Global (All)</span>
+              <span v-else>{{ selectedLanguages.length }} Selected</span>
+              <ChevronDown :class="cn('h-3 w-3 text-slate-400 transition-transform', showLangDropdown && 'rotate-180')" />
+            </button>
+
+            <div v-if="showLangDropdown" class="mt-2 space-y-1 max-h-48 overflow-y-auto no-scrollbar">
               <button 
-                @click="setGlobalMagic(!globalMagicMode)"
+                v-for="lang in languages" 
+                :key="lang"
+                @click="toggleSelectedLanguage(lang)"
                 :class="cn(
-                  'w-10 h-6 rounded-full transition-all relative',
-                  globalMagicMode ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700'
+                  'w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                  selectedLanguages.includes(lang) ? 'bg-indigo-500/10 text-indigo-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                 )"
               >
-                <div 
-                  :class="cn(
-                    'absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm',
-                    globalMagicMode ? 'translate-x-4' : 'translate-x-0'
-                  )"
-                ></div>
+                <div class="flex items-center gap-2">
+                  <span>{{ getLangFlag(lang) }}</span>
+                  <span class="uppercase">{{ lang }}</span>
+                </div>
+                <div v-if="selectedLanguages.includes(lang)" class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>
               </button>
-            </div>
-
-            <!-- Sentiment Hub -->
-            <div>
-              <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em]">Intelligence</h2>
-              <div class="grid grid-cols-1 gap-2">
-                <div class="grid grid-cols-2 gap-2">
-                  <button 
-                    @click="selectedSentiment = selectedSentiment === 'bullish' ? null : 'bullish'"
-                    :class="cn(
-                      'group relative py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden',
-                      selectedSentiment === 'bullish'
-                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                        : 'bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 hover:bg-emerald-500/10'
-                    )"
-                  >
-                    Bullish
-                    <TrendingUp class="absolute -right-2 -bottom-2 h-8 w-8 opacity-10 group-hover:scale-125 transition-transform" />
-                  </button>
-                  <button 
-                    @click="selectedSentiment = selectedSentiment === 'bearish' ? null : 'bearish'"
-                    :class="cn(
-                      'group relative py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden',
-                      selectedSentiment === 'bearish'
-                        ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
-                        : 'bg-rose-500/5 text-rose-600 dark:text-rose-400 border border-rose-500/10 hover:bg-rose-500/10'
-                    )"
-                  >
-                    Bearish
-                    <TrendingUp class="absolute -right-2 -bottom-2 h-8 w-8 opacity-10 rotate-180 group-hover:scale-125 transition-transform" />
-                  </button>
-                </div>
-                <button 
-                  @click="selectedSentiment = selectedSentiment === 'neutral' ? null : 'neutral'"
-                  :class="cn(
-                    'group relative py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 overflow-hidden',
-                    selectedSentiment === 'neutral'
-                      ? 'bg-slate-500 text-white shadow-lg shadow-slate-500/20'
-                      : 'bg-slate-500/5 text-slate-600 dark:text-slate-400 border border-slate-500/10 hover:bg-slate-500/10'
-                  )"
-                >
-                  Neutral / Stable
-                </button>
-              </div>
-            </div>
-
-            <!-- Language Hub (Filtering) -->
-            <div class="relative">
-              <h2 class="font-black text-slate-400 mb-2 text-[10px] uppercase tracking-[0.25em]">Network Filter</h2>
-              <div class="relative">
-                <button 
-                  @click="showLangDropdown = !showLangDropdown"
-                  class="w-full bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-left flex items-center justify-between relative z-10"
-                >
-                  <span v-if="selectedLanguages.length === 0">All Languages</span>
-                  <span v-else class="truncate">{{ selectedLanguages.join(', ').toUpperCase() }}</span>
-                  <ChevronDown class="h-3 w-3 text-slate-400" />
-                </button>
-                
-                <div v-if="showLangDropdown" class="absolute z-[100] w-full mt-2 bg-white dark:bg-slate-900 border border-white/20 dark:border-slate-800 rounded-2xl shadow-2xl p-2 max-h-60 overflow-y-auto">
-                  <button 
-                    v-for="lang in languages" 
-                    :key="lang"
-                    @click="toggleSelectedLanguage(lang)"
-                    :class="cn(
-                      'w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between transition-colors',
-                      selectedLanguages.includes(lang) ? 'bg-indigo-500/10 text-indigo-600' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                    )"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span>{{ getLangFlag(lang) }}</span>
-                      <span class="uppercase">{{ lang }}</span>
-                    </div>
-                    <div v-if="selectedLanguages.includes(lang)" class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Stats -->
-          <div class="glass rounded-3xl p-6 bg-indigo-600/5 border-indigo-500/10 dark:bg-indigo-400/5 relative z-10">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-[9px] font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400">Total Insights</p>
-                <p class="text-3xl font-black text-slate-900 dark:text-white">{{ totalArticles.toLocaleString() }}</p>
-              </div>
-              <TrendingUp class="h-10 w-10 text-indigo-500/20" />
             </div>
           </div>
         </aside>
