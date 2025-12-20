@@ -12,6 +12,9 @@ import Footer from './components/layout/Footer.vue';
 // Feed Components
 import ArticleFeed from './components/feed/ArticleFeed.vue';
 
+// i18n
+import { useI18n } from './composables/useI18n';
+
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -62,6 +65,9 @@ const isDark = ref(false);
 const showOnlyInsights = ref(false);
 const dateRange = ref('all');
 const error = ref<string | null>(null);
+
+// i18n Setup
+const { t } = useI18n(preferredLanguage);
 
 // Pagination State
 const currentPage = ref(1);
@@ -160,8 +166,8 @@ function handleFetchError(err: unknown) {
     status = err.status || err.response?.status;
   }
   error.value = status === 504 
-    ? "Nexus is currently busy processing AI insights. Please wait a moment." 
-    : "Failed to synchronize with Nexus. Check your connection.";
+    ? t('common.error_busy')
+    : t('common.error_failed');
 }
 
 function checkAndLoadMore() {
@@ -307,6 +313,7 @@ onUnmounted(() => {
           :languages="allLanguages"
           :selected-languages="selectedLanguages"
           v-model:show-lang-dropdown="showLangDropdown"
+          :preferred-language="preferredLanguage"
           @select-category="selectCategory"
           @toggle-sentiment="toggleSentiment"
           @toggle-selected-language="toggleSelectedLanguage"
@@ -320,8 +327,8 @@ onUnmounted(() => {
                 <RefreshCw class="h-5 w-5 text-brand animate-spin" />
               </div>
               <div>
-                <p class="font-bold text-text-primary">Synchronizing Nexus</p>
-                <p class="text-xs text-text-muted">Retrieving intelligence from all sectors...</p>
+                <p class="font-bold text-text-primary">{{ t('feed.syncing_nexus') }}</p>
+                <p class="text-xs text-text-muted">{{ t('feed.retrieving_intel') }}</p>
               </div>
             </div>
             <div class="hidden sm:flex gap-1.5">
@@ -345,6 +352,6 @@ onUnmounted(() => {
       </div>
     </main>
 
-    <Footer />
+    <Footer :preferred-language="preferredLanguage" />
   </div>
 </template>

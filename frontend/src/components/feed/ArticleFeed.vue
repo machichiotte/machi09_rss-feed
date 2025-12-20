@@ -2,6 +2,8 @@
 import { ref } from 'vue';
 import { RefreshCw, Search } from 'lucide-vue-next';
 import ArticleCard from './ArticleCard.vue';
+import { toRef } from 'vue';
+import { useI18n } from '../../composables/useI18n';
 
 interface Article {
   _id: string;
@@ -27,7 +29,7 @@ interface Article {
   }>;
 }
 
-defineProps<{
+const props = defineProps<{
   articles: Article[];
   loading: boolean;
   error: string | null;
@@ -37,6 +39,8 @@ defineProps<{
   preferredLanguage: string;
   translationToggles: Record<string, boolean>;
 }>();
+
+const { t } = useI18n(toRef(props, 'preferredLanguage'));
 
 const emit = defineEmits<{
   (e: 'retry'): void;
@@ -53,10 +57,10 @@ defineExpose({ loadMoreTrigger });
       <div class="h-16 w-16 bg-danger/10 rounded-full flex items-center justify-center mx-auto mb-6">
         <RefreshCw class="h-8 w-8 text-danger" />
       </div>
-      <h3 class="text-xl font-black text-text-primary mb-2">Nexus Sync Interrupted</h3>
+      <h3 class="text-xl font-black text-text-primary mb-2">{{ t('common.error') }}</h3>
       <p class="text-text-muted text-sm font-medium mb-8 max-w-xs mx-auto text-balance">{{ error }}</p>
       <button @click="emit('retry')" class="px-8 py-3 bg-text-primary text-bg-card rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
-        Retry Synchronization
+        {{ t('common.retry') }}
       </button>
     </div>
 
@@ -97,15 +101,15 @@ defineExpose({ loadMoreTrigger });
       <div class="h-20 w-20 bg-brand/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-brand/20">
         <Search class="h-10 w-10 text-brand" />
       </div>
-      <h3 class="text-2xl font-black text-text-primary">Coordinate Mismatch</h3>
-      <p class="text-text-secondary max-w-sm mx-auto mt-4 text-sm font-medium">No signals detected in this sector. Try recalibrating your search parameters or synchronize with the network.</p>
+      <h3 class="text-2xl font-black text-text-primary">{{ t('feed.coordinate_mismatch') }}</h3>
+      <p class="text-text-secondary max-w-sm mx-auto mt-4 text-sm font-medium">{{ t('feed.no_signals') }}</p>
     </div>
 
     <!-- Loading More Scroll Sentinel -->
     <div v-if="hasMore && !loading" ref="loadMoreTrigger" class="h-40 flex items-center justify-center">
       <div class="flex flex-col items-center gap-4">
         <RefreshCw class="h-8 w-8 text-brand animate-spin" />
-        <span class="text-[10px] font-black uppercase tracking-[0.25em] text-text-muted animate-pulse">Syncing...</span>
+        <span class="text-[10px] font-black uppercase tracking-[0.25em] text-text-muted animate-pulse">{{ t('common.syncing') }}</span>
       </div>
     </div>
     
@@ -113,7 +117,7 @@ defineExpose({ loadMoreTrigger });
       <div class="h-px bg-gradient-to-r from-transparent via-text-secondary/20 to-transparent mb-10 w-full"></div>
       <p class="text-[11px] font-black uppercase tracking-[0.4em] text-text-muted flex items-center justify-center gap-4">
         <span class="h-px w-8 bg-text-secondary/20"></span>
-        Pulse of the Nexus Completed
+        {{ t('feed.pulse_completed') }}
         <span class="h-px w-8 bg-text-secondary/20"></span>
       </p>
     </div>

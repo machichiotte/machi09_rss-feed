@@ -11,6 +11,8 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { toRef } from 'vue';
+import { useI18n } from '../../composables/useI18n';
 
 interface Article {
   _id: string;
@@ -44,6 +46,8 @@ const props = defineProps<{
   translationToggles: Record<string, boolean>;
 }>();
 
+const { t } = useI18n(toRef(props, 'preferredLanguage'));
+
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
@@ -52,7 +56,7 @@ const formatDate = (dateStr: string) => {
   try {
     return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
   } catch {
-    return 'Recently';
+    return t('common.loading'); 
   }
 };
 
@@ -89,7 +93,7 @@ const getArticleInsight = (article: Article) => {
   if (isTranslated && translation) {
     return translation.iaSummary || translation.summary;
   }
-  return article.analysis?.iaSummary || article.summary || 'No AI Insight available';
+  return article.analysis?.iaSummary || article.summary || t('article.no_insight');
 };
 
 const hasTranslation = (article: Article) => {
@@ -111,7 +115,7 @@ const hasTranslation = (article: Article) => {
         </span>
 
         <span v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse">
-          Promotional
+          {{ t('common.promotional') }}
         </span>
         
         <!-- AI Sentiment Hub -->
@@ -155,7 +159,7 @@ const hasTranslation = (article: Article) => {
         <div class="flex justify-between items-center mb-2">
           <p class="text-[10px] font-black uppercase tracking-widest text-insight flex items-center gap-1">
             <Sparkles class="h-3 w-3" /> 
-            AI Insight
+            {{ t('article.ai_insight') }}
             <span v-if="translationToggles[article._id] && article.language?.toLowerCase() !== preferredLanguage.toLowerCase()" class="ml-2 px-2 py-0.5 rounded-full bg-translate/10 text-translate border border-translate/20 text-[8px] flex items-center gap-1">
               {{ getLangFlag(article.language || 'en') }} 
               <ArrowRight class="h-2 w-2" /> 
@@ -180,7 +184,7 @@ const hasTranslation = (article: Article) => {
         <div class="flex justify-between items-center mb-2">
           <p class="text-[10px] font-black uppercase tracking-widest text-summary flex items-center gap-1">
             <FileText class="h-3 w-3" /> 
-            Source Summary
+            {{ t('article.source_summary') }}
           </p>
         </div>
 
@@ -202,7 +206,7 @@ const hasTranslation = (article: Article) => {
         rel="noopener noreferrer"
         class="group/btn flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-text-primary text-bg-card text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg active:scale-95"
       >
-        View Source
+        {{ t('common.view_source') }}
         <ExternalLink class="h-3 w-3 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
       </a>
     </div>

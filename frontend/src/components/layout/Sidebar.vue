@@ -6,11 +6,13 @@ import {
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { toRef } from 'vue';
+import { useI18n } from '../../composables/useI18n';
 
 /**
  * Sidebar component containing discovery pills, sentiment filters, and origin settings.
  */
-defineProps<{
+const props = defineProps<{
   totalArticles: number;
   categories: string[];
   selectedCategory: string | null;
@@ -20,7 +22,10 @@ defineProps<{
   languages: string[];
   selectedLanguages: string[];
   showLangDropdown: boolean;
+  preferredLanguage: string;
 }>();
+
+const { t } = useI18n(toRef(props, 'preferredLanguage'));
 
 const emit = defineEmits<{
   (e: 'selectCategory', cat: string | null): void;
@@ -52,10 +57,10 @@ const getLangFlag = (lang?: string) => {
     <div class="glass rounded-3xl py-4 px-5 bg-brand/5 border-brand/20 relative overflow-hidden group shadow-lg">
       <div class="absolute -right-4 -top-4 bg-brand/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-brand/20 transition-all"></div>
       <div class="relative z-10">
-        <p class="text-[9px] font-black uppercase tracking-widest text-brand mb-1">Total Insights</p>
+        <p class="text-[9px] font-black uppercase tracking-widest text-brand mb-1">{{ t('sidebar.total_insights') }}</p>
         <div class="flex items-baseline gap-2">
           <span class="text-3xl font-black tracking-tight text-text-primary">{{ totalArticles.toLocaleString() }}</span>
-          <span class="text-[10px] font-bold text-text-muted">articles</span>
+          <span class="text-[10px] font-bold text-text-muted">{{ t('sidebar.articles') }}</span>
         </div>
       </div>
     </div>
@@ -63,7 +68,7 @@ const getLangFlag = (lang?: string) => {
     <!-- 2. Discovery -->
     <div class="glass rounded-3xl py-4 px-6 shadow-lg bg-bg-card/30">
       <h2 class="font-black text-text-muted mb-4 text-[10px] uppercase tracking-[0.25em] flex items-center gap-2">
-        <Filter class="h-3 w-3" /> Discovery
+        <Filter class="h-3 w-3" /> {{ t('sidebar.discovery') }}
       </h2>
       <div class="flex flex-wrap gap-2">
         <button 
@@ -75,7 +80,7 @@ const getLangFlag = (lang?: string) => {
               : 'bg-bg-card/70 text-text-secondary border-brand/10 hover:border-brand/50 shadow-sm'
           )"
         >
-          All
+          {{ t('common.all') }}
         </button>
         <button 
           v-for="category in categories" 
@@ -95,7 +100,7 @@ const getLangFlag = (lang?: string) => {
 
     <!-- 3. Market Sentiment -->
     <div class="glass rounded-3xl py-4 px-6 shadow-lg bg-bg-card/30">
-      <h2 class="font-black text-text-muted mb-5 text-[10px] uppercase tracking-[0.25em]">Market Sentiment</h2>
+      <h2 class="font-black text-text-muted mb-5 text-[10px] uppercase tracking-[0.25em]">{{ t('sidebar.market_sentiment') }}</h2>
       
       <div class="space-y-1">
         <button 
@@ -117,7 +122,7 @@ const getLangFlag = (lang?: string) => {
 
     <!-- 4. Content Origin -->
     <div class="glass rounded-3xl py-4 px-6 space-y-3 shadow-lg bg-bg-card/30">
-      <h2 class="font-black text-text-muted text-[10px] uppercase tracking-[0.25em]">Content Origin</h2>
+      <h2 class="font-black text-text-muted text-[10px] uppercase tracking-[0.25em]">{{ t('sidebar.content_origin') }}</h2>
       
       <!-- Only AI Insights Toggle -->
       <button 
@@ -129,7 +134,7 @@ const getLangFlag = (lang?: string) => {
             : 'bg-bg-card/50 border-brand/10 text-text-muted'
         )"
       >
-        <span>Only AI Insights</span>
+        <span>{{ t('sidebar.only_ai') }}</span>
         <Sparkles :class="cn('h-3 w-3', showOnlyInsights ? 'text-insight' : 'text-text-muted')" />
       </button>
 
@@ -140,10 +145,10 @@ const getLangFlag = (lang?: string) => {
           @change="emit('update:dateRange', ($event.target as HTMLSelectElement).value)"
           class="w-full appearance-none bg-bg-card/50 border border-brand/10 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-text-secondary transition-all hover:bg-bg-card"
         >
-          <option value="all">Anytime</option>
-          <option value="1h">Last Hour</option>
-          <option value="24h">Last 24 Hours</option>
-          <option value="7d">Last 7 Days</option>
+          <option value="all">{{ t('sidebar.anytime') }}</option>
+          <option value="1h">{{ t('sidebar.last_1h') }}</option>
+          <option value="24h">{{ t('sidebar.last_24h') }}</option>
+          <option value="7d">{{ t('sidebar.last_7d') }}</option>
         </select>
         <ChevronDown class="h-3 w-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" />
       </div>
@@ -154,8 +159,8 @@ const getLangFlag = (lang?: string) => {
           @click="emit('update:showLangDropdown', !showLangDropdown)"
           class="w-full flex items-center justify-between bg-bg-card/50 border border-brand/10 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:bg-bg-card transition-all"
         >
-          <span v-if="selectedLanguages.length === 0">All Languages</span>
-          <span v-else>{{ selectedLanguages.length }} Selected</span>
+          <span v-if="selectedLanguages.length === 0">{{ t('sidebar.all_languages') }}</span>
+          <span v-else>{{ t('sidebar.selected_languages', { count: selectedLanguages.length }) }}</span>
           <ChevronDown :class="cn('h-3 w-3 text-text-muted transition-transform', showLangDropdown && 'rotate-180')" />
         </button>
 

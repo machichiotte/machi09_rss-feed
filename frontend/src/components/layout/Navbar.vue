@@ -12,11 +12,13 @@ import {
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { toRef } from 'vue';
+import { useI18n } from '../../composables/useI18n';
 
 /**
  * Navigation bar component containing search, language selection, and global mode toggles.
  */
-defineProps<{
+const props = defineProps<{
   searchQuery: string;
   preferredLanguage: string;
   languages: string[];
@@ -26,6 +28,8 @@ defineProps<{
   isDark: boolean;
   processing: boolean;
 }>();
+
+const { t } = useI18n(toRef(props, 'preferredLanguage'));
 
 const emit = defineEmits<{
   (e: 'update:searchQuery', val: string): void;
@@ -80,7 +84,7 @@ const getLangFlag = (lang?: string) => {
               :value="searchQuery"
               @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
               type="text" 
-              placeholder="Search the nexus..." 
+              :placeholder="t('common.search_placeholder')" 
               class="pl-12 pr-6 py-2.5 rounded-2xl border border-brand/20 bg-bg-card/70 backdrop-blur-xl focus:bg-bg-card focus:ring-2 focus:ring-brand/50 focus:border-brand/50 outline-none w-72 text-sm transition-all text-text-primary"
             />
           </div>
@@ -109,10 +113,10 @@ const getLangFlag = (lang?: string) => {
                   ? 'bg-translate/15 border-translate/30 text-translate shadow-inner' 
                   : 'bg-bg-card/70 border-brand/20 text-text-muted'
               )"
-              title="Auto-translate insights"
+              :title="t('nav.translate')"
             >
               <Languages class="h-4 w-4" />
-              <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">Translate</span>
+              <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">{{ t('nav.translate') }}</span>
             </button>
 
             <div class="hidden lg:block w-px h-6 bg-text-secondary/10 mx-1"></div>
@@ -126,10 +130,10 @@ const getLangFlag = (lang?: string) => {
                   ? 'bg-insight/15 border-insight/30 text-insight shadow-inner' 
                   : 'bg-bg-card/70 border-brand/20 text-text-muted'
               )"
-              title="Toggle AI Insight Mode"
+              :title="t('nav.insights')"
             >
               <Sparkles class="h-4 w-4" />
-              <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">AI Insights</span>
+              <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">{{ t('nav.insights') }}</span>
             </button>
 
             <div class="hidden lg:block w-px h-6 bg-text-secondary/10 mx-1"></div>
@@ -143,10 +147,10 @@ const getLangFlag = (lang?: string) => {
                   ? 'bg-summary/15 border-summary/30 text-summary shadow-inner' 
                   : 'bg-bg-card/70 border-brand/20 text-text-muted'
               )"
-              title="Toggle Source Summary Mode"
+              :title="t('nav.summary')"
             >
               <FileText class="h-4 w-4" />
-              <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">Summary</span>
+              <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">{{ t('nav.summary') }}</span>
             </button>
           </div>
 
@@ -167,7 +171,7 @@ const getLangFlag = (lang?: string) => {
               @click="emit('triggerProcess')" 
               :disabled="processing"
               class="p-2 rounded-xl text-text-muted hover:bg-bg-card transition-all duration-300 group"
-              title="Refresh nexus"
+              :title="t('common.refresh')"
             >
               <RefreshCw :class="cn('h-4 w-4 group-hover:rotate-180 transition-transform duration-700', processing && 'animate-spin')" />
             </button>
