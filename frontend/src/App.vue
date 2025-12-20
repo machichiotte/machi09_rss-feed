@@ -17,7 +17,8 @@ import {
   Languages,
   ArrowRight,
   Minus,
-  ChevronDown
+  ChevronDown,
+  FileText
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -61,6 +62,7 @@ const selectedSource = ref<string | null>(null);
 const selectedSentiment = ref<'bullish' | 'bearish' | 'neutral' | null>(null);
 const selectedLanguages = ref<string[]>([]);
 const globalInsightMode = ref(localStorage.globalInsightMode === 'true');
+const globalReaderMode = ref(localStorage.globalReaderMode === 'true');
 const autoTranslate = ref(localStorage.autoTranslate !== 'false'); // Default true
 const preferredLanguage = ref(localStorage.preferredLanguage || 'fr');
 if (!localStorage.preferredLanguage) localStorage.preferredLanguage = 'fr';
@@ -68,6 +70,8 @@ const insightVisibility = ref<Record<string, boolean>>({}); // articleId -> visi
 const translationToggles = ref<Record<string, boolean>>({}); // articleId -> isTranslated
 const showLangDropdown = ref(false);
 const isDark = ref(false);
+const showOnlyInsights = ref(false);
+const dateRange = ref('all');
 const error = ref<string | null>(null);
 
 // Pagination State
@@ -185,7 +189,9 @@ function getFetchParams() {
     sentiment: selectedSentiment.value,
     language: selectedLanguages.value.length > 0 ? selectedLanguages.value.join(',') : null,
     search: searchQuery.value,
-    source: selectedSource.value
+    source: selectedSource.value,
+    onlyInsights: showOnlyInsights.value,
+    dateRange: dateRange.value
   };
 }
 
@@ -246,6 +252,11 @@ const setPreferredLanguage = (lang: string) => {
 const setGlobalInsight = (val: boolean) => {
   globalInsightMode.value = val;
   localStorage.globalInsightMode = val.toString();
+};
+
+const setGlobalReader = (val: boolean) => {
+  globalReaderMode.value = val;
+  localStorage.globalReaderMode = val.toString();
 };
 
 const setAutoTranslate = (val: boolean) => {
@@ -322,13 +333,15 @@ const filteredArticles = computed(() => articles.value); // Articles are already
 
 // Watchers
 let filterTimeout: ReturnType<typeof setTimeout> | null = null;
-watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, preferredLanguage], (newValues) => {
+watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, preferredLanguage, showOnlyInsights, dateRange], (newValues) => {
     console.log('🎯 [Frontend] Filter changed:', {
       category: newValues[0],
       sentiment: newValues[1],
       languages: newValues[2],
       source: newValues[3],
-      preferredLanguage: newValues[4]
+      preferredLanguage: newValues[4],
+      onlyInsights: newValues[5],
+      dateRange: newValues[6]
     });
     
     if (filterTimeout) clearTimeout(filterTimeout);
@@ -413,7 +426,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 </script>
 
 <template>
-  <div class="min-h-screen text-slate-900 dark:text-slate-100 font-sans selection:bg-indigo-500/30 dark:selection:bg-indigo-500/30">
+  <div class="min-h-screen flex flex-col text-slate-900 dark:text-slate-100 font-sans selection:bg-indigo-500/30 dark:selection:bg-indigo-500/30">
     <!-- Aurora Background -->
     <div class="aurora-bg">
       <div class="aurora-blob blob-1"></div>
@@ -469,15 +482,49 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               <button 
                 @click="setAutoTranslate(!autoTranslate)"
                 :class="cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-xl border transition-all',
+                  'flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all shadow-sm',
                   autoTranslate 
-                    ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600' 
+                    ? 'bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400' 
                     : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-800 text-slate-400'
                 )"
                 title="Auto-translate insights"
               >
-                <Languages class="h-3.5 w-3.5" />
+                <Languages class="h-4 w-4" />
                 <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">Translate</span>
+              </button>
+
+              <div class="hidden lg:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+
+              <!-- Insight Mode Toggle (Orange) -->
+              <button 
+                @click="setGlobalInsight(!globalInsightMode)"
+                :class="cn(
+                  'flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all shadow-sm',
+                  globalInsightMode 
+                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' 
+                    : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-800 text-slate-400'
+                )"
+                title="Toggle AI Insight Mode"
+              >
+                <Sparkles class="h-4 w-4" />
+                <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">Insights</span>
+              </button>
+
+              <div class="hidden lg:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
+
+              <!-- Reader Mode Toggle (Emerald) -->
+              <button 
+                @click="setGlobalReader(!globalReaderMode)"
+                :class="cn(
+                  'flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all shadow-sm',
+                  globalReaderMode 
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+                    : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-800 text-slate-400'
+                )"
+                title="Toggle Original Summary Mode"
+              >
+                <FileText class="h-4 w-4" />
+                <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">Reader</span>
               </button>
             </div>
 
@@ -511,9 +558,9 @@ function cn(...inputs: (string | undefined | null | false)[]) {
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-10 relative">
       <div class="flex flex-col lg:flex-row gap-10 pt-0">
         <!-- Sidebar Filters -->
-        <aside class="w-full lg:w-72 flex-shrink-0 space-y-6 lg:fixed lg:top-20 h-[calc(100vh-5rem)] overflow-y-auto no-scrollbar pb-10">
+        <aside class="w-full lg:w-72 flex-shrink-0 space-y-3 lg:fixed lg:top-20 h-[calc(100vh-5rem)] overflow-y-auto no-scrollbar pb-10">
           <!-- 1. Quick Stats (Moved to Top) -->
-          <div class="glass rounded-3xl p-5 bg-indigo-600/5 border-indigo-500/10 dark:bg-indigo-400/5 relative overflow-hidden group">
+          <div class="glass rounded-3xl p-4 bg-indigo-600/5 border-indigo-500/10 dark:bg-indigo-400/5 relative overflow-hidden group">
             <div class="absolute -right-4 -top-4 bg-indigo-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
             <div class="relative z-10">
               <p class="text-[9px] font-black uppercase tracking-widest text-indigo-500 dark:text-indigo-400 mb-1">Total Insights</p>
@@ -525,7 +572,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
           </div>
 
           <!-- 2. Discovery (Redesigned as Pills) -->
-          <div class="glass rounded-3xl p-5">
+          <div class="glass rounded-3xl p-4">
             <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em] flex items-center gap-2">
               <Filter class="h-3 w-3" /> Discovery
             </h2>
@@ -557,70 +604,88 @@ function cn(...inputs: (string | undefined | null | false)[]) {
             </div>
           </div>
 
-          <!-- 3. Intelligence (Redesigned as Filter List) -->
-          <div class="glass rounded-3xl p-5">
-            <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em]">Intelligence</h2>
+          <!-- 3. Market Sentiment (Renamed Intelligence) -->
+          <div class="glass rounded-3xl p-4">
+            <h2 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-[0.25em]">Market Sentiment</h2>
             
-            <div class="space-y-3">
-              <!-- Auto-Insight Toggle (Compact) -->
-              <div class="flex items-center justify-between p-3 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-                <span class="text-[10px] font-black uppercase text-amber-600/80">Insight Mode</span>
-                <button 
-                  @click="setGlobalInsight(!globalInsightMode)"
-                  :class="cn('w-8 h-4 rounded-full transition-all relative', globalInsightMode ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700')"
-                >
-                  <div :class="cn('absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-all shadow-sm', globalInsightMode ? 'translate-x-4' : 'translate-x-0')"></div>
-                </button>
-              </div>
-
-              <!-- Sentiment Filters (List) -->
-              <div class="space-y-1">
-                <button 
-                  v-for="sent in ['bullish', 'bearish', 'neutral']"
-                  :key="sent"
-                  @click="toggleSentiment(sent)"
-                  :class="cn(
-                    'w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border',
-                    selectedSentiment === sent
-                      ? sent === 'bullish' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : sent === 'bearish' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' : 'bg-slate-500/10 text-slate-600 border-slate-500/20'
-                      : 'border-transparent text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                  )"
-                >
-                  <span>{{ sent }}</span>
-                  <div :class="cn('w-2 h-2 rounded-full', sent === 'bullish' ? 'bg-emerald-500' : sent === 'bearish' ? 'bg-rose-500' : 'bg-slate-400', selectedSentiment === sent ? 'opacity-100' : 'opacity-30')"></div>
-                </button>
-              </div>
+            <div class="space-y-1">
+              <button 
+                v-for="sent in ['bullish', 'bearish', 'neutral']"
+                :key="sent"
+                @click="toggleSentiment(sent)"
+                :class="cn(
+                  'w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border',
+                  selectedSentiment === sent
+                    ? sent === 'bullish' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : sent === 'bearish' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' : 'bg-slate-500/10 text-slate-600 border-slate-500/20'
+                    : 'border-transparent text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                )"
+              >
+                <span>{{ sent }}</span>
+                <div :class="cn('w-2 h-2 rounded-full', sent === 'bullish' ? 'bg-emerald-500' : sent === 'bearish' ? 'bg-rose-500' : 'bg-slate-400', selectedSentiment === sent ? 'opacity-100' : 'opacity-30')"></div>
+              </button>
             </div>
           </div>
 
           <!-- 4. Content Origin (Renamed Network Filter) -->
-          <div class="glass rounded-3xl p-5">
-            <h2 class="font-black text-slate-400 mb-3 text-[10px] uppercase tracking-[0.25em]">Content Origin</h2>
+          <div class="glass rounded-3xl p-4 space-y-4">
+            <h2 class="font-black text-slate-400 text-[10px] uppercase tracking-[0.25em]">Content Origin</h2>
+            
+            <!-- Show Only Insights Toggle -->
             <button 
-              @click="showLangDropdown = !showLangDropdown"
-              class="w-full flex items-center justify-between bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-all"
+              @click="showOnlyInsights = !showOnlyInsights"
+              :class="cn(
+                'w-full flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest',
+                showOnlyInsights 
+                  ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600' 
+                  : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-800 text-slate-400'
+              )"
             >
-              <span v-if="selectedLanguages.length === 0">Global (All)</span>
-              <span v-else>{{ selectedLanguages.length }} Selected</span>
-              <ChevronDown :class="cn('h-3 w-3 text-slate-400 transition-transform', showLangDropdown && 'rotate-180')" />
+              <span>Only Insights</span>
+              <Sparkles :class="cn('h-3 w-3', showOnlyInsights ? 'text-indigo-500' : 'text-slate-400')" />
             </button>
 
-            <div v-if="showLangDropdown" class="mt-2 space-y-1 max-h-48 overflow-y-auto no-scrollbar">
-              <button 
-                v-for="lang in languages" 
-                :key="lang"
-                @click="toggleSelectedLanguage(lang)"
-                :class="cn(
-                  'w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                  selectedLanguages.includes(lang) ? 'bg-indigo-500/10 text-indigo-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-                )"
+            <!-- Date Range Selector -->
+            <div class="relative group">
+              <select 
+                v-model="dateRange"
+                class="w-full appearance-none bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
               >
-                <div class="flex items-center gap-2">
-                  <span>{{ getLangFlag(lang) }}</span>
-                  <span class="uppercase">{{ lang }}</span>
-                </div>
-                <div v-if="selectedLanguages.includes(lang)" class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>
+                <option value="all">Anytime</option>
+                <option value="1h">Last Hour</option>
+                <option value="24h">Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+              </select>
+              <ChevronDown class="h-3 w-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+            </div>
+
+            <!-- Language Dropdown -->
+            <div>
+              <button 
+                @click="showLangDropdown = !showLangDropdown"
+                class="w-full flex items-center justify-between bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-all"
+              >
+                <span v-if="selectedLanguages.length === 0">All Languages</span>
+                <span v-else>{{ selectedLanguages.length }} Selected</span>
+                <ChevronDown :class="cn('h-3 w-3 text-slate-400 transition-transform', showLangDropdown && 'rotate-180')" />
               </button>
+
+              <div v-if="showLangDropdown" class="mt-2 space-y-1 max-h-48 overflow-y-auto no-scrollbar">
+                <button 
+                  v-for="lang in languages" 
+                  :key="lang"
+                  @click="toggleSelectedLanguage(lang)"
+                  :class="cn(
+                    'w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                    selectedLanguages.includes(lang) ? 'bg-indigo-500/10 text-indigo-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  )"
+                >
+                  <div class="flex items-center gap-2">
+                    <span>{{ getLangFlag(lang) }}</span>
+                    <span class="uppercase">{{ lang }}</span>
+                  </div>
+                  <div v-if="selectedLanguages.includes(lang)" class="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>
+                </button>
+              </div>
             </div>
           </div>
         </aside>
@@ -682,20 +747,12 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               class="group glass-card rounded-[2.5rem] p-8 flex flex-col h-full hover:scale-[1.02] hover:shadow-2xl dark:hover:shadow-indigo-500/10"
             >
               <!-- Card Header -->
-              <div class="flex justify-between items-start mb-6">
+              <div class="flex justify-between items-center mb-6">
                 <div class="flex gap-2 flex-wrap">
                   <span class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-white/5 text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                     {{ article.category }}
-                    <template v-if="translationToggles[article._id] && article.translations?.[preferredLanguage] && article.language?.toLowerCase() !== preferredLanguage.toLowerCase()">
-                      <span class="mx-1 opacity-50">•</span>
-                      {{ getLangFlag(article.language || 'en') }}
-                      <ArrowRight class="h-2.5 w-2.5 text-slate-400 mx-0.5" />
-                      {{ getLangFlag(preferredLanguage) }}
-                    </template>
-                    <template v-else>
-                      <span class="mx-1 opacity-50">•</span>
-                      {{ getLangFlag(article.language || 'en') }}
-                    </template>
+                    <span class="mx-1 opacity-50">•</span>
+                    {{ getLangFlag(article.language || 'en') }}
                   </span>
 
                   <span v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse">
@@ -729,51 +786,19 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               <!-- Title & Body -->
               <div class="flex-1 mb-8">
                 <div class="flex items-center justify-between mb-4">
-                  <h3 class="text-xl font-extrabold text-slate-900 dark:text-white leading-[1.3] group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer flex-1 mr-4">
+                  <h3 class="text-xl font-extrabold text-slate-900 dark:text-white leading-[1.3] group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer flex-1">
                     <a :href="article.link" target="_blank" rel="noopener noreferrer">
                       {{ getArticleTitle(article) }}
                     </a>
                   </h3>
-
-                  <!-- Action Buttons -->
-                  <div class="flex items-center gap-2 flex-shrink-0">
-                    <!-- Insight Toggle Button (Magic) -->
-                    <button 
-                      @click="insightVisibility[article._id] = !insightVisibility[article._id]"
-                      :class="cn(
-                        'p-2 rounded-xl border transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest min-w-[40px] justify-center',
-                        insightVisibility[article._id]
-                          ? 'bg-indigo-600 border-indigo-600 text-white'
-                          : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-white/5 text-slate-500 dark:text-slate-400'
-                      )"
-                      title="Toggle AI Insight"
-                    >
-                      <Sparkles class="h-3.5 w-3.5" />
-                    </button>
-
-                    <!-- Translation Toggle Button -->
-                    <button 
-                      v-if="hasTranslation(article) && insightVisibility[article._id]"
-                      @click="translationToggles[article._id] = !translationToggles[article._id]"
-                      :class="cn(
-                        'p-2 rounded-xl border transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest min-w-[40px] justify-center',
-                        translationToggles[article._id]
-                          ? 'bg-amber-500 border-amber-500 text-white'
-                          : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-white/5 text-slate-500 dark:text-slate-400'
-                      )"
-                      title="Translate Insight"
-                    >
-                      <Languages class="h-3.5 w-3.5" />
-                    </button>
-                  </div>
                 </div>
                 
-                <!-- AI Summary (If available) -->
-                <div v-if="insightVisibility[article._id] && (article.analysis?.iaSummary || hasTranslation(article))" class="mb-4 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 dark:bg-indigo-400/5 relative overflow-hidden group/ia transition-all duration-300">
-                  <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                <!-- AI Summary Block (Orange/Amber) -->
+                <div v-if="globalInsightMode && (article.analysis?.iaSummary || hasTranslation(article))" class="mb-4 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 dark:bg-amber-400/5 relative overflow-hidden group/ia transition-all duration-300">
+                  <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
                   
                   <div class="flex justify-between items-center mb-2">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-1">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1">
                       <Sparkles class="h-3 w-3" /> 
                       AI Insight
                       <span v-if="translationToggles[article._id] && article.language?.toLowerCase() !== preferredLanguage.toLowerCase()" class="ml-2 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[8px] flex items-center gap-1">
@@ -784,26 +809,35 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                     </p>
                   </div>
 
-                  <h4 v-if="translationToggles[article._id] && getArticleInsightTitle(article)" class="text-xs font-bold text-slate-800 dark:text-indigo-100 mb-2 leading-tight">
+                  <h4 v-if="translationToggles[article._id] && getArticleInsightTitle(article)" class="text-xs font-bold text-slate-800 dark:text-amber-100 mb-2 leading-tight">
                     {{ getArticleInsightTitle(article) }}
                   </h4>
 
-                  <p class="text-slate-600 dark:text-indigo-200 text-xs font-semibold leading-relaxed italic">
+                  <p class="text-slate-600 dark:text-amber-200/80 text-xs font-semibold leading-relaxed italic">
                     "{{ getArticleInsight(article) }}"
                   </p>
                 </div>
 
-                <p v-if="!insightVisibility[article._id]" class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed line-clamp-3">
-                  {{ article.summary?.replace(/<[^>]*>/g, '').slice(0, 160) }}...
-                </p>
+                <!-- Reader Block (Emerald) - Original RSS Summary -->
+                <div v-if="globalReaderMode && article.summary" class="mb-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 dark:bg-emerald-400/5 relative overflow-hidden group/reader transition-all duration-300">
+                  <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                  
+                  <div class="flex justify-between items-center mb-2">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <FileText class="h-3 w-3" /> 
+                      Source Summary
+                    </p>
+                  </div>
+
+                  <p class="text-slate-500 dark:text-emerald-200/70 text-xs leading-relaxed">
+                    {{ article.summary.replace(/<[^>]*>/g, '').slice(0, 300) }}...
+                  </p>
+                </div>
               </div>
               
               <!-- Card Footer -->
               <div class="pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <div class="h-6 w-6 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
-                    {{ article.feedName.charAt(0) }}
-                  </div>
                   <span class="text-xs font-black text-slate-400 uppercase tracking-tighter">{{ article.feedName }}</span>
                 </div>
                 
@@ -813,7 +847,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                   rel="noopener noreferrer"
                   class="group/btn flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg active:scale-95"
                 >
-                  Insights
+                  View Source
                   <ExternalLink class="h-3 w-3 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
                 </a>
               </div>
@@ -853,9 +887,9 @@ function cn(...inputs: (string | undefined | null | false)[]) {
     </main>
 
     <!-- Footer Nexus -->
-    <footer class="mt-20 py-10 glass border-t-white/10 text-center">
+    <footer class="mt-auto py-4 glass border-t-white/10 text-center">
       <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-        &copy; 2025 Kognit Intelligent Nexus &bull; Powered by Deep Intelligence
+        &copy; 2025 Kognit &bull; Engineered by Machi
       </p>
     </footer>
   </div>

@@ -15,6 +15,8 @@ export interface FetchOptions {
     search?: string;
     feedName?: string;
     translationStatus?: 'all' | 'translated' | 'original';
+    onlyInsights?: boolean;
+    dateRange?: string;
 }
 
 export class RssRepository {
@@ -66,7 +68,7 @@ export class RssRepository {
      */
     private static buildFilterQuery(options: FetchOptions): Filter<ProcessedArticleData> {
         const query: Filter<ProcessedArticleData> = {};
-        const { category, sentiment, language, search, feedName, translationStatus = 'all' } = options;
+        const { category, sentiment, language, search, feedName, onlyInsights } = options;
 
         if (category) query.category = category;
         if (language) {
@@ -75,18 +77,53 @@ export class RssRepository {
         if (feedName) query.feedName = feedName;
         if (sentiment) query['analysis.sentiment'] = sentiment;
 
-        if (translationStatus === 'translated') {
-            query.translations = { $exists: true, $ne: {} };
-        } else if (translationStatus === 'original') {
-            query.translations = { $exists: false };
+        if (onlyInsights) {
+            query['analysis.iaSummary'] = { $exists: true, $ne: null };
         }
 
+        this.applyDateFilter(query, options.dateRange);
+        this.applyTranslationFilter(query, options.translationStatus);
+
         if (search) {
-            // Use optimized Text Index search instead of slow Regex
             query.$text = { $search: search };
         }
 
         return query;
+    }
+
+    /**
+     * Applies date range filters to the query.
+     */
+    private static applyDateFilter(query: Filter<ProcessedArticleData>, dateRange?: string): void {
+        if (!dateRange || dateRange === 'all') return;
+
+        const now = new Date();
+        let dateLimit: Date | null = null;
+
+        const rangeMap: Record<string, number> = {
+            '1h': 60 * 60 * 1000,
+            '24h': 24 * 60 * 60 * 1000,
+            '7d': 7 * 24 * 60 * 60 * 1000
+        };
+
+        if (rangeMap[dateRange]) {
+            dateLimit = new Date(now.getTime() - rangeMap[dateRange]);
+        }
+
+        if (dateLimit && dateLimit.getTime() > 0) {
+            query.publicationDate = { $gte: dateLimit.toISOString() };
+        }
+    }
+
+    /**
+     * Applies translation status filters to the query.
+     */
+    private static applyTranslationFilter(query: Filter<ProcessedArticleData>, status?: string): void {
+        if (status === 'translated') {
+            query.translations = { $exists: true, $ne: {} };
+        } else if (status === 'original') {
+            query.translations = { $exists: false };
+        }
     }
 
     /**

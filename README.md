@@ -19,13 +19,13 @@
 ## 🚀 Features
 
 - **⚡ High-Performance Fetching**: Parallelized feed retrieval (batch processing) for maximum speed.
-- **🔄 Asynchronous Processing**: "Fetch First, Analyze Later" strategy.
-- **🧠 Smart AI Analysis**: Local sentiment analysis (Bullish/Bearish) using `transformers.js`.
-- **📜 Server-Side Pagination**: Efficiently handles 2000+ articles with MongoDB-powered pagination.
-- **♾️ Infinite Scroll**: Seamless frontend experience that loads content as you scroll.
-- **🔍 Advanced Filtering**: Server-side filtering by Source, Category, Language, and Sentiment.
-- **🌓 Dynamic Design**: Modern dashboard with responsive layout and instant Dark Mode.
-- **🐳 Docker Support**: Fully containerized with Docker and Docker Compose.
+- **🔄 Asynchronous Processing**: "Fetch First, Analyze Later" strategy (AI runs in a dedicated Worker Thread).
+- **🕸️ Deep Scraping**: Full-text article extraction using Axios & Cheerio for high-precision analysis.
+- **🧠 Advanced AI Insights**: Smart summaries and sentiment analysis using local transformers (multi-language support).
+- **🏛️ Intelligent Nexus UI**: Premium dashboard with centralized toggles for AI, Translation, and Reader Mode.
+- **🔍 Granular Filtering**: Server-side filtering by Source, Category, Language, Sentiment, Date Range, and "Only Insights".
+- **📜 Smart Pagination & Search**: Rapid full-text search and infinite scrolling for seamless navigation.
+- **🐳 Docker Ready**: Optimized multi-stage builds with pre-cached AI models.
 
 ## 🛠 Tech Stack
 

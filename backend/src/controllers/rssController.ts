@@ -23,8 +23,10 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
     const search = req.query.search as string;
     const feedName = req.query.source as string;
     const translationStatus = req.query.translationStatus as 'all' | 'translated' | 'original';
+    const onlyInsights = req.query.onlyInsights === 'true';
+    const dateRange = req.query.dateRange as string;
 
-    logger.info(`Fetching RSS articles: page=${page}, limit=${limit}, category=${category}, search=${search}, source=${feedName}, translationStatus=${translationStatus}`);
+    logger.info(`Fetching RSS articles: page=${page}, limit=${limit}, category=${category}, search=${search}, source=${feedName}, onlyInsights=${onlyInsights}, dateRange=${dateRange}`);
 
     const { articles, total } = await RssRepository.fetchAll({
       page,
@@ -34,7 +36,9 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
       language,
       search,
       feedName,
-      translationStatus
+      translationStatus,
+      onlyInsights,
+      dateRange
     });
 
     res.status(200).json({
