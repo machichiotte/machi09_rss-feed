@@ -144,7 +144,7 @@ class AiService {
 
         try {
             // Truncate text if too long (models have token limits)
-            const truncatedText = text.slice(0, 512);
+            const truncatedText = text.slice(0, 1024);
 
             const result = await this.sentimentPipeline(truncatedText);
 
@@ -201,11 +201,12 @@ class AiService {
             try {
                 if (text.length < 200) return null;
 
+                const truncated = text.slice(0, 4000);
                 const preview = text.slice(0, 100).replace(/\n/g, ' ');
                 logger.info(`📝 Summarizing: "${preview}..." (${text.length} chars)`);
-                const result = await this.summarizationPipeline(text, {
-                    max_new_tokens: 60,
-                    min_new_tokens: 20,
+                const result = await this.summarizationPipeline(truncated, {
+                    max_new_tokens: 80,
+                    min_new_tokens: 30,
                 });
 
                 const output = (Array.isArray(result) ? result[0] : result) as Record<string, string>;

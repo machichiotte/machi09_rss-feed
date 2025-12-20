@@ -1,9 +1,10 @@
 import { parentPort } from 'worker_threads';
 import { connectToDatabase } from '../config/database'; // Relative path to avoid alias issues
-import { RssRepository } from '../repositories/rssRepository';
-import { aiService } from '../services/aiService';
 import logger from '../utils/logger';
 import { ProcessedArticleData } from '../types/rss';
+import { ScraperService } from '../utils/scraper';
+import { RssRepository } from '../repositories/rssRepository';
+import { aiService } from '../services/aiService';
 
 // Flag to stop the worker gracefully
 let isRunning = true;
@@ -58,16 +59,44 @@ async function processBatch(articles: ProcessedArticleData[]) {
 
 async function processSingleArticle(article: ProcessedArticleData) {
     try {
+        const startTime = Date.now();
+        let contentToAnalyze = article.summary || '';
+
+        // 1. Deep Scraping (if not already done)
+        if (!article.scrapedContent) {
+            logger.info(`🧵 [AI Worker] Deep Scraping: ${article.link}`);
+            const fullText = await ScraperService.extractFullText(article.link);
+
+            if (fullText) {
+                logger.info(`   ✅ Scraped ${fullText.length} characters.`);
+                article.fullText = fullText;
+                article.scrapedContent = true;
+                contentToAnalyze = fullText;
+
+                // Save scrambled content early so we don't lose it if AI fails
+                await RssRepository.updateById(article._id!, {
+                    fullText: article.fullText,
+                    scrapedContent: true
+                });
+            } else {
+                logger.warn(`   ⚠️ Scraping failed, falling back to RSS summary.`);
+            }
+        } else if (article.fullText) {
+            contentToAnalyze = article.fullText;
+        }
+
+        // 2. AI Analysis
         logger.info(`🧵 [AI Worker] Analyzing: "${article.title.slice(0, 50)}..." (${article.language})`);
 
-        const startTime = Date.now();
         const { analysis, translations } = await aiService.analyzeArticle(
             article.title,
-            article.summary || '',
+            contentToAnalyze,
             article.language || 'en'
         );
+
         const duration = Date.now() - startTime;
 
+        // 3. Update Final Results
         await RssRepository.updateById(article._id!, {
             analysis,
             translations,
@@ -76,7 +105,7 @@ async function processSingleArticle(article: ProcessedArticleData) {
 
         logger.info(`🧵 [AI Worker] Done in ${duration}ms: ${analysis.sentiment}`);
 
-        // Notify parent thread (optional, for monitoring)
+        // Notify parent thread
         if (parentPort) {
             parentPort.postMessage({ type: 'COMPLETED', id: article._id, title: article.title });
         }

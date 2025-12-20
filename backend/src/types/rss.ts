@@ -26,6 +26,7 @@ export interface ProcessedArticleData {
     }> | null;
     error?: string | null;
     scrapedContent?: boolean;
+    fullText?: string | null;
 }
 
 export interface FinancialAnalysis {
