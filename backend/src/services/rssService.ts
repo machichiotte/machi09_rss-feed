@@ -1,10 +1,10 @@
-// src/services/rssService.ts
 import Parser from 'rss-parser';
+import { fork, ChildProcess } from 'child_process';
+import path from 'path';
 import { RssRepository } from '@/repositories/rssRepository';
 import { rssConfig } from '@/config/rssConfig';
 import { ProcessedArticleData, RssFeedConfig } from '@/types/rss';
 import logger from '@/utils/logger';
-import { aiService } from './aiService';
 
 const parser = new Parser({
     timeout: 20000, // 20 seconds timeout
@@ -15,11 +15,11 @@ const parser = new Parser({
 });
 
 export class RssService {
-    private static isAnalyzing = false;
+    private static aiProcess: ChildProcess | null = null;
 
     /**
      * Orchestrates the fetching and processing of all enabled RSS feeds from configuration.
-     * This process is optimized with batching and background AI analysis.
+     * This process is optimized with batching and background AI analysis (via child process).
      * 
      * @returns {Promise<{ processed: number; errors: number }>} Counts of processed articles and errors.
      */
@@ -67,8 +67,8 @@ export class RssService {
 
         logger.info(`✅ Fetching complete. ${processedCount} new articles found.`);
 
-        // 2. Start AI Analysis in background
-        this.runBackgroundAnalysis();
+        // 2. Start AI Analysis in separate process (Non-blocking)
+        this.startBackgroundWorker();
 
         return { processed: processedCount, errors: errorCount };
     }
@@ -118,60 +118,55 @@ export class RssService {
     }
 
     /**
-     * Background worker that continuously processes pending articles for AI analysis.
-     * Uses a lock (isAnalyzing) to ensure only one worker runs at a time.
-     * @returns {Promise<void>}
+     * Spawns a dedicated child process to handle AI analysis.
+     * This prevents the main event loop from blocking during heavy ML inference.
      */
-    private static async runBackgroundAnalysis(): Promise<void> {
-        if (this.isAnalyzing) {
-            logger.info('⏳ Analysis worker already running, skipping.');
+    private static startBackgroundWorker(): void {
+        if (this.aiProcess && !this.aiProcess.killed) {
+            logger.info('🧠 AI Worker Process is already running.');
             return;
         }
 
-        this.isAnalyzing = true;
+        // Resolve correct path whether we are in TS (dev) or JS (prod)
+        // In dev with tsx, we point to .ts. In prod, dist structure usually matches.
+        // Simple heuristic: if we are in src directory, use .ts, else .js
+        const isDev = __filename.endsWith('.ts');
+        const workerFilename = isDev ? 'aiWorker.ts' : 'aiWorker.js';
+        const workerPath = path.resolve(__dirname, '../workers/', workerFilename);
+
+        logger.info(`🚀 Spawning AI Worker Process: ${workerPath}`);
+
         try {
-            await aiService.init();
+            // fork() spawns a new V8 instance.
+            // If running with tsx, it should handle TS files automatically.
+            this.aiProcess = fork(workerPath, [], {
+                // Forward environment variables
+                env: { ...process.env, IS_WORKER: 'true' }
+            });
 
-            while (true) {
-                const pending = await RssRepository.findPendingAnalysis(20);
-                if (pending.length === 0) break;
-
-                logger.info(`🧠 AI Worker: Processing batch of ${pending.length} pending articles...`);
-
-                for (const article of pending) {
-                    try {
-                        logger.info(`📰 Processing: "${article.title.slice(0, 60)}..." [${article.feedName}] (${article.language})`);
-
-                        const { analysis, translations } = await aiService.analyzeArticle(
-                            article.title,
-                            article.summary || '',
-                            article.language || 'en'
-                        );
-
-                        await RssRepository.updateById(article._id!, {
-                            analysis,
-                            translations,
-                            processedAt: new Date().toISOString()
-                        });
-
-                        this.logArticleCompletion(article.title, analysis, translations);
-
-                        // Keep a small delay to avoid excessive CPU usage
-                        await this.delay(300);
-                    } catch (error) {
-                        logger.error(`❌ AI Error on article ${article.link}:`, error);
-                        await RssRepository.updateById(article._id!, {
-                            analysis: { sentiment: 'bearish', sentimentScore: 0 },
-                            error: 'AI analysis failed'
-                        });
-                    }
+            this.aiProcess.on('message', (msg: { type: string; title?: string }) => {
+                if (msg.type === 'COMPLETED') {
+                    logger.info(`✨ Worker finished article: ${msg.title}`);
                 }
-            }
-            logger.info('✨ AI Analysis complete.');
+            });
+
+            this.aiProcess.on('error', (err) => {
+                logger.error('❌ AI Worker Process Error:', err);
+            });
+
+            this.aiProcess.on('exit', (code) => {
+                if (code !== 0) {
+                    logger.warn(`⚠️ AI Worker Process stopped with exit code ${code}. Restarting in 10s...`);
+                    // Retry strategy handled by next cron or explicit timeout
+                    setTimeout(() => this.startBackgroundWorker(), 10000);
+                } else {
+                    logger.info('AI Worker Process stopped clean.');
+                    this.aiProcess = null;
+                }
+            });
+
         } catch (error) {
-            logger.error('❌ AI Worker crashed:', error);
-        } finally {
-            this.isAnalyzing = false;
+            logger.error('❌ Failed to spawn AI Worker:', error);
         }
     }
 
@@ -182,29 +177,5 @@ export class RssService {
     public static async fetchDatabaseRss(): Promise<ProcessedArticleData[]> {
         const result = await RssRepository.fetchAll();
         return result.articles;
-    }
-
-    /**
-     * Logs the completion of an article processing with analysis results.
-     * @param {string} title - Article title.
-     * @param {object} analysis - Analysis results.
-     * @param {object} translations - Translations object.
-     * @returns {void}
-     */
-    private static logArticleCompletion(title: string, analysis: { sentiment: string; sentimentScore: number }, translations: Record<string, unknown>): void {
-        logger.info(`✅ Completed: "${title.slice(0, 50)}..." → ${analysis.sentiment} (${Math.round(analysis.sentimentScore * 100)}%)`);
-        const translationLangs = Object.keys(translations);
-        if (translationLangs.length > 0) {
-            logger.info(`   🌍 Translations: ${translationLangs.join(', ')}`);
-        }
-    }
-
-    /**
-     * Utility method to pause execution for a given time.
-     * @param {number} ms - Milliseconds to delay.
-     * @returns {Promise<void>}
-     */
-    private static delay(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
