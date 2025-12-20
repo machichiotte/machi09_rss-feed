@@ -17,7 +17,8 @@ import {
   Sparkles, 
   Languages,
   ArrowRight,
-  Minus
+  Minus,
+  ChevronDown
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -432,6 +433,19 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               />
             </div>
 
+            <div class="hidden md:block relative group mr-2">
+              <select 
+                v-model="preferredLanguage"
+                @change="setPreferredLanguage(preferredLanguage)"
+                class="appearance-none bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none cursor-pointer uppercase min-w-[100px] text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
+              >
+                <option v-for="lang in languages" :key="lang" :value="lang">
+                  {{ getLangFlag(lang) }} {{ lang.toUpperCase() }}
+                </option>
+              </select>
+              <ChevronDown class="h-3 w-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+            </div>
+
             <div class="flex items-center p-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl border border-white/20 dark:border-slate-800">
               <!-- Theme Toggle -->
               <button 
@@ -462,7 +476,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
       <div class="flex flex-col lg:flex-row gap-10">
         <!-- Sidebar Filters -->
-        <aside class="w-full lg:w-72 flex-shrink-0 space-y-8">
+        <aside class="w-full lg:w-72 flex-shrink-0 space-y-8 sticky top-24 h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar">
           <!-- Main Categories -->
           <div class="glass rounded-3xl p-6">
             <h2 class="font-black text-slate-400 mb-6 text-[10px] uppercase tracking-[0.25em] flex items-center gap-2">
@@ -503,26 +517,6 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
           <!-- Language & Sentiment Hub -->
           <div class="glass rounded-3xl p-6 space-y-8 relative z-20">
-            <!-- Reading Preference -->
-            <div>
-              <h2 class="font-black text-slate-400 mb-2 text-[10px] uppercase tracking-[0.25em]">My Language</h2>
-              <div class="relative group">
-                <select 
-                  v-model="preferredLanguage"
-                  @change="setPreferredLanguage(preferredLanguage)"
-                  class="w-full bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                >
-                  <option v-for="lang in languages" :key="lang" :value="lang">
-                    {{ getLangFlag(lang) }} {{ lang.toUpperCase() }}
-                  </option>
-                </select>
-                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                  <ChevronDown class="h-3 w-3" />
-                </div>
-              </div>
-              <p class="text-[9px] text-slate-400 mt-2 italic">Dashboard language priority.</p>
-            </div>
-
             <!-- Translation State -->
             <div class="flex items-center justify-between p-3 rounded-2xl bg-amber-500/5 border border-amber-500/10">
               <div>
