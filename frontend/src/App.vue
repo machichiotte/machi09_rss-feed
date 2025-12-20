@@ -60,7 +60,8 @@ const selectedCategory = ref<string | null>(null);
 const selectedSource = ref<string | null>(null);
 const selectedSentiment = ref<'bullish' | 'bearish' | 'neutral' | null>(null);
 const selectedLanguages = ref<string[]>([]);
-const globalMagicMode = ref(localStorage.globalMagicMode === 'true');
+const globalInsightMode = ref(localStorage.globalInsightMode === 'true');
+const autoTranslate = ref(localStorage.autoTranslate !== 'false'); // Default true
 const preferredLanguage = ref(localStorage.preferredLanguage || 'fr');
 if (!localStorage.preferredLanguage) localStorage.preferredLanguage = 'fr';
 const insightVisibility = ref<Record<string, boolean>>({}); // articleId -> visible
@@ -242,9 +243,14 @@ const setPreferredLanguage = (lang: string) => {
   localStorage.preferredLanguage = lang;
 };
 
-const setGlobalMagic = (val: boolean) => {
-  globalMagicMode.value = val;
-  localStorage.globalMagicMode = val.toString();
+const setGlobalInsight = (val: boolean) => {
+  globalInsightMode.value = val;
+  localStorage.globalInsightMode = val.toString();
+};
+
+const setAutoTranslate = (val: boolean) => {
+  autoTranslate.value = val;
+  localStorage.autoTranslate = val.toString();
 };
 
 const getArticleTitle = (article: Article) => {
@@ -332,11 +338,19 @@ watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, p
     }, 300);
 }, { deep: true });
 
-watch(globalMagicMode, (val) => {
+watch(globalInsightMode, (val) => {
   articles.value.forEach(article => {
     insightVisibility.value[article._id] = val;
-    translationToggles.value[article._id] = val;
+    translationToggles.value[article._id] = val && autoTranslate.value;
   });
+});
+
+watch(autoTranslate, (val) => {
+  if (globalInsightMode.value) {
+    articles.value.forEach(article => {
+      translationToggles.value[article._id] = val;
+    });
+  }
 });
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -437,17 +451,34 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               />
             </div>
 
-            <div class="hidden md:block relative group mr-2">
-              <select 
-                v-model="preferredLanguage"
-                @change="setPreferredLanguage(preferredLanguage)"
-                class="appearance-none bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none cursor-pointer uppercase min-w-[100px] text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
+            <div class="hidden md:flex items-center gap-3">
+              <div class="relative group">
+                <select 
+                  v-model="preferredLanguage"
+                  @change="setPreferredLanguage(preferredLanguage)"
+                  class="appearance-none bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-800 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none cursor-pointer uppercase min-w-[100px] text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
+                >
+                  <option v-for="lang in languages" :key="lang" :value="lang">
+                    {{ getLangFlag(lang) }} {{ lang.toUpperCase() }}
+                  </option>
+                </select>
+                <ChevronDown class="h-3 w-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+              </div>
+
+              <!-- Global Translate Toggle -->
+              <button 
+                @click="setAutoTranslate(!autoTranslate)"
+                :class="cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-xl border transition-all',
+                  autoTranslate 
+                    ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600' 
+                    : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-800 text-slate-400'
+                )"
+                title="Auto-translate insights"
               >
-                <option v-for="lang in languages" :key="lang" :value="lang">
-                  {{ getLangFlag(lang) }} {{ lang.toUpperCase() }}
-                </option>
-              </select>
-              <ChevronDown class="h-3 w-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                <Languages class="h-3.5 w-3.5" />
+                <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">Translate</span>
+              </button>
             </div>
 
             <div class="flex items-center p-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl border border-white/20 dark:border-slate-800">
@@ -533,12 +564,12 @@ function cn(...inputs: (string | undefined | null | false)[]) {
             <div class="space-y-3">
               <!-- Auto-Insight Toggle (Compact) -->
               <div class="flex items-center justify-between p-3 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-                <span class="text-[10px] font-black uppercase text-amber-600/80">Magic Mode</span>
+                <span class="text-[10px] font-black uppercase text-amber-600/80">Insight Mode</span>
                 <button 
-                  @click="setGlobalMagic(!globalMagicMode)"
-                  :class="cn('w-8 h-4 rounded-full transition-all relative', globalMagicMode ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700')"
+                  @click="setGlobalInsight(!globalInsightMode)"
+                  :class="cn('w-8 h-4 rounded-full transition-all relative', globalInsightMode ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700')"
                 >
-                  <div :class="cn('absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-all shadow-sm', globalMagicMode ? 'translate-x-4' : 'translate-x-0')"></div>
+                  <div :class="cn('absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-all shadow-sm', globalInsightMode ? 'translate-x-4' : 'translate-x-0')"></div>
                 </button>
               </div>
 
@@ -655,7 +686,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                 <div class="flex gap-2 flex-wrap">
                   <span class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-white/5 text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                     {{ article.category }}
-                    <template v-if="translationToggles[article._id] && article.translations?.[preferredLanguage]">
+                    <template v-if="translationToggles[article._id] && article.translations?.[preferredLanguage] && article.language?.toLowerCase() !== preferredLanguage.toLowerCase()">
                       <span class="mx-1 opacity-50">•</span>
                       {{ getLangFlag(article.language || 'en') }}
                       <ArrowRight class="h-2.5 w-2.5 text-slate-400 mx-0.5" />
@@ -745,7 +776,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
                     <p class="text-[10px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-1">
                       <Sparkles class="h-3 w-3" /> 
                       AI Insight
-                      <span v-if="translationToggles[article._id]" class="ml-2 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[8px] flex items-center gap-1">
+                      <span v-if="translationToggles[article._id] && article.language?.toLowerCase() !== preferredLanguage.toLowerCase()" class="ml-2 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[8px] flex items-center gap-1">
                         {{ getLangFlag(article.language || 'en') }} 
                         <ArrowRight class="h-2 w-2" /> 
                         {{ getLangFlag(preferredLanguage) }}
