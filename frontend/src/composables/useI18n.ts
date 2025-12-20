@@ -6,7 +6,7 @@ type LocaleData = { [key: string]: string | LocaleData };
 const translations: Record<string, LocaleData> = { en: en as LocaleData, fr: fr as LocaleData };
 
 // Provide a default if the requested language isn't supported
-const getTranslation = (lang: string): LocaleData => translations[lang] || translations['en'];
+const getTranslation = (lang: string): LocaleData => (translations[lang] || translations['en']) as LocaleData;
 
 export function useI18n(currentLang: { value: string }) {
     const t = (path: string, params?: Record<string, string | number>): string => {
