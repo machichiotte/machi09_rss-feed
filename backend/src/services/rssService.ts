@@ -1,10 +1,15 @@
 import Parser from 'rss-parser';
 import { fork, ChildProcess } from 'child_process';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { RssRepository } from '@/repositories/rssRepository';
 import { rssConfig } from '@/config/rssConfig';
 import { ProcessedArticleData, RssFeedConfig } from '@/types/rss';
 import logger from '@/utils/logger';
+
+// ESM compatibility for __filename and __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const parser = new Parser({
     timeout: 20000, // 20 seconds timeout
