@@ -477,7 +477,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
       </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-10 relative">
       <div class="flex flex-col lg:flex-row gap-10">
         <!-- Sidebar Filters -->
         <aside class="w-full lg:w-72 flex-shrink-0 space-y-6 sticky top-24 h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar pb-10">
