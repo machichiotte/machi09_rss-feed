@@ -18,6 +18,8 @@ const M2M100_MAP: Record<string, string> = {
     'cn': 'zh'
 };
 
+const SUPPORTED_TARGET_LANGS = Object.keys(M2M100_MAP);
+
 /**
  * Result of a sentiment analysis operation.
  */
@@ -291,7 +293,7 @@ class AiService {
         title: string,
         summary: string | null,
         originalLang: string = 'en',
-        targetLanguages: string[] = ['fr', 'ar']
+        targetLanguages: string[] = SUPPORTED_TARGET_LANGS
     ): Promise<{ analysis: ArticleAnalysis; translations: ArticleTranslations }> {
         const textToAnalyze = `${title}. ${summary || ''}`;
         const summaryText = summary || '';
