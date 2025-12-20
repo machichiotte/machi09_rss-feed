@@ -47,9 +47,9 @@ const getLangFlag = (lang?: string) => {
 </script>
 
 <template>
-  <aside class="w-full lg:w-72 flex-shrink-0 space-y-3 lg:fixed lg:top-20 h-[calc(100vh-5rem)] overflow-y-auto no-scrollbar pb-10 pr-2">
+  <aside class="w-full lg:w-72 flex-shrink-0 space-y-3 lg:fixed lg:top-20 lg:pt-6 h-[calc(100vh-5rem)] overflow-y-auto no-scrollbar pb-10 pr-2">
     <!-- 1. Quick Stats -->
-    <div class="glass rounded-3xl p-5 bg-brand/10 border-brand/20 relative overflow-hidden group shadow-lg">
+    <div class="glass rounded-3xl py-4 px-5 bg-brand/5 border-brand/20 relative overflow-hidden group shadow-lg">
       <div class="absolute -right-4 -top-4 bg-brand/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-brand/20 transition-all"></div>
       <div class="relative z-10">
         <p class="text-[9px] font-black uppercase tracking-widest text-brand mb-1">Total Insights</p>
@@ -61,7 +61,7 @@ const getLangFlag = (lang?: string) => {
     </div>
 
     <!-- 2. Discovery -->
-    <div class="glass rounded-3xl p-6 shadow-lg">
+    <div class="glass rounded-3xl py-4 px-6 shadow-lg bg-bg-card/30">
       <h2 class="font-black text-text-muted mb-4 text-[10px] uppercase tracking-[0.25em] flex items-center gap-2">
         <Filter class="h-3 w-3" /> Discovery
       </h2>
@@ -94,7 +94,7 @@ const getLangFlag = (lang?: string) => {
     </div>
 
     <!-- 3. Market Sentiment -->
-    <div class="glass rounded-3xl p-6 shadow-lg">
+    <div class="glass rounded-3xl py-4 px-6 shadow-lg bg-bg-card/30">
       <h2 class="font-black text-text-muted mb-5 text-[10px] uppercase tracking-[0.25em]">Market Sentiment</h2>
       
       <div class="space-y-1">
@@ -116,7 +116,7 @@ const getLangFlag = (lang?: string) => {
     </div>
 
     <!-- 4. Content Origin -->
-    <div class="glass rounded-3xl p-6 space-y-5 shadow-lg">
+    <div class="glass rounded-3xl py-4 px-6 space-y-3 shadow-lg bg-bg-card/30">
       <h2 class="font-black text-text-muted text-[10px] uppercase tracking-[0.25em]">Content Origin</h2>
       
       <!-- Only AI Insights Toggle -->

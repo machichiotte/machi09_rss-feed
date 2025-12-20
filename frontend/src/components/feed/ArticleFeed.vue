@@ -47,7 +47,7 @@ defineExpose({ loadMoreTrigger });
 </script>
 
 <template>
-  <div class="flex-1 space-y-8 pt-6 lg:ml-80">
+  <div class="w-full space-y-8 pt-6">
     <!-- Error State -->
     <div v-if="error" class="glass rounded-[2.5rem] p-12 text-center border-danger/20">
       <div class="h-16 w-16 bg-danger/10 rounded-full flex items-center justify-center mx-auto mb-6">

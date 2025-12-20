@@ -295,8 +295,8 @@ onUnmounted(() => {
       @trigger-process="triggerProcess"
     />
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-10 relative">
-      <div class="flex flex-col lg:flex-row gap-10 pt-0">
+    <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-10 relative">
+      <div class="flex flex-col lg:flex-row gap-0 pt-0">
         <Sidebar 
           :total-articles="totalArticles"
           :categories="allCategories"
@@ -312,9 +312,9 @@ onUnmounted(() => {
           @toggle-selected-language="toggleSelectedLanguage"
         />
 
-        <div class="flex-1">
+        <div class="flex-1 lg:ml-80 w-full min-h-[60vh]">
           <!-- Processing State Banner -->
-          <div v-if="processing" class="glass rounded-3xl p-6 border-brand/20 flex items-center justify-between animate-pulse mb-8">
+          <div v-if="processing" class="glass rounded-3xl p-6 border-brand/20 flex items-center justify-between animate-pulse mb-8 mt-6">
             <div class="flex items-center gap-4">
               <div class="h-10 w-10 bg-brand/20 rounded-full flex items-center justify-center">
                 <RefreshCw class="h-5 w-5 text-brand animate-spin" />
