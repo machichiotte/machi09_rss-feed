@@ -196,19 +196,37 @@ class AiService {
             try {
                 if (text.length < 200) return null;
 
-                logger.info(`📝 Summarizing text (${text.length} chars)...`);
+                const preview = text.slice(0, 100).replace(/\n/g, ' ');
+                logger.info(`📝 Summarizing: "${preview}..." (${text.length} chars)`);
                 const result = await this.summarizationPipeline(text, {
                     max_new_tokens: 60,
                     min_new_tokens: 20,
                 });
 
                 const output = (Array.isArray(result) ? result[0] : result) as Record<string, string>;
-                return output?.summary_text || null;
+                const summary = output?.summary_text || null;
+                if (summary) {
+                    logger.info(`   ✨ Summary: "${summary.slice(0, 80)}..."`);
+                }
+                return summary;
             } catch (error) {
                 logger.error('Error during summarization:', error);
                 return null;
             }
         });
+    }
+
+    /**
+     * Helper to log translation with preview
+     */
+    private logTranslation(text: string, fromLang: string, toLang: string, translated: string | null): void {
+        const preview = text.slice(0, 60).replace(/\n/g, ' ');
+        logger.info(`🌐 Translating: '${preview}...' (${fromLang} → ${toLang})`);
+
+        if (translated) {
+            const translatedPreview = translated.slice(0, 60).replace(/\n/g, ' ');
+            logger.info(`   ✅ Result: '${translatedPreview}...'`);
+        }
     }
 
     /**
@@ -234,7 +252,8 @@ class AiService {
             }
 
             try {
-                logger.info(`🌐 Translating from ${fromLang} to ${toLang}...`);
+                this.logTranslation(text, fromLang, toLang, null);
+
                 const result = await this.translationPipeline(text, {
                     // @ts-ignore - src_lang and tgt_lang are valid for m2m100
                     src_lang,
@@ -242,7 +261,11 @@ class AiService {
                 });
 
                 const output = (Array.isArray(result) ? result[0] : result) as Record<string, string>;
-                return output?.translation_text || null;
+                const translated = output?.translation_text || null;
+
+                this.logTranslation(text, fromLang, toLang, translated);
+
+                return translated;
             } catch (error) {
                 logger.error(`Error translating from ${fromLang} to ${toLang}:`, error);
                 return null;

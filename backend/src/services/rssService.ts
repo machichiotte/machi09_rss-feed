@@ -140,6 +140,8 @@ export class RssService {
 
                 for (const article of pending) {
                     try {
+                        logger.info(`📰 Processing: "${article.title.slice(0, 60)}..." [${article.feedName}] (${article.language})`);
+
                         const { analysis, translations } = await aiService.analyzeArticle(
                             article.title,
                             article.summary || '',
@@ -151,6 +153,8 @@ export class RssService {
                             translations,
                             processedAt: new Date().toISOString()
                         });
+
+                        this.logArticleCompletion(article.title, analysis, translations);
 
                         // Keep a small delay to avoid excessive CPU usage
                         await this.delay(300);
@@ -178,6 +182,21 @@ export class RssService {
     public static async fetchDatabaseRss(): Promise<ProcessedArticleData[]> {
         const result = await RssRepository.fetchAll();
         return result.articles;
+    }
+
+    /**
+     * Logs the completion of an article processing with analysis results.
+     * @param {string} title - Article title.
+     * @param {object} analysis - Analysis results.
+     * @param {object} translations - Translations object.
+     * @returns {void}
+     */
+    private static logArticleCompletion(title: string, analysis: { sentiment: string; sentimentScore: number }, translations: Record<string, unknown>): void {
+        logger.info(`✅ Completed: "${title.slice(0, 50)}..." → ${analysis.sentiment} (${Math.round(analysis.sentimentScore * 100)}%)`);
+        const translationLangs = Object.keys(translations);
+        if (translationLangs.length > 0) {
+            logger.info(`   🌍 Translations: ${translationLangs.join(', ')}`);
+        }
     }
 
     /**

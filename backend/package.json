@@ -11,7 +11,8 @@
         "test": "vitest",
         "lint": "eslint src",
         "lint:complexity": "eslint src --max-warnings=0",
-        "format": "prettier --write src/**/*.ts"
+        "format": "prettier --write src/**/*.ts",
+        "create-indexes": "tsx src/scripts/create_indexes.ts"
     },
     "keywords": [
         "nodejs",

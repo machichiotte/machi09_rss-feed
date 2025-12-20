@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/* global performance */
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
@@ -102,30 +103,52 @@ const applyTheme = () => {
 };
 
 const fetchMetadata = async () => {
+  const startTime = performance.now();
+  console.log('🔍 [Frontend] Fetching metadata...');
+  
   try {
     const response = await axios.get(`${API_BASE_URL}/api/rss/metadata`);
+    const duration = Math.round(performance.now() - startTime);
+    
     allCategories.value = response.data.categories || [];
     allSources.value = response.data.sources || [];
     allLanguages.value = response.data.languages || [];
+    
+    console.log(`✅ [Frontend] Metadata received in ${duration}ms:`, {
+      categories: allCategories.value.length,
+      sources: allSources.value.length,
+      languages: allLanguages.value.length
+    });
   } catch (error) {
-    console.error('Failed to fetch metadata:', error);
+    const duration = Math.round(performance.now() - startTime);
+    console.error(`❌ [Frontend] Failed to fetch metadata after ${duration}ms:`, error);
   }
 };
 
+// eslint-disable-next-line complexity
 async function loadArticles(reset = false) {
+  const startTime = performance.now();
+  const requestType = reset ? 'INITIAL/RESET' : 'PAGINATION';
+  
   if (reset) {
     currentPage.value = 1;
     articles.value = [];
     loading.value = true;
     error.value = null;
+    console.log(`📡 [Frontend] Loading articles (${requestType})...`);
   } else {
     if (loadingMore.value || loading.value) return;
     loadingMore.value = true;
+    console.log(`📡 [Frontend] Loading more articles (page ${currentPage.value})...`);
   }
 
   try {
     const params = getFetchParams();
+    console.log('   📋 Request params:', params);
+    
     const response = await axios.get(`${API_BASE_URL}/api/rss`, { params });
+    const networkTime = Math.round(performance.now() - startTime);
+    
     const data = response.data;
     const newArticles = data.articles || data.data || [];
     
@@ -134,8 +157,18 @@ async function loadArticles(reset = false) {
     hasMore.value = articles.value.length < totalArticles.value;
     currentPage.value++;
 
+    const totalTime = Math.round(performance.now() - startTime);
+    console.log(`✅ [Frontend] Articles loaded in ${totalTime}ms (network: ${networkTime}ms):`, {
+      received: newArticles.length,
+      total: totalArticles.value,
+      currentlyDisplayed: articles.value.length,
+      hasMore: hasMore.value
+    });
+
     nextTick(() => checkAndLoadMore());
   } catch (err) {
+    const duration = Math.round(performance.now() - startTime);
+    console.error(`❌ [Frontend] Failed to load articles after ${duration}ms:`, err);
     handleFetchError(err);
   } finally {
     loading.value = false;
@@ -178,15 +211,23 @@ function checkAndLoadMore() {
 }
 
 const triggerProcess = async () => {
+  const startTime = performance.now();
+  console.log('🔄 [Frontend] Triggering RSS feed processing...');
+  
   processing.value = true;
   try {
     await axios.post(`${API_BASE_URL}/api/rss/process`);
+    const duration = Math.round(performance.now() - startTime);
+    console.log(`✅ [Frontend] Process triggered in ${duration}ms, waiting 4s before reload...`);
+    
     setTimeout(() => {
+      console.log('🔄 [Frontend] Reloading articles after processing...');
       loadArticles(true);
       processing.value = false;
     }, 4000); 
   } catch (error) {
-    console.error('Failed to process feeds:', error);
+    const duration = Math.round(performance.now() - startTime);
+    console.error(`❌ [Frontend] Failed to trigger process after ${duration}ms:`, error);
     processing.value = false;
   }
 };
@@ -270,9 +311,18 @@ const filteredArticles = computed(() => articles.value); // Articles are already
 
 // Watchers
 let filterTimeout: ReturnType<typeof setTimeout> | null = null;
-watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, preferredLanguage], () => {
+watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, preferredLanguage], (newValues) => {
+    console.log('🎯 [Frontend] Filter changed:', {
+      category: newValues[0],
+      sentiment: newValues[1],
+      languages: newValues[2],
+      source: newValues[3],
+      preferredLanguage: newValues[4]
+    });
+    
     if (filterTimeout) clearTimeout(filterTimeout);
     filterTimeout = setTimeout(() => {
+        console.log('🔄 [Frontend] Applying filters (300ms debounce)...');
         loadArticles(true);
     }, 300);
 }, { deep: true });
@@ -285,9 +335,16 @@ watch(globalMagicMode, (val) => {
 });
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
-watch(searchQuery, () => {
+watch(searchQuery, (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+      console.log(`🔍 [Frontend] Search query changed: "${newVal}"`);
+    }
+    
     if (searchTimeout) clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
+        if (newVal) {
+          console.log(`🔄 [Frontend] Executing search for: "${newVal}" (500ms debounce)...`);
+        }
         loadArticles(true);
     }, 500);
 });
