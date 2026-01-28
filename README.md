@@ -89,7 +89,7 @@ docker compose up --build
 #### 1. Setup Backend
 ```bash
 cd backend
-yarn install
+pnpm install
 
 # Configure environment variables
 cp .env.example .env
@@ -98,7 +98,7 @@ cp .env.example .env
 
 **Start the Backend:**
 ```bash
-yarn dev
+pnpm dev
 # Server running on http://localhost:3000
 ```
 
@@ -106,10 +106,10 @@ yarn dev
 Open a new terminal:
 ```bash
 cd frontend
-yarn install
+pnpm install
 
 # Start the Frontend
-yarn dev
+pnpm dev
 # Dashboard running on http://localhost:5173
 ```
 
