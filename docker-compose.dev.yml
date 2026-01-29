@@ -1,0 +1,27 @@
+services:
+  mongodb:
+    extends:
+      file: docker-compose.yml
+      service: mongodb
+    restart: "no"
+
+  backend:
+    extends:
+      file: docker-compose.yml
+      service: backend
+    env_file:
+      - .env.development
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: pnpm dev
+    restart: "no"
+
+  frontend:
+    extends:
+      file: docker-compose.yml
+      service: frontend
+    env_file:
+      - .env.development
+    # In dev, use local dev server if needed, or just container
+    restart: "no"

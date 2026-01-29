@@ -1,38 +1,51 @@
 services:
   mongodb:
-    image: mongo:6.0
+    build:
+      context: ./backend
+      dockerfile_inline: |
+        FROM mongo:6.0
+        LABEL project="machi09"
+    image: machi09_mongo:latest
+    container_name: machi09_mongo
     ports:
-      - "27009:27017"
+      - "${DB_PORT:-27009}:27017"
     volumes:
       - mongodb_data:/data/db
     networks:
       - rss-network
+    restart: always
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: machi09_backend:latest
+    container_name: machi09_backend
     ports:
-      - "4009:4009"
+      - "${BACKEND_PORT:-4009}:4009"
     env_file:
-      - ./backend/.env.development
+      - .env.production
     depends_on:
       - mongodb
     networks:
       - rss-network
-    volumes:
-      - /media/machi/Data/Dev/machi-workspace/machi-projects/machi00_ops/machi09_rss-feed/debug-logs:/app/logs
+    restart: always
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-/api}
+    image: machi09_frontend:latest
+    container_name: machi09_frontend
     ports:
-      - "3009:80"
+      - "${FRONTEND_PORT:-3009}:80"
     networks:
       - rss-network
     depends_on:
       - backend
+    restart: always
 
 networks:
   rss-network:
