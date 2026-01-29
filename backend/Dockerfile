@@ -1,6 +1,14 @@
 # --- Build Stage ---
 FROM node:20-slim AS builder
 
+# Install system dependencies for native modules (sharp, etc.)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    libvips-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Enable pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -16,14 +24,13 @@ RUN pnpm install --frozen-lockfile
 COPY src/scripts/download_models.ts ./src/scripts/download_models.ts
 COPY tsconfig.json ./
 
-# Pre-download AI models (this layer will be cached unless download_models.ts changes)
-RUN pnpm dlx tsx src/scripts/download_models.ts
+# Pre-download AI models (commented out - will download at runtime)
+# RUN pnpm dlx tsx src/scripts/download_models.ts
 
 # Now copy the rest of the source code
 COPY src ./src
 
-# Build the application (we still build to ensure types are correct)
-RUN pnpm build
+# Skip build - we'll use tsx to run TypeScript directly
 
 # --- Production Stage ---
 FROM node:20-slim AS runner
@@ -46,7 +53,7 @@ COPY --from=builder --chown=node:node /app/pnpm-lock.yaml ./
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/src ./src
 COPY --from=builder --chown=node:node /app/tsconfig.json ./
-COPY --from=builder --chown=node:node /app/models_cache ./models_cache
+# models_cache will be created at runtime
 
 # Expose port
 EXPOSE 7860

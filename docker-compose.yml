@@ -2,7 +2,7 @@ services:
   mongodb:
     image: mongo:6.0
     ports:
-      - "27017:27017"
+      - "27009:27017"
     volumes:
       - mongodb_data:/data/db
     networks:
@@ -13,12 +13,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongodb:27017/rss_feed
-      - RSS_ENABLED=true
+      - "4009:4009"
+    env_file:
+      - ./backend/.env.development
     depends_on:
       - mongodb
     networks:
@@ -31,7 +28,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "3009:80"
     networks:
       - rss-network
     depends_on:
