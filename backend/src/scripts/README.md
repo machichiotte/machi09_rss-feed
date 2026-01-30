@@ -12,7 +12,7 @@ This directory contains utility scripts for database management and AI model set
 
 **Usage**:
 ```bash
-npm run create-indexes
+pnpm run create-indexes
 ```
 
 **What it does**:
@@ -43,7 +43,7 @@ npm run create-indexes
 
 **Usage**:
 ```bash
-npm run download-models  # (if script exists in package.json)
+pnpm run download-models  # (if script exists in package.json)
 # or
 tsx src/scripts/download_models.ts
 ```
@@ -70,7 +70,7 @@ tsx src/scripts/download_models.ts
 tsx src/scripts/download_models.ts
 
 # 2. Create MongoDB indexes (IMPORTANT for performance)
-npm run create-indexes
+pnpm run create-indexes
 ```
 
 ### Troubleshooting
