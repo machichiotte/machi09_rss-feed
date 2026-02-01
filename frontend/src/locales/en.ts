@@ -29,7 +29,8 @@ export default {
         last_24h: "Last 24 Hours",
         last_7d: "Last 7 Days",
         all_languages: "All Languages",
-        selected_languages: "{count} Selected"
+        selected_languages: "{count} Selected",
+        search_tags: "Search tags..."
     },
     feed: {
         syncing_nexus: "Synchronizing Nexus",

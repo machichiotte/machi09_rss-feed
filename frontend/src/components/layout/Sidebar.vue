@@ -8,6 +8,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { toRef } from 'vue';
 import { useI18n } from '../../composables/useI18n';
+import TagCloud from '../feed/TagCloud.vue';
 
 /**
  * Sidebar component containing discovery pills, sentiment filters, and origin settings.
@@ -36,7 +37,7 @@ const emit = defineEmits<{
   (e: 'update:showLangDropdown', val: boolean): void;
 }>();
 
-function cn(...inputs: (string | undefined | null | false)[]) {
+function cn(...inputs: unknown[]) {
   return twMerge(clsx(inputs));
 }
 
@@ -65,37 +66,18 @@ const getLangFlag = (lang?: string) => {
       </div>
     </div>
 
-    <!-- 2. Discovery -->
-    <div class="glass rounded-3xl py-4 px-6 shadow-lg bg-bg-card/30">
+    <!-- 2. Tag Cloud / Discovery -->
+    <div class="glass rounded-3xl py-5 px-6 shadow-lg bg-bg-card/30">
       <h2 class="font-black text-text-muted mb-4 text-[10px] uppercase tracking-[0.25em] flex items-center gap-2">
         <Filter class="h-3 w-3" /> {{ t('sidebar.discovery') }}
       </h2>
-      <div class="flex flex-wrap gap-2">
-        <button 
-          @click="emit('selectCategory', null)"
-          :class="cn(
-            'px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border',
-            selectedCategory === null 
-              ? 'bg-text-primary text-bg-card border-text-primary shadow-lg' 
-              : 'bg-bg-card/70 text-text-secondary border-brand/10 hover:border-brand/50 shadow-sm'
-          )"
-        >
-          {{ t('common.all') }}
-        </button>
-        <button 
-          v-for="category in categories" 
-          :key="category"
-          @click="emit('selectCategory', category)"
-          :class="cn(
-            'px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border shadow-sm',
-            selectedCategory === category
-              ? 'bg-brand text-white border-brand shadow-md icon-glow-brand' 
-              : 'bg-bg-card/80 text-text-secondary border-brand/10 hover:border-brand/50'
-          )"
-        >
-          {{ category }}
-        </button>
-      </div>
+      
+      <TagCloud 
+        :tags="categories" 
+        :selected-tag="selectedCategory"
+        :placeholder="t('sidebar.search_tags')"
+        @select-tag="emit('selectCategory', $event)"
+      />
     </div>
 
     <!-- 3. Market Sentiment -->
