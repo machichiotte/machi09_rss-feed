@@ -14,6 +14,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { toRef } from 'vue';
 import { useI18n } from '../../composables/useI18n';
+import LayoutToggle from './LayoutToggle.vue';
 
 /**
  * Navigation bar component containing search, language selection, and global mode toggles.
@@ -27,6 +28,7 @@ const props = defineProps<{
   globalSummaryMode: boolean;
   isDark: boolean;
   processing: boolean;
+  viewMode: 'grid' | 'list' | 'compact';
 }>();
 
 const { t } = useI18n(toRef(props, 'preferredLanguage'));
@@ -39,6 +41,7 @@ const emit = defineEmits<{
   (e: 'update:globalSummaryMode', val: boolean): void;
   (e: 'toggleTheme'): void;
   (e: 'triggerProcess'): void;
+  (e: 'update:viewMode', val: 'grid' | 'list' | 'compact'): void;
 }>();
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -113,7 +116,6 @@ const getLangFlag = (lang?: string) => {
                   ? 'bg-translate/15 border-translate/30 text-translate shadow-inner' 
                   : 'bg-bg-card/70 border-brand/20 text-text-muted'
               )"
-              :title="t('nav.translate')"
             >
               <Languages class="h-4 w-4" />
               <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">{{ t('nav.translate') }}</span>
@@ -130,7 +132,6 @@ const getLangFlag = (lang?: string) => {
                   ? 'bg-insight/15 border-insight/30 text-insight shadow-inner' 
                   : 'bg-bg-card/70 border-brand/20 text-text-muted'
               )"
-              :title="t('nav.insights')"
             >
               <Sparkles class="h-4 w-4" />
               <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">{{ t('nav.insights') }}</span>
@@ -147,7 +148,6 @@ const getLangFlag = (lang?: string) => {
                   ? 'bg-summary/15 border-summary/30 text-summary shadow-inner' 
                   : 'bg-bg-card/70 border-brand/20 text-text-muted'
               )"
-              :title="t('nav.summary')"
             >
               <FileText class="h-4 w-4" />
               <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">{{ t('nav.summary') }}</span>
@@ -155,26 +155,32 @@ const getLangFlag = (lang?: string) => {
           </div>
 
           <!-- Utility Control Group -->
-          <div class="flex items-center p-1.5 bg-bg-card/50 backdrop-blur-md rounded-2xl border border-brand/20">
-            <button 
-              @click="emit('toggleTheme')"
-              class="p-2 rounded-xl text-text-muted hover:bg-bg-card transition-all duration-300"
-              title="Toggle theme"
-            >
-              <Sun v-if="isDark" class="h-4 w-4" />
-              <Moon v-else class="h-4 w-4" />
-            </button>
+          <div class="flex items-center gap-3">
+            <LayoutToggle 
+              :model-value="viewMode" 
+              @update:model-value="emit('update:viewMode', $event)" 
+              class="hidden xl:flex"
+            />
 
-            <div class="w-px h-4 bg-text-secondary/20 mx-1"></div>
+            <div class="flex items-center p-1.5 bg-bg-card/50 backdrop-blur-md rounded-2xl border border-brand/20">
+              <button 
+                @click="emit('toggleTheme')"
+                class="p-2 rounded-xl text-text-muted hover:bg-bg-card transition-all duration-300"
+              >
+                <Sun v-if="isDark" class="h-4 w-4" />
+                <Moon v-else class="h-4 w-4" />
+              </button>
+
+              <div class="w-px h-4 bg-text-secondary/20 mx-1"></div>
             
-            <button 
-              @click="emit('triggerProcess')" 
-              :disabled="processing"
-              class="p-2 rounded-xl text-text-muted hover:bg-bg-card transition-all duration-300 group"
-              :title="t('common.refresh')"
-            >
-              <RefreshCw :class="cn('h-4 w-4 group-hover:rotate-180 transition-transform duration-700', processing && 'animate-spin')" />
-            </button>
+              <button 
+                @click="emit('triggerProcess')" 
+                :disabled="processing"
+                class="p-2 rounded-xl text-text-muted hover:bg-bg-card transition-all duration-300 group"
+              >
+                <RefreshCw :class="cn('h-4 w-4 group-hover:rotate-180 transition-transform duration-700', processing && 'animate-spin')" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

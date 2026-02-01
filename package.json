@@ -43,12 +43,12 @@
   "homepage": "https://github.com/machichiotte/machi09_rss-feed#readme",
   "lint-staged": {
     "backend/**/*.{ts,js,json}": [
-      "bash -c 'cd backend && yarn lint'",
-      "bash -c 'cd backend && yarn lint:complexity'"
+      "bash -c 'cd backend && pnpm lint'",
+      "bash -c 'cd backend && pnpm lint:complexity'"
     ],
     "frontend/**/*.{ts,js,vue,json}": [
-      "bash -c 'cd frontend && yarn lint'",
-      "bash -c 'cd frontend && yarn lint:complexity'"
+      "bash -c 'cd frontend && pnpm lint'",
+      "bash -c 'cd frontend && pnpm lint:complexity'"
     ]
   }
 }

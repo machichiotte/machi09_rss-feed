@@ -38,6 +38,7 @@ const props = defineProps<{
   globalSummaryMode: boolean;
   preferredLanguage: string;
   translationToggles: Record<string, boolean>;
+  viewMode: 'grid' | 'list' | 'compact';
 }>();
 
 const { t } = useI18n(toRef(props, 'preferredLanguage'));
@@ -65,7 +66,15 @@ defineExpose({ loadMoreTrigger });
     </div>
 
     <!-- Loading Skeleton Grid -->
-    <div v-else-if="loading && articles.length === 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div 
+      v-else-if="loading && articles.length === 0" 
+      :class="[
+        'grid gap-8',
+        viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2' : 
+        viewMode === 'compact' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 
+        'grid-cols-1 gap-6'
+      ]"
+    >
       <div v-for="i in 6" :key="i" class="glass-card rounded-[2.5rem] p-8 h-80 animate-pulse">
         <div class="flex justify-between mb-8">
           <div class="h-4 bg-text-secondary/10 rounded-full w-24"></div>
@@ -84,7 +93,15 @@ defineExpose({ loadMoreTrigger });
     </div>
 
     <!-- Articles Discovery Grid -->
-    <div v-else-if="articles.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div 
+      v-else-if="articles.length > 0" 
+      :class="[
+        'grid gap-8',
+        viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2' : 
+        viewMode === 'compact' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 
+        'grid-cols-1 gap-6'
+      ]"
+    >
       <ArticleCard 
         v-for="article in articles" 
         :key="article._id"
@@ -93,6 +110,7 @@ defineExpose({ loadMoreTrigger });
         :global-summary-mode="globalSummaryMode"
         :preferred-language="preferredLanguage"
         :translation-toggles="translationToggles"
+        :view-mode="viewMode"
       />
     </div>
 

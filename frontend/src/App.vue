@@ -61,6 +61,7 @@ if (!localStorage.preferredLanguage) localStorage.preferredLanguage = 'fr';
 const insightVisibility = ref<Record<string, boolean>>({}); // articleId -> visible
 const translationToggles = ref<Record<string, boolean>>({}); // articleId -> isTranslated
 const showLangDropdown = ref(false);
+const viewMode = ref<'grid' | 'list' | 'compact'>((localStorage.viewMode as 'grid' | 'list' | 'compact') || 'grid');
 const isDark = ref(false);
 const showOnlyInsights = ref(false);
 const dateRange = ref('all');
@@ -250,6 +251,10 @@ watch(searchQuery, () => {
     searchTimeout = setTimeout(() => loadArticles(true), 500);
 });
 
+watch(viewMode, (val) => {
+  localStorage.viewMode = val;
+});
+
 onMounted(() => {
   const savedTheme = localStorage.theme;
   const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -294,6 +299,7 @@ onUnmounted(() => {
       v-model:auto-translate="autoTranslate"
       v-model:global-insight-mode="globalInsightMode"
       v-model:global-summary-mode="globalSummaryMode"
+      v-model:view-mode="viewMode"
       :languages="allLanguages"
       :is-dark="isDark"
       :processing="processing"
@@ -346,6 +352,7 @@ onUnmounted(() => {
             :global-summary-mode="globalSummaryMode"
             :preferred-language="preferredLanguage"
             :translation-toggles="translationToggles"
+            :view-mode="viewMode"
             @retry="loadArticles(true)"
           />
         </div>
