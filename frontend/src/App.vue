@@ -8,6 +8,7 @@ import AuroraBackground from './components/layout/AuroraBackground.vue';
 import Navbar from './components/layout/Navbar.vue';
 import Sidebar from './components/layout/Sidebar.vue';
 import Footer from './components/layout/Footer.vue';
+import SettingsModal from './components/settings/SettingsModal.vue';
 
 // Feed Components
 import ArticleFeed from './components/feed/ArticleFeed.vue';
@@ -66,6 +67,7 @@ const viewMode = ref<'grid' | 'list' | 'compact'>((localStorage.viewMode as 'gri
 const isDark = ref(false);
 const showOnlyInsights = ref(false);
 const dateRange = ref('all');
+const isSettingsOpen = ref(false);
 const error = ref<string | null>(null);
 
 // i18n Setup
@@ -331,6 +333,24 @@ onUnmounted(() => {
       :processing="processing"
       @toggle-theme="toggleTheme"
       @trigger-process="triggerProcess"
+      @open-settings="isSettingsOpen = true"
+    />
+
+    <SettingsModal 
+      :is-open="isSettingsOpen"
+      :is-dark="isDark"
+      :global-insight-mode="globalInsightMode"
+      :global-summary-mode="globalSummaryMode"
+      :auto-translate="autoTranslate"
+      :preferred-language="preferredLanguage"
+      :view-mode="viewMode"
+      :sources="allSources"
+      @close="isSettingsOpen = false"
+      @toggle-theme="toggleTheme"
+      @update:global-insight-mode="globalInsightMode = $event"
+      @update:global-summary-mode="globalSummaryMode = $event"
+      @update:auto-translate="autoTranslate = $event"
+      @update:view-mode="viewMode = $event"
     />
 
     <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-10 relative">

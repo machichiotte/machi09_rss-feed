@@ -8,7 +8,8 @@ import {
   FileText, 
   Sun, 
   Moon, 
-  ChevronDown 
+  ChevronDown,
+  Settings
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -42,6 +43,7 @@ const emit = defineEmits<{
   (e: 'toggleTheme'): void;
   (e: 'triggerProcess'): void;
   (e: 'update:viewMode', val: 'grid' | 'list' | 'compact'): void;
+  (e: 'openSettings'): void;
 }>();
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -181,6 +183,13 @@ const getLangFlag = (lang?: string) => {
                 <RefreshCw :class="cn('h-4 w-4 group-hover:rotate-180 transition-transform duration-700', processing && 'animate-spin')" />
               </button>
             </div>
+
+            <button 
+              @click="emit('openSettings')"
+              class="p-3 rounded-2xl bg-brand/10 border border-brand/20 text-brand hover:bg-brand/20 transition-all shadow-lg icon-glow-brand"
+            >
+              <Settings class="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
