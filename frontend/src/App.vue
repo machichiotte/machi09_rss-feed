@@ -82,6 +82,7 @@ const hasMore = ref(false);
 // Metadata State
 const allCategories = ref<string[]>([]);
 const allSources = ref<string[]>([]);
+const groupedSources = ref<Record<string, string[]>>({});
 const allLanguages = ref<string[]>([]);
 
 // Feed Ref for infinite scroll
@@ -136,6 +137,7 @@ const fetchMetadata = async () => {
     const response = await axios.get(`${API_BASE_URL}/api/rss/metadata`);
     allCategories.value = response.data.categories || [];
     allSources.value = response.data.sources || [];
+    groupedSources.value = response.data.groupedSources || {};
     allLanguages.value = response.data.languages || [];
   } catch {
     console.error('Failed to fetch metadata');
@@ -344,7 +346,7 @@ onUnmounted(() => {
       :auto-translate="autoTranslate"
       :preferred-language="preferredLanguage"
       :view-mode="viewMode"
-      :sources="allSources"
+      :grouped-sources="groupedSources"
       @close="isSettingsOpen = false"
       @toggle-theme="toggleTheme"
       @update:global-insight-mode="globalInsightMode = $event"

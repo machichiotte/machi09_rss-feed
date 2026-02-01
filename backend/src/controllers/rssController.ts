@@ -152,11 +152,14 @@ async function getMetadata(_req: Request, res: Response): Promise<void> {
     const categories = Object.keys(rssSources);
     const languages = new Set<string>();
     const sources = new Set<string>();
+    const groupedSources: Record<string, string[]> = {};
 
-    for (const feeds of Object.values(rssSources)) {
+    for (const [category, feeds] of Object.entries(rssSources)) {
+      groupedSources[category] = [];
       for (const feed of feeds) {
         if (feed.language) languages.add(feed.language);
         sources.add(feed.name);
+        groupedSources[category].push(feed.name);
       }
     }
 
@@ -164,6 +167,7 @@ async function getMetadata(_req: Request, res: Response): Promise<void> {
       categories,
       languages: Array.from(languages).sort(),
       sources: Array.from(sources).sort(),
+      groupedSources
     });
   } catch (error) {
     handleControllerError(res, error, getMetadata.name);

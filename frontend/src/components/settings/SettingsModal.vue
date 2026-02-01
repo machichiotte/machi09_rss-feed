@@ -24,7 +24,7 @@ const props = defineProps<{
   autoTranslate: boolean;
   preferredLanguage: string;
   viewMode: 'grid' | 'list' | 'compact';
-  sources: string[];
+  groupedSources: Record<string, string[]>;
 }>();
 
 const emit = defineEmits<{
@@ -76,7 +76,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
       <div class="w-full sm:w-64 bg-brand/5 border-r border-brand/10 p-8 flex flex-col gap-8">
         <div class="flex items-center gap-3 mb-4">
           <div class="p-2.5 rounded-2xl bg-brand/20 border border-brand/30">
-            <Brain class="h-6 w-6 text-brand" />
+            <Rss class="h-6 w-6 text-brand" />
           </div>
           <h2 class="text-xl font-black tracking-tight text-text-primary italic">Paramètres</h2>
         </div>
@@ -121,31 +121,33 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
         <!-- Content Area -->
         <div class="flex-1 overflow-y-auto p-8 pt-4 no-scrollbar">
           <!-- Hub: Feeds -->
-          <div v-if="activeTab === 'feeds'" class="space-y-6">
-            <div class="p-6 rounded-3xl bg-brand/5 border border-brand/10">
-              <p class="text-xs text-text-secondary mb-4">Gérez vos sources d'information connectées au Nexus.</p>
+          <div v-if="activeTab === 'feeds'" class="space-y-8">
+            <p class="text-xs text-text-secondary">Gérez vos sources d'information connectées au Nexus.</p>
+            
+            <div v-for="(sources, category) in groupedSources" :key="category" class="space-y-3">
+              <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2 border-b border-brand/10 pb-1">{{ category }}</h4>
               
-              <div class="space-y-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div 
                   v-for="source in sources" 
                   :key="source"
-                  class="flex items-center justify-between p-4 rounded-2xl bg-bg-card border border-brand/5 group"
+                  class="flex items-center justify-between p-3.5 rounded-2xl bg-bg-card shadow-sm border border-brand/5 group hover:border-brand/20 transition-all"
                 >
                   <div class="flex items-center gap-3">
-                    <Rss class="h-4 w-4 text-brand/50" />
-                    <span class="text-xs font-bold text-text-primary">{{ source }}</span>
+                    <div class="h-2 w-2 rounded-full bg-success/40"></div>
+                    <span class="text-[11px] font-bold text-text-primary uppercase tracking-wider">{{ source }}</span>
                   </div>
-                  <button class="p-2 rounded-xl text-danger/50 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all">
-                    <Trash2 class="h-4 w-4" />
+                  <button class="p-1.5 rounded-xl text-danger/30 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all">
+                    <Trash2 class="h-3.5 w-3.5" />
                   </button>
                 </div>
-
-                <button class="w-full flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-brand/20 text-brand hover:bg-brand/5 hover:border-brand/40 transition-all text-xs font-black uppercase tracking-widest">
-                  <Plus class="h-4 w-4" />
-                  Ajouter une source
-                </button>
               </div>
             </div>
+
+            <button class="w-full flex items-center justify-center gap-2 p-5 rounded-3xl border-2 border-dashed border-brand/20 text-brand hover:bg-brand/5 hover:border-brand/40 transition-all text-xs font-black uppercase tracking-widest mt-4">
+              <Plus class="h-4 w-4" />
+              Ajouter une source personnalisée
+            </button>
           </div>
 
           <!-- Hub: Intelligence -->
