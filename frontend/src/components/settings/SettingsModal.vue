@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { 
   X, 
   Rss, 
@@ -57,8 +57,9 @@ const getSourceName = (s: string | SourceObj) => {
 };
 
 const getSourceLang = (s: string | SourceObj) => {
-  if (!s || typeof s === 'string') return 'en';
-  return s.language || 'en';
+  if (!s) return 'en';
+  if (typeof s === 'string') return 'en';
+  return (s.language || 'en').toLowerCase();
 };
 
 const getLangFlag = (lang?: string) => {
@@ -81,12 +82,25 @@ function cn(...inputs: unknown[]) {
   return twMerge(clsx(inputs));
 }
 
+const sortedGroupedSources = computed(() => {
+  const sorted: Record<string, (string | SourceObj)[]> = {};
+  for (const [category, sources] of Object.entries(props.groupedSources)) {
+    sorted[category] = [...sources].sort((a, b) => {
+      const nameA = getSourceName(a);
+      const nameB = getSourceName(b);
+      return nameA.localeCompare(nameB);
+    });
+  }
+  return sorted;
+});
+
 // Close on Escape
 const handleEsc = (e: { key: string }) => {
   if (e.key === 'Escape' && props.isOpen) emit('close');
 };
 
 onMounted(() => {
+  console.log('Grouped Sources:', props.groupedSources);
   window.addEventListener('keydown', handleEsc);
   // Expand first category by default if needed
   setTimeout(() => {
@@ -149,7 +163,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
             <span class="text-[9px] font-black text-text-muted uppercase tracking-[0.2em]">Core Sync Online</span>
           </div>
           <div class="text-[9px] font-black text-text-muted/30 uppercase tracking-[0.2em] px-2 leading-tight">
-            Kognit Nexus Premium<br/>Modular v2.2.0
+            Kognit Nexus Premium<br />Modular v2.2.0
           </div>
         </div>
       </div>
@@ -191,7 +205,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
               </div>
             </div>
             
-            <div v-for="(sources, category) in groupedSources" :key="category" class="space-y-3">
+            <div v-for="(sources, category) in sortedGroupedSources" :key="category" class="space-y-3">
               <button 
                 @click="toggleCategory(category)"
                 class="w-full flex items-center justify-between p-6 rounded-[2.5rem] bg-bg-card border-2 border-brand/5 hover:border-brand/40 hover:bg-brand/5 transition-all group shadow-sm active:scale-[0.995]"
@@ -206,14 +220,6 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
                   </div>
                 </div>
                 <div class="flex items-center gap-5">
-                  <div class="hidden md:flex -space-x-2.5">
-                    <div v-for="i in Math.min(4, sources.length)" :key="i" 
-                      class="h-8 w-8 rounded-full border-2 border-bg-card bg-brand/10 backdrop-blur-md flex items-center justify-center text-xs shadow-sm"
-                      :title="getSourceLang(sources[i-1])"
-                    >
-                      {{ getLangFlag(getSourceLang(sources[i-1])) }}
-                    </div>
-                  </div>
                   <div class="h-8 w-8 rounded-full bg-brand/5 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
                     <ChevronDown 
                       :class="cn('h-5 w-5 text-text-muted transition-all duration-500', expandedCategories[category] && 'rotate-180 text-brand')"
@@ -233,17 +239,17 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
                 >
                   <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-brand/10 group-hover:bg-brand transition-colors"></div>
                   
-                  <div class="flex items-center gap-4">
-                    <div class="flex flex-col items-center gap-1.5 min-w-[36px] bg-brand/5 p-2 rounded-xl border border-brand/5">
+                  <div class="flex items-center gap-4 flex-1 min-w-0">
+                    <div class="flex flex-col items-center justify-center gap-1 min-w-[38px] h-[48px] bg-brand/5 border border-brand/10 rounded-xl shrink-0 shadow-inner">
                       <span class="text-xl drop-shadow-md group-hover:scale-110 transition-transform duration-300">{{ getLangFlag(getSourceLang(source)) }}</span>
                       <span class="text-[8px] font-black text-brand/60 uppercase tracking-tighter">{{ getSourceLang(source) }}</span>
                     </div>
-                    <span class="text-[14px] font-black text-text-primary uppercase tracking-tight group-hover:translate-x-1 transition-transform truncate max-w-[140px]">
+                    <div class="block text-[10px] font-black text-text-primary uppercase tracking-tight group-hover:translate-x-1 transition-transform line-clamp-2 leading-[1.1] flex-1">
                       {{ getSourceName(source) }}
-                    </span>
+                    </div>
                   </div>
                   
-                  <button class="p-3 rounded-2xl text-danger/20 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all transform hover:rotate-12">
+                  <button class="p-3 rounded-2xl text-danger/20 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all transform hover:rotate-12 shrink-0">
                     <Trash2 class="h-4.5 w-4.5" />
                   </button>
                 </div>
@@ -282,8 +288,8 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
                   </div>
                 </div>
                 <div class="relative flex items-center justify-center min-w-[60px]">
-                   <div :class="cn('h-5 w-5 rounded-full transition-all duration-500 shadow-lg', setting.state ? `bg-${setting.color} shadow-${setting.color}/50 scale-125` : 'bg-text-muted/20 scale-100')"></div>
-                   <div v-if="setting.state && setting.id === 'globalInsightMode'" class="absolute h-10 w-10 rounded-full border border-insight/40 animate-ping"></div>
+                  <div :class="cn('h-5 w-5 rounded-full transition-all duration-500 shadow-lg', setting.state ? `bg-${setting.color} shadow-${setting.color}/50 scale-125` : 'bg-text-muted/20 scale-100')"></div>
+                  <div v-if="setting.state && setting.id === 'globalInsightMode'" class="absolute h-10 w-10 rounded-full border border-insight/40 animate-ping"></div>
                 </div>
               </button>
             </div>
