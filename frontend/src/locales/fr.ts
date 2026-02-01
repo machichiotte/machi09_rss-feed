@@ -46,5 +46,11 @@ export default {
     },
     footer: {
         engineered_by: "Conçu par Machi"
+    },
+    summary: {
+        today: "Aujourd'hui",
+        this_week: "Cette semaine",
+        unread: "Non lus",
+        saved: "Sauvegardés"
     }
 };

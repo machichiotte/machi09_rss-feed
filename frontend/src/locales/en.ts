@@ -46,5 +46,11 @@ export default {
     },
     footer: {
         engineered_by: "Engineered by Machi"
+    },
+    summary: {
+        today: "Today",
+        this_week: "This Week",
+        unread: "Unread",
+        saved: "Saved"
     }
 };

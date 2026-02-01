@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import axios from 'axios';
 import { RefreshCw } from 'lucide-vue-next';
 
@@ -11,6 +11,7 @@ import Footer from './components/layout/Footer.vue';
 
 // Feed Components
 import ArticleFeed from './components/feed/ArticleFeed.vue';
+import FeedSummary from './components/feed/FeedSummary.vue';
 
 // i18n
 import { useI18n } from './composables/useI18n';
@@ -86,6 +87,31 @@ const feedRef = ref<{ loadMoreTrigger: HTMLElement | null } | null>(null);
 let observer: IntersectionObserver | null = null;
 
 // Methods
+const feedSummaryCounts = computed(() => {
+  const now = new Date();
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  return {
+    today: articles.value.filter(a => new Date(a.publicationDate || a.fetchedAt) >= dayAgo).length,
+    week: articles.value.filter(a => new Date(a.publicationDate || a.fetchedAt) >= weekAgo).length,
+    unread: totalArticles.value,
+    saved: 0
+  };
+});
+
+const handleFilterChange = (filterId: string) => {
+  if (filterId === '24h' || filterId === '7d') {
+    dateRange.value = dateRange.value === filterId ? 'all' : filterId;
+  } else if (filterId === 'unread') {
+    dateRange.value = 'all';
+    searchQuery.value = '';
+    selectedCategory.value = null;
+    selectedSentiment.value = null;
+    showOnlyInsights.value = false;
+  }
+};
+
 const toggleTheme = () => {
   isDark.value = !isDark.value;
   applyTheme();
@@ -341,6 +367,13 @@ onUnmounted(() => {
               <div v-for="i in 3" :key="i" class="h-1.5 w-6 bg-brand rounded-full animate-bounce" :style="{ animationDelay: `${i*0.2}s` }"></div>
             </div>
           </div>
+
+          <FeedSummary 
+            :counts="feedSummaryCounts"
+            :active-filter="dateRange"
+            :preferred-language="preferredLanguage"
+            @filter-change="handleFilterChange"
+          />
 
           <ArticleFeed 
             ref="feedRef"
