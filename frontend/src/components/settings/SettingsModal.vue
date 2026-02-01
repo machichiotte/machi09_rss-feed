@@ -12,10 +12,16 @@ import {
   FileText,
   Trash2,
   Plus,
-  ChevronDown
+  ChevronDown,
+  Globe
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+
+interface SourceObj {
+  name: string;
+  language: string;
+}
 
 const props = defineProps<{
   isOpen: boolean;
@@ -25,7 +31,7 @@ const props = defineProps<{
   autoTranslate: boolean;
   preferredLanguage: string;
   viewMode: 'grid' | 'list' | 'compact';
-  groupedSources: Record<string, { name: string; language: string }[]>;
+  groupedSources: Record<string, (string | SourceObj)[]>;
 }>();
 
 const emit = defineEmits<{
@@ -43,6 +49,16 @@ const expandedCategories = ref<Record<string, boolean>>({});
 
 const toggleCategory = (cat: string) => {
   expandedCategories.value[cat] = !expandedCategories.value[cat];
+};
+
+const getSourceName = (s: string | SourceObj) => {
+  if (!s) return 'Unknown';
+  return typeof s === 'string' ? s : s.name;
+};
+
+const getSourceLang = (s: string | SourceObj) => {
+  if (!s || typeof s === 'string') return 'en';
+  return s.language || 'en';
 };
 
 const getLangFlag = (lang?: string) => {
@@ -72,11 +88,13 @@ const handleEsc = (e: { key: string }) => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleEsc);
-  // Expand first category by default
-  if (Object.keys(props.groupedSources).length > 0) {
-    const firstCat = Object.keys(props.groupedSources)[0];
-    if (firstCat) expandedCategories.value[firstCat] = true;
-  }
+  // Expand first category by default if needed
+  setTimeout(() => {
+    const keys = Object.keys(props.groupedSources);
+    if (keys.length > 0 && Object.keys(expandedCategories.value).length === 0) {
+      expandedCategories.value[keys[0]] = true;
+    }
+  }, 200);
 });
 onUnmounted(() => window.removeEventListener('keydown', handleEsc));
 </script>
@@ -88,215 +106,228 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
   >
     <!-- Overlay -->
     <div 
-      class="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-500"
+      class="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-500"
       @click="emit('close')"
     ></div>
 
     <!-- Modal Content -->
     <div 
-      class="relative w-full max-w-4xl h-[80vh] bg-bg-card/90 border border-brand/20 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in duration-300"
+      class="relative w-full max-w-5xl h-[85vh] bg-bg-card/95 border border-brand/20 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in duration-300"
     >
       <!-- Sidebar -->
-      <div class="w-full sm:w-64 bg-brand/5 border-r border-brand/10 p-8 flex flex-col gap-8">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="p-2.5 rounded-2xl bg-brand/20 border border-brand/30">
+      <div class="w-full sm:w-72 bg-brand/5 border-r border-brand/10 p-8 flex flex-col gap-10">
+        <div class="flex items-center gap-4 mb-2">
+          <div class="p-3 rounded-2xl bg-brand/20 border border-brand/30 shadow-inner">
             <Rss class="h-6 w-6 text-brand" />
           </div>
-          <h2 class="text-xl font-black tracking-tight text-text-primary italic">Paramètres</h2>
+          <div class="flex flex-col">
+            <h2 class="text-xl font-black tracking-tighter text-text-primary italic uppercase">Nexus</h2>
+            <span class="text-[9px] uppercase tracking-widest text-brand font-black">Control Station</span>
+          </div>
         </div>
 
-        <nav class="flex flex-col gap-2">
+        <nav class="flex flex-col gap-3">
           <button 
             v-for="tab in tabs" 
             :key="tab.id"
             @click="activeTab = tab.id"
             :class="cn(
-              'flex items-center gap-3 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all text-left',
+              'flex items-center gap-4 px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all text-left group',
               activeTab === tab.id 
-                ? 'bg-brand text-white shadow-lg icon-glow-brand' 
+                ? 'bg-brand text-white shadow-xl icon-glow-brand scale-[1.02]' 
                 : 'text-text-muted hover:bg-brand/10 hover:text-brand'
             )"
           >
-            <component :is="tab.icon" class="h-4 w-4" />
+            <component :is="tab.icon" :class="cn('h-5 w-5', activeTab === tab.id ? 'text-white' : 'text-text-muted group-hover:text-brand')" />
             {{ tab.label }}
           </button>
         </nav>
 
-        <div class="mt-auto pt-8 border-t border-brand/10 text-[9px] font-bold text-text-muted uppercase tracking-[0.2em]">
-          Kognit Nexus v2.2
+        <div class="mt-auto pt-8 border-t border-brand/10 flex flex-col gap-3">
+          <div class="flex items-center gap-2 px-2">
+            <div class="h-2 w-2 rounded-full bg-success animate-pulse"></div>
+            <span class="text-[9px] font-black text-text-muted uppercase tracking-[0.2em]">Core Sync Online</span>
+          </div>
+          <div class="text-[9px] font-black text-text-muted/30 uppercase tracking-[0.2em] px-2 leading-tight">
+            Kognit Nexus Premium<br/>Modular v2.2.0
+          </div>
         </div>
       </div>
 
       <!-- Main Panel -->
-      <div class="flex-1 flex flex-col min-h-0">
+      <div class="flex-1 flex flex-col min-h-0 bg-gradient-to-br from-transparent via-transparent to-brand/5">
         <!-- Header -->
-        <div class="p-8 pb-4 flex justify-between items-center bg-bg-card/50 backdrop-blur-xl sticky top-0 z-10">
-          <h3 class="text-lg font-black uppercase tracking-widest text-text-primary">
-            {{ tabs.find(t => t.id === activeTab)?.label }}
-          </h3>
+        <div class="p-8 pb-4 flex justify-between items-center bg-bg-card/40 backdrop-blur-2xl sticky top-0 z-20 border-b border-brand/5">
+          <div class="flex flex-col gap-1.5">
+            <h3 class="text-xs font-black uppercase tracking-[0.4em] text-text-primary">
+              {{ tabs.find(t => t.id === activeTab)?.label }}
+            </h3>
+            <div class="h-1.5 w-16 bg-brand rounded-full shadow-sm shadow-brand/20"></div>
+          </div>
           <button 
             @click="emit('close')"
-            class="p-2.5 rounded-2xl bg-text-secondary/5 hover:bg-text-secondary/10 transition-colors"
+            class="p-3.5 rounded-2xl bg-text-secondary/5 hover:bg-danger/10 hover:text-danger group transition-all"
           >
-            <X class="h-5 w-5 text-text-muted" />
+            <X class="h-5 w-5 text-text-muted group-hover:text-danger" />
           </button>
         </div>
 
         <!-- Content Area -->
-        <div class="flex-1 overflow-y-auto p-8 pt-4 no-scrollbar">
+        <div class="flex-1 overflow-y-auto p-8 pt-8 no-scrollbar">
           <!-- Hub: Feeds -->
-          <div v-if="activeTab === 'feeds'" class="space-y-4">
-            <p class="text-xs text-text-secondary mb-6">Gérez vos sources d'information connectées au Nexus.</p>
+          <div v-if="activeTab === 'feeds'" class="space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10 group bg-brand/5 p-6 rounded-[2.5rem] border border-brand/10">
+              <div class="flex items-center gap-5">
+                <div class="p-3 rounded-2xl bg-white/5 border border-white/10 shadow-lg">
+                  <Rss class="h-6 w-6 text-brand" />
+                </div>
+                <div class="flex flex-col">
+                  <p class="text-sm text-text-primary font-black uppercase tracking-wider">Gestion des Flux</p>
+                  <p class="text-[11px] text-text-muted font-medium italic">Personnalisez vos sources d'intelligence</p>
+                </div>
+              </div>
+              <div class="px-6 py-3 rounded-2xl bg-brand/20 border-2 border-brand/30 text-brand text-[10px] font-black uppercase tracking-widest shadow-lg">
+                {{ Object.values(groupedSources).flat().length }} Sources Connectées
+              </div>
+            </div>
             
-            <div v-for="(sources, category) in groupedSources" :key="category" class="space-y-2">
+            <div v-for="(sources, category) in groupedSources" :key="category" class="space-y-3">
               <button 
                 @click="toggleCategory(category)"
-                class="w-full flex items-center justify-between p-4 rounded-2xl bg-brand/5 border border-brand/10 hover:bg-brand/10 transition-all group"
+                class="w-full flex items-center justify-between p-6 rounded-[2.5rem] bg-bg-card border-2 border-brand/5 hover:border-brand/40 hover:bg-brand/5 transition-all group shadow-sm active:scale-[0.995]"
               >
-                <div class="flex items-center gap-3">
-                  <div class="p-1.5 rounded-lg bg-brand/10 text-brand">
-                    <Rss class="h-3 w-3" />
+                <div class="flex items-center gap-5">
+                  <div class="p-2.5 rounded-2xl bg-brand/10 text-brand shadow-inner group-hover:rotate-12 transition-transform">
+                    <Globe class="h-5 w-5" />
                   </div>
-                  <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-text-primary">{{ category }}</h4>
-                  <span class="px-2 py-0.5 rounded-full bg-text-secondary/10 text-[9px] font-bold text-text-muted">{{ sources.length }} sources</span>
+                  <div class="flex flex-col items-start gap-1">
+                    <h4 class="text-[13px] font-black uppercase tracking-[0.2em] text-text-primary group-hover:text-brand transition-colors">{{ category }}</h4>
+                    <span class="text-[10px] font-bold text-text-muted/60 uppercase tracking-widest">{{ sources.length }} Flux disponibles</span>
+                  </div>
                 </div>
-                <ChevronDown 
-                  :class="cn('h-4 w-4 text-text-muted transition-transform duration-300', expandedCategories[category] && 'rotate-180')"
-                />
+                <div class="flex items-center gap-5">
+                  <div class="hidden md:flex -space-x-2.5">
+                    <div v-for="i in Math.min(4, sources.length)" :key="i" 
+                      class="h-8 w-8 rounded-full border-2 border-bg-card bg-brand/10 backdrop-blur-md flex items-center justify-center text-xs shadow-sm"
+                      :title="getSourceLang(sources[i-1])"
+                    >
+                      {{ getLangFlag(getSourceLang(sources[i-1])) }}
+                    </div>
+                  </div>
+                  <div class="h-8 w-8 rounded-full bg-brand/5 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
+                    <ChevronDown 
+                      :class="cn('h-5 w-5 text-text-muted transition-all duration-500', expandedCategories[category] && 'rotate-180 text-brand')"
+                    />
+                  </div>
+                </div>
               </button>
               
               <div 
                 v-show="expandedCategories[category]"
-                class="grid grid-cols-1 md:grid-cols-2 gap-3 p-2 animate-in slide-in-from-top-2 duration-300"
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 p-3 animate-in slide-in-from-top-6 duration-500"
               >
                 <div 
                   v-for="source in sources" 
-                  :key="source.name"
-                  class="flex items-center justify-between p-3.5 rounded-2xl bg-bg-card shadow-sm border border-brand/5 group hover:border-brand/20 transition-all"
+                  :key="getSourceName(source)"
+                  class="flex items-center justify-between p-5 rounded-[2rem] bg-bg-card/40 backdrop-blur-md shadow-sm border border-brand/10 group hover:border-brand/40 hover:bg-bg-card hover:shadow-xl transition-all relative overflow-hidden active:scale-95"
                 >
-                  <div class="flex items-center gap-3">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm shadow-sm opacity-80 group-hover:opacity-100 transition-opacity">{{ getLangFlag(source.language) }}</span>
-                      <span class="text-[9px] font-black text-brand/60 uppercase">{{ source.language }}</span>
+                  <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-brand/10 group-hover:bg-brand transition-colors"></div>
+                  
+                  <div class="flex items-center gap-4">
+                    <div class="flex flex-col items-center gap-1.5 min-w-[36px] bg-brand/5 p-2 rounded-xl border border-brand/5">
+                      <span class="text-xl drop-shadow-md group-hover:scale-110 transition-transform duration-300">{{ getLangFlag(getSourceLang(source)) }}</span>
+                      <span class="text-[8px] font-black text-brand/60 uppercase tracking-tighter">{{ getSourceLang(source) }}</span>
                     </div>
-                    <span class="text-[11px] font-bold text-text-primary uppercase tracking-wider">{{ source.name }}</span>
+                    <span class="text-[14px] font-black text-text-primary uppercase tracking-tight group-hover:translate-x-1 transition-transform truncate max-w-[140px]">
+                      {{ getSourceName(source) }}
+                    </span>
                   </div>
-                  <button class="p-1.5 rounded-xl text-danger/30 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all">
-                    <Trash2 class="h-3.5 w-3.5" />
+                  
+                  <button class="p-3 rounded-2xl text-danger/20 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all transform hover:rotate-12">
+                    <Trash2 class="h-4.5 w-4.5" />
                   </button>
                 </div>
               </div>
             </div>
 
-            <button class="w-full flex items-center justify-center gap-2 p-5 rounded-3xl border-2 border-dashed border-brand/20 text-brand hover:bg-brand/5 hover:border-brand/40 transition-all text-xs font-black uppercase tracking-widest mt-6">
-              <Plus class="h-4 w-4" />
-              Ajouter une source personnalisée
+            <button class="w-full flex items-center justify-center gap-4 p-8 rounded-[3rem] border-2 border-dashed border-brand/20 text-brand bg-brand/5 hover:bg-brand/10 hover:border-brand/40 transition-all text-sm font-black uppercase tracking-[0.3em] mt-12 shadow-sm active:scale-[0.98] group">
+              <Plus class="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
+              Ajouter une source
             </button>
           </div>
 
           <!-- Hub: Intelligence -->
           <div v-if="activeTab === 'intelligence'" class="space-y-6">
-            <div class="grid gap-4">
+            <div class="grid gap-6">
               <button 
-                @click="emit('update:globalInsightMode', !globalInsightMode)"
+                v-for="setting in [
+                  { id: 'globalInsightMode', icon: Sparkles, label: 'Mode Analyse IA', desc: 'Génère automatiquement des résumés contextuels pour chaque article.', color: 'insight', state: globalInsightMode },
+                  { id: 'globalSummaryMode', icon: FileText, label: 'Affichage des Résumés', desc: 'Affiche l\'aperçu original du flux RSS sous l\'analyse IA.', color: 'summary', state: globalSummaryMode },
+                  { id: 'autoTranslate', icon: Languages, label: 'Traduction Auto', desc: `Traduit instantanément les synthèses dans votre langue préférée (${preferredLanguage.toUpperCase()}).`, color: 'translate', state: autoTranslate }
+                ]"
+                :key="setting.id"
+                @click="emit(`update:${setting.id}` as any, !setting.state)"
                 :class="cn(
-                  'flex items-center justify-between p-6 rounded-3xl border transition-all text-left shadow-sm',
-                  globalInsightMode ? 'bg-insight/10 border-insight/30' : 'bg-bg-card border-brand/10'
+                  'flex items-center justify-between p-8 rounded-[3rem] border-2 transition-all text-left shadow-md group active:scale-[0.98]',
+                  setting.state ? `bg-${setting.color}/10 border-${setting.color}/40` : 'bg-bg-card border-brand/10 hover:border-brand/30'
                 )"
               >
-                <div class="flex items-center gap-4">
-                  <div :class="cn('p-3 rounded-2xl', globalInsightMode ? 'bg-insight/20 text-insight' : 'bg-text-secondary/5 text-text-muted')">
-                    <Sparkles class="h-6 w-6" />
+                <div class="flex items-center gap-8">
+                  <div :class="cn('p-5 rounded-[2rem] transition-all group-hover:scale-110 group-hover:rotate-6 shadow-inner', setting.state ? `bg-${setting.color}/20 text-${setting.color}` : 'bg-text-secondary/5 text-text-muted')">
+                    <component :is="setting.icon" class="h-8 w-8" />
                   </div>
-                  <div>
-                    <h4 class="font-black text-xs uppercase tracking-widest text-text-primary mb-1">Mode Analyse IA</h4>
-                    <p class="text-[10px] text-text-muted leading-relaxed max-w-[280px]">Génère automatiquement des résumés contextuels pour chaque article.</p>
-                  </div>
-                </div>
-                <div :class="cn('h-2 w-2 rounded-full', globalInsightMode ? 'bg-insight animate-pulse' : 'bg-text-muted/30')"></div>
-              </button>
-
-              <button 
-                @click="emit('update:globalSummaryMode', !globalSummaryMode)"
-                :class="cn(
-                  'flex items-center justify-between p-6 rounded-3xl border transition-all text-left shadow-sm',
-                  globalSummaryMode ? 'bg-summary/10 border-summary/30' : 'bg-bg-card border-brand/10'
-                )"
-              >
-                <div class="flex items-center gap-4">
-                  <div :class="cn('p-3 rounded-2xl', globalSummaryMode ? 'bg-summary/20 text-summary' : 'bg-text-secondary/5 text-text-muted')">
-                    <FileText class="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 class="font-black text-xs uppercase tracking-widest text-text-primary mb-1">Affichage des Résumés</h4>
-                    <p class="text-[10px] text-text-muted leading-relaxed max-w-[280px]">Affiche l'aperçu original du flux RSS sous l'analyse IA.</p>
+                  <div class="flex flex-col gap-1">
+                    <h4 class="font-black text-[13px] uppercase tracking-widest text-text-primary italic">{{ setting.label }}</h4>
+                    <p class="text-[12px] text-text-muted leading-relaxed max-w-[340px] font-medium">{{ setting.desc }}</p>
                   </div>
                 </div>
-                <div :class="cn('h-2 w-2 rounded-full', globalSummaryMode ? 'bg-summary' : 'bg-text-muted/30')"></div>
-              </button>
-
-              <button 
-                @click="emit('update:autoTranslate', !autoTranslate)"
-                :class="cn(
-                  'flex items-center justify-between p-6 rounded-3xl border transition-all text-left shadow-sm',
-                  autoTranslate ? 'bg-translate/10 border-translate/30' : 'bg-bg-card border-brand/10'
-                )"
-              >
-                <div class="flex items-center gap-4">
-                  <div :class="cn('p-3 rounded-2xl', autoTranslate ? 'bg-translate/20 text-translate' : 'bg-text-secondary/5 text-text-muted')">
-                    <Languages class="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 class="font-black text-xs uppercase tracking-widest text-text-primary mb-1">Traduction Auto</h4>
-                    <p class="text-[10px] text-text-muted leading-relaxed max-w-[280px]">Traduit instantanément les synthèses dans votre langue préférée ({{ preferredLanguage.toUpperCase() }}).</p>
-                  </div>
+                <div class="relative flex items-center justify-center min-w-[60px]">
+                   <div :class="cn('h-5 w-5 rounded-full transition-all duration-500 shadow-lg', setting.state ? `bg-${setting.color} shadow-${setting.color}/50 scale-125` : 'bg-text-muted/20 scale-100')"></div>
+                   <div v-if="setting.state && setting.id === 'globalInsightMode'" class="absolute h-10 w-10 rounded-full border border-insight/40 animate-ping"></div>
                 </div>
-                <div :class="cn('h-2 w-2 rounded-full', autoTranslate ? 'bg-translate' : 'bg-text-muted/30')"></div>
               </button>
             </div>
           </div>
 
           <!-- Hub: Appearance -->
-          <div v-if="activeTab === 'appearance'" class="space-y-8">
-            <section>
-              <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 border-b border-brand/10 pb-2">Thème Visuel</h4>
-              <div class="flex gap-4">
+          <div v-if="activeTab === 'appearance'" class="space-y-10">
+            <section class="p-10 rounded-[3rem] bg-bg-card border border-brand/10 shadow-lg">
+              <h4 class="text-[11px] font-black uppercase tracking-[0.4em] text-brand mb-10 border-b border-brand/10 pb-5">Environnement Visuel</h4>
+              <div class="flex gap-8">
                 <button 
-                  @click="emit('toggleTheme')"
+                  v-for="theme in [{ id: 'light', icon: Sun, label: 'Crystal Clear' }, { id: 'dark', icon: Moon, label: 'Deep Space' }]"
+                  :key="theme.id"
+                  @click="(theme.id === 'dark' && !isDark) || (theme.id === 'light' && isDark) ? emit('toggleTheme') : null"
                   :class="cn(
-                    'flex-1 flex flex-col items-center gap-3 p-6 rounded-3xl border transition-all',
-                    isDark ? 'bg-bg-card border-brand/10 text-text-muted' : 'bg-brand/10 border-brand/30 text-brand shadow-lg scale-[1.02]'
+                    'flex-1 flex flex-col items-center gap-6 p-12 rounded-[2.5rem] border-2 transition-all group relative overflow-hidden active:scale-95',
+                    (theme.id === 'dark' && isDark) || (theme.id === 'light' && !isDark)
+                      ? 'bg-brand/10 border-brand/50 text-brand shadow-2xl' 
+                      : 'bg-bg-card/50 border-brand/10 text-text-muted hover:bg-brand/5 hover:border-brand/30'
                   )"
                 >
-                  <Sun class="h-8 w-8" />
-                  <span class="text-[10px] font-black uppercase tracking-widest">Clair</span>
-                </button>
-                <button 
-                  @click="emit('toggleTheme')"
-                  :class="cn(
-                    'flex-1 flex flex-col items-center gap-3 p-6 rounded-3xl border transition-all',
-                    isDark ? 'bg-brand/10 border-brand/30 text-brand shadow-lg scale-[1.02]' : 'bg-bg-card border-brand/10 text-text-muted'
-                  )"
-                >
-                  <Moon class="h-8 w-8" />
-                  <span class="text-[10px] font-black uppercase tracking-widest">Sombre</span>
+                  <component :is="theme.icon" :class="cn('h-12 w-12 transition-all duration-700', ((theme.id === 'dark' && isDark) || (theme.id === 'light' && !isDark)) && 'scale-125 rotate-12 text-brand drop-shadow-glow')" />
+                  <span class="text-[12px] font-black uppercase tracking-[0.3em] italic">{{ theme.label }}</span>
+                  <div v-if="(theme.id === 'dark' && isDark) || (theme.id === 'light' && !isDark)" class="absolute bottom-0 left-0 right-0 h-2 bg-brand shadow-[0_-5px_20px_rgba(var(--brand-rgb),0.5)]"></div>
                 </button>
               </div>
             </section>
 
-            <section>
-              <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 border-b border-brand/10 pb-2">Densité de la Grille</h4>
-              <div class="flex gap-3">
+            <section class="p-10 rounded-[3rem] bg-bg-card border border-brand/10 shadow-lg">
+              <h4 class="text-[11px] font-black uppercase tracking-[0.4em] text-brand mb-10 border-b border-brand/10 pb-5">Configuration de Grille</h4>
+              <div class="flex gap-6">
                 <button 
                   v-for="mode in ['list', 'grid', 'compact']" 
                   :key="mode"
                   @click="emit('update:viewMode', mode as any)"
                   :class="cn(
-                    'flex-1 px-4 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border',
-                    viewMode === mode ? 'bg-brand/20 border-brand/40 text-brand' : 'bg-bg-card/50 border-brand/5 text-text-secondary hover:bg-bg-card'
+                    'flex-1 px-8 py-6 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] transition-all border-2 relative overflow-hidden shadow-sm active:scale-95',
+                    viewMode === mode 
+                      ? 'bg-brand/20 border-brand/60 text-brand shadow-xl' 
+                      : 'bg-bg-card/50 border-brand/10 text-text-secondary hover:bg-bg-card hover:border-brand/30'
                   )"
                 >
                   {{ mode }}
+                  <div v-if="viewMode === mode" class="absolute inset-0 bg-brand/5 animate-pulse"></div>
                 </button>
               </div>
             </section>
@@ -309,7 +340,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
 
 <style scoped>
 .icon-glow-brand {
-  box-shadow: 0 0 20px -5px rgba(var(--brand-rgb, 99, 102, 241), 0.5);
+  box-shadow: 0 15px 40px -12px rgba(99, 102, 241, 0.5);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -321,11 +352,15 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
 }
 
 @keyframes in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.97) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .animate-in {
-  animation: in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drop-shadow-glow {
+  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.8));
 }
 </style>
