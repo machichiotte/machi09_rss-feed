@@ -4,6 +4,7 @@ import { RssRepository } from '@/repositories/rssRepository';
 import { RssService } from '@/services/rssService';
 import { handleControllerError } from '@/utils/errorHandler';
 import logger from '@/utils/logger';
+import { rssSources } from '@/config/sources';
 
 /**
  * Retrieves RSS articles with pagination, sorting and filtering.
@@ -147,19 +148,21 @@ async function getRssArticleByLink(req: Request, res: Response): Promise<void> {
  */
 async function getMetadata(_req: Request, res: Response): Promise<void> {
   try {
-    const { rssSources } = await import('@/config/sources');
 
     const categories = Object.keys(rssSources);
     const languages = new Set<string>();
     const sources = new Set<string>();
-    const groupedSources: Record<string, string[]> = {};
+    const groupedSources: Record<string, { name: string; language: string }[]> = {};
 
     for (const [category, feeds] of Object.entries(rssSources)) {
       groupedSources[category] = [];
       for (const feed of feeds) {
         if (feed.language) languages.add(feed.language);
         sources.add(feed.name);
-        groupedSources[category].push(feed.name);
+        groupedSources[category].push({
+          name: feed.name,
+          language: feed.language || 'en'
+        });
       }
     }
 

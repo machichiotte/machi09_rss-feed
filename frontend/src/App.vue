@@ -82,7 +82,7 @@ const hasMore = ref(false);
 // Metadata State
 const allCategories = ref<string[]>([]);
 const allSources = ref<string[]>([]);
-const groupedSources = ref<Record<string, string[]>>({});
+const groupedSources = ref<Record<string, { name: string; language: string }[]>>({});
 const allLanguages = ref<string[]>([]);
 
 // Feed Ref for infinite scroll

@@ -11,7 +11,8 @@ import {
   Sparkles, 
   FileText,
   Trash2,
-  Plus
+  Plus,
+  ChevronDown
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -24,7 +25,7 @@ const props = defineProps<{
   autoTranslate: boolean;
   preferredLanguage: string;
   viewMode: 'grid' | 'list' | 'compact';
-  groupedSources: Record<string, string[]>;
+  groupedSources: Record<string, { name: string; language: string }[]>;
 }>();
 
 const emit = defineEmits<{
@@ -38,6 +39,22 @@ const emit = defineEmits<{
 }>();
 
 const activeTab = ref('feeds');
+const expandedCategories = ref<Record<string, boolean>>({});
+
+const toggleCategory = (cat: string) => {
+  expandedCategories.value[cat] = !expandedCategories.value[cat];
+};
+
+const getLangFlag = (lang?: string) => {
+  if (!lang) return '🌍';
+  const map: Record<string, string> = {
+    'fr': '🇫🇷', 'en': '🇺🇸', 'es': '🇪🇸', 'de': '🇩🇪',
+    'it': '🇮🇹', 'pt': '🇵🇹', 'nl': '🇳🇱', 'ru': '🇷🇺',
+    'zh': '🇨🇳', 'ja': '🇯🇵', 'ar': '🇸🇦', 'cn': '🇨🇳'
+  };
+  return map[lang.toLowerCase()] || '🌍';
+};
+
 const tabs = [
   { id: 'feeds', label: 'Sources', icon: Rss },
   { id: 'intelligence', label: 'Intelligence', icon: Brain },
@@ -53,7 +70,14 @@ const handleEsc = (e: { key: string }) => {
   if (e.key === 'Escape' && props.isOpen) emit('close');
 };
 
-onMounted(() => window.addEventListener('keydown', handleEsc));
+onMounted(() => {
+  window.addEventListener('keydown', handleEsc);
+  // Expand first category by default
+  if (Object.keys(props.groupedSources).length > 0) {
+    const firstCat = Object.keys(props.groupedSources)[0];
+    if (firstCat) expandedCategories.value[firstCat] = true;
+  }
+});
 onUnmounted(() => window.removeEventListener('keydown', handleEsc));
 </script>
 
@@ -121,21 +145,41 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
         <!-- Content Area -->
         <div class="flex-1 overflow-y-auto p-8 pt-4 no-scrollbar">
           <!-- Hub: Feeds -->
-          <div v-if="activeTab === 'feeds'" class="space-y-8">
-            <p class="text-xs text-text-secondary">Gérez vos sources d'information connectées au Nexus.</p>
+          <div v-if="activeTab === 'feeds'" class="space-y-4">
+            <p class="text-xs text-text-secondary mb-6">Gérez vos sources d'information connectées au Nexus.</p>
             
-            <div v-for="(sources, category) in groupedSources" :key="category" class="space-y-3">
-              <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2 border-b border-brand/10 pb-1">{{ category }}</h4>
+            <div v-for="(sources, category) in groupedSources" :key="category" class="space-y-2">
+              <button 
+                @click="toggleCategory(category)"
+                class="w-full flex items-center justify-between p-4 rounded-2xl bg-brand/5 border border-brand/10 hover:bg-brand/10 transition-all group"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="p-1.5 rounded-lg bg-brand/10 text-brand">
+                    <Rss class="h-3 w-3" />
+                  </div>
+                  <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-text-primary">{{ category }}</h4>
+                  <span class="px-2 py-0.5 rounded-full bg-text-secondary/10 text-[9px] font-bold text-text-muted">{{ sources.length }} sources</span>
+                </div>
+                <ChevronDown 
+                  :class="cn('h-4 w-4 text-text-muted transition-transform duration-300', expandedCategories[category] && 'rotate-180')"
+                />
+              </button>
               
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div 
+                v-show="expandedCategories[category]"
+                class="grid grid-cols-1 md:grid-cols-2 gap-3 p-2 animate-in slide-in-from-top-2 duration-300"
+              >
                 <div 
                   v-for="source in sources" 
-                  :key="source"
+                  :key="source.name"
                   class="flex items-center justify-between p-3.5 rounded-2xl bg-bg-card shadow-sm border border-brand/5 group hover:border-brand/20 transition-all"
                 >
                   <div class="flex items-center gap-3">
-                    <div class="h-2 w-2 rounded-full bg-success/40"></div>
-                    <span class="text-[11px] font-bold text-text-primary uppercase tracking-wider">{{ source }}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm shadow-sm opacity-80 group-hover:opacity-100 transition-opacity">{{ getLangFlag(source.language) }}</span>
+                      <span class="text-[9px] font-black text-brand/60 uppercase">{{ source.language }}</span>
+                    </div>
+                    <span class="text-[11px] font-bold text-text-primary uppercase tracking-wider">{{ source.name }}</span>
                   </div>
                   <button class="p-1.5 rounded-xl text-danger/30 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all">
                     <Trash2 class="h-3.5 w-3.5" />
@@ -144,7 +188,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
               </div>
             </div>
 
-            <button class="w-full flex items-center justify-center gap-2 p-5 rounded-3xl border-2 border-dashed border-brand/20 text-brand hover:bg-brand/5 hover:border-brand/40 transition-all text-xs font-black uppercase tracking-widest mt-4">
+            <button class="w-full flex items-center justify-center gap-2 p-5 rounded-3xl border-2 border-dashed border-brand/20 text-brand hover:bg-brand/5 hover:border-brand/40 transition-all text-xs font-black uppercase tracking-widest mt-6">
               <Plus class="h-4 w-4" />
               Ajouter une source personnalisée
             </button>
