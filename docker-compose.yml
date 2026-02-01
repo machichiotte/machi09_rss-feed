@@ -22,7 +22,9 @@ services:
     image: machi09_backend:latest
     container_name: machi09_backend
     ports:
-      - "${BACKEND_PORT:-4009}:4009"
+      - "${BACKEND_PORT:-4009}:${BACKEND_PORT:-4009}"
+    environment:
+      - PORT=${BACKEND_PORT:-4009}
     env_file:
       - .env.production
     depends_on:
