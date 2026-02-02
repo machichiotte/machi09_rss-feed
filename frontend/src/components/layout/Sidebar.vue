@@ -20,7 +20,6 @@ const props = defineProps<{
   selectedCategory: string | null;
   selectedSentiment: string | null;
   showOnlyInsights: boolean;
-  dateRange: string;
   languages: string[];
   selectedLanguages: string[];
   showLangDropdown: boolean;
@@ -34,7 +33,6 @@ const emit = defineEmits<{
   (e: 'selectCategory', cat: string | null): void;
   (e: 'toggleSentiment', sent: string): void;
   (e: 'update:showOnlyInsights', val: boolean): void;
-  (e: 'update:dateRange', val: string): void;
   (e: 'toggleSelectedLanguage', lang: string): void;
   (e: 'update:showLangDropdown', val: boolean): void;
   (e: 'update:showOnlyBookmarks', val: boolean): void;
@@ -111,20 +109,7 @@ const getLangFlag = (lang?: string) => {
         <Sparkles :class="cn('h-3 w-3', showOnlyInsights ? 'text-insight' : 'text-text-muted')" />
       </button>
 
-      <!-- Date Range Selector -->
-      <div class="relative group">
-        <select 
-          :value="dateRange"
-          @change="emit('update:dateRange', ($event.target as HTMLSelectElement).value)"
-          class="w-full appearance-none bg-bg-card/50 border border-brand/10 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-text-secondary transition-all hover:bg-bg-card"
-        >
-          <option value="all">{{ t('sidebar.anytime') }}</option>
-          <option value="1h">{{ t('sidebar.last_1h') }}</option>
-          <option value="24h">{{ t('sidebar.last_24h') }}</option>
-          <option value="7d">{{ t('sidebar.last_7d') }}</option>
-        </select>
-        <ChevronDown class="h-3 w-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" />
-      </div>
+
 
       <!-- Language Dropdown -->
       <div>

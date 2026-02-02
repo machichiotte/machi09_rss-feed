@@ -430,7 +430,6 @@ onUnmounted(() => {
           :selected-category="selectedCategory"
           :selected-sentiment="selectedSentiment"
           v-model:show-only-insights="showOnlyInsights"
-          v-model:date-range="dateRange"
           :languages="allLanguages"
           :selected-languages="selectedLanguages"
           v-model:show-lang-dropdown="showLangDropdown"

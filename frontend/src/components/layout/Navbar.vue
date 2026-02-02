@@ -89,47 +89,43 @@ function cn(...inputs: (string | undefined | null | false)[]) {
             <!-- Global Translate Toggle -->
             <button 
               @click="emit('update:autoTranslate', !autoTranslate)"
+              :title="t('nav.translate')"
               :class="cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all shadow-sm',
+                'flex items-center justify-center p-2.5 rounded-xl border transition-all shadow-sm',
                 autoTranslate 
                   ? 'bg-translate/15 border-translate/30 text-translate shadow-inner' 
-                  : 'bg-bg-card/70 border-brand/20 text-text-muted'
+                  : 'bg-bg-card/70 border-brand/20 text-text-muted hover:bg-bg-card'
               )"
             >
               <Languages class="h-4 w-4" />
-              <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">{{ t('nav.translate') }}</span>
             </button>
-
-            <div class="hidden lg:block w-px h-6 bg-text-secondary/10 mx-1"></div>
 
             <!-- Insight Mode Toggle -->
             <button 
               @click="emit('update:globalInsightMode', !globalInsightMode)"
+              :title="t('nav.insights')"
               :class="cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all shadow-sm',
+                'flex items-center justify-center p-2.5 rounded-xl border transition-all shadow-sm',
                 globalInsightMode 
                   ? 'bg-insight/15 border-insight/30 text-insight shadow-inner' 
-                  : 'bg-bg-card/70 border-brand/20 text-text-muted'
+                  : 'bg-bg-card/70 border-brand/20 text-text-muted hover:bg-bg-card'
               )"
             >
               <Sparkles class="h-4 w-4" />
-              <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">{{ t('nav.insights') }}</span>
             </button>
-
-            <div class="hidden lg:block w-px h-6 bg-text-secondary/10 mx-1"></div>
 
             <!-- Summary Mode Toggle -->
             <button 
               @click="emit('update:globalSummaryMode', !globalSummaryMode)"
+              :title="t('nav.summary')"
               :class="cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all shadow-sm',
+                'flex items-center justify-center p-2.5 rounded-xl border transition-all shadow-sm',
                 globalSummaryMode 
                   ? 'bg-summary/15 border-summary/30 text-summary shadow-inner' 
-                  : 'bg-bg-card/70 border-brand/20 text-text-muted'
+                  : 'bg-bg-card/70 border-brand/20 text-text-muted hover:bg-bg-card'
               )"
             >
               <FileText class="h-4 w-4" />
-              <span class="text-[10px] font-black uppercase tracking-wider hidden lg:block">{{ t('nav.summary') }}</span>
             </button>
           </div>
 

@@ -268,9 +268,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
             <div class="grid gap-6">
               <button 
                 v-for="setting in [
-                  { id: 'globalInsightMode', icon: Sparkles, label: 'Mode Analyse IA', desc: 'Génère automatiquement des résumés contextuels pour chaque article.', color: 'insight', state: globalInsightMode },
-                  { id: 'globalSummaryMode', icon: FileText, label: 'Affichage des Résumés', desc: 'Affiche l\'aperçu original du flux RSS sous l\'analyse IA.', color: 'summary', state: globalSummaryMode },
-                  { id: 'autoTranslate', icon: Languages, label: 'Traduction Auto', desc: `Traduit instantanément les synthèses dans votre langue préférée (${preferredLanguage.toUpperCase()}).`, color: 'translate', state: autoTranslate }
+                  { id: 'globalInsightMode', icon: Sparkles, label: 'Montrer l\'analyse IA', desc: 'Génère automatiquement des résumés contextuels pour chaque article.', color: 'insight', state: globalInsightMode },
+                  { id: 'globalSummaryMode', icon: FileText, label: 'Afficher le résumé', desc: 'Affiche l\'aperçu original du flux RSS sous l\'analyse IA.', color: 'summary', state: globalSummaryMode },
+                  { id: 'autoTranslate', icon: Languages, label: 'Traduction Automatique', desc: `Traduit instantanément les synthèses dans votre langue préférée (${preferredLanguage.toUpperCase()}).`, color: 'translate', state: autoTranslate }
                 ]"
                 :key="setting.id"
                 @click="emit(`update:${setting.id}` as any, !setting.state)"

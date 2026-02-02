@@ -13,7 +13,7 @@ export default {
         view_source: "View Source"
     },
     nav: {
-        insights: "AI Insights",
+        insights: "Show AI Analysis",
         summary: "Summary",
         translate: "Translate"
     },
@@ -23,7 +23,7 @@ export default {
         discovery: "Discovery",
         market_sentiment: "Market Sentiment",
         content_origin: "Content Origin",
-        only_ai: "Only AI Insights",
+        only_ai: "AI Analyses",
         anytime: "Anytime",
         last_1h: "Last Hour",
         last_24h: "Last 24 Hours",
