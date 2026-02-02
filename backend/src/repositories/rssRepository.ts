@@ -36,8 +36,8 @@ export class RssRepository {
         const query = this.buildFilterQuery(options);
         const total = await collection.countDocuments(query);
 
-        // Get stats for Today and Week based on the current filters (category, source, etc.)
-        const stats = await this.getStats(options);
+        // Get GLOBAL stats (always unfiltered)
+        const stats = await this.getStats();
 
         let documents;
 
@@ -68,23 +68,21 @@ export class RssRepository {
     }
 
     /**
-     * Calculates Today and Week statistics based on current filters.
+     * Calculates Today and Week statistics - ALWAYS GLOBAL (no filters applied).
      */
-    private static async getStats(options: FetchOptions): Promise<{ today: number; week: number; saved: number }> {
+    private static async getStats(): Promise<{ today: number; week: number; saved: number }> {
         const db = getDatabase();
         const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
 
-        // Base query from options but without existing date range
-        const baseQuery = this.buildFilterQuery({ ...options, dateRange: 'all' });
-
+        // Stats should ALWAYS be global - ignore all filters
         const now = new Date();
         const dayLimit = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
         const weekLimit = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
         const [today, week, saved] = await Promise.all([
-            collection.countDocuments({ ...baseQuery, publicationDate: { $gte: dayLimit } }),
-            collection.countDocuments({ ...baseQuery, publicationDate: { $gte: weekLimit } }),
-            collection.countDocuments({ ...baseQuery, isBookmarked: true })
+            collection.countDocuments({ publicationDate: { $gte: dayLimit } }),
+            collection.countDocuments({ publicationDate: { $gte: weekLimit } }),
+            collection.countDocuments({ isBookmarked: true })
         ]);
 
         return { today, week, saved };

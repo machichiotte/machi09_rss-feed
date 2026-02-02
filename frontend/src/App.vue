@@ -160,6 +160,12 @@ const handleToggleBookmark = async (id: string) => {
         articles.value = articles.value.filter(a => a._id !== id);
       }, 300);
     }
+    
+    // Refresh stats to update the saved counter
+    const statsResponse = await axios.get(`${API_BASE_URL}/api/rss?limit=1`);
+    if (statsResponse.data.stats) {
+      serverStats.value = statsResponse.data.stats;
+    }
   } catch (err) {
     console.error(`Failed to toggle bookmark for ${id}:`, err);
     // Rollback on error
