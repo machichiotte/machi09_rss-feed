@@ -62,4 +62,10 @@ router.post('/:userId/bookmarks/toggle', async (req: Request, res: Response) => 
     }
 });
 
+/**
+ * GET /api/user/:userId/briefing
+ */
+import { getDailyBriefing } from '@/controllers/briefingController';
+router.get('/:userId/briefing', getDailyBriefing);
+
 export default router;

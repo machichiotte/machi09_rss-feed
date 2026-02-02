@@ -12,6 +12,7 @@ import SettingsModal from './components/settings/SettingsModal.vue';
 // Feed Components
 import ArticleFeed from './components/feed/ArticleFeed.vue';
 import FeedSummary from './components/feed/FeedSummary.vue';
+import BriefingModal from './components/feed/BriefingModal.vue';
 
 // i18n
 import { useI18n } from './composables/useI18n';
@@ -55,6 +56,24 @@ interface Article {
   isBookmarked?: boolean;
 }
 
+interface BriefingSection {
+  title: string;
+  content: string;
+  articles: {
+    title: string;
+    link: string;
+    source: string;
+  }[];
+}
+
+interface GlobalBriefing {
+  summary: string;
+  sections: BriefingSection[];
+  marketSentiment: 'bullish' | 'bearish' | 'neutral';
+  topTrends: string[];
+  date: string;
+}
+
 // State
 const articles = ref<Article[]>([]);
 const loading = ref(true);
@@ -85,6 +104,11 @@ const customTags = ref<string[]>(JSON.parse(localStorage.customTags || '[]'));
 const bookmarkedIds = ref<string[]>(JSON.parse(localStorage.bookmarkedIds || '[]'));
 const isSettingsOpen = ref(false);
 const settingsTab = ref('feeds');
+
+// Briefing State
+const isBriefingOpen = ref(false);
+const currentBriefing = ref<GlobalBriefing | null>(null);
+const loadingBriefing = ref(false);
 
 // Sync triggers
 const syncProfile = async () => {
@@ -119,6 +143,19 @@ watch([viewMode, globalInsightMode, globalSummaryMode, autoTranslate, preferredL
   localStorage.preferredLanguage = preferredLanguage.value;
   syncProfile();
 });
+
+const handleRequestBriefing = async () => {
+  isBriefingOpen.value = true;
+  loadingBriefing.value = true;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/user/${userId.value}/briefing`);
+    currentBriefing.value = response.data;
+  } catch (err) {
+    console.error('Failed to generate briefing:', err);
+  } finally {
+    loadingBriefing.value = false;
+  }
+};
 
 const error = ref<string | null>(null);
 const serverStats = ref({ today: 0, week: 0, saved: 0, enriched: 0, total: 0 });
@@ -552,6 +589,14 @@ onUnmounted(() => {
           @toggle-language="toggleSelectedLanguage"
           @select-tag="selectCategory"
           @request-add-tag="settingsTab = 'filters'; isSettingsOpen = true;"
+          @request-briefing="handleRequestBriefing"
+        />
+
+        <BriefingModal 
+          :is-open="isBriefingOpen"
+          :briefing="currentBriefing"
+          :loading="loadingBriefing"
+          @close="isBriefingOpen = false"
         />
 
         <!-- Seamless Filter Indicator -->

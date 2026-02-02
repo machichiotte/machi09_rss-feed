@@ -69,6 +69,29 @@ export class RssRepository {
     }
 
     /**
+     * Retrieves top articles for AI briefing generation.
+     * Focuses on non-promotional, recent, and highly relevant content.
+     */
+    public static async getTopArticlesForBriefing(limit: number = 30): Promise<ProcessedArticleData[]> {
+        const db = getDatabase();
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+        const query: Filter<ProcessedArticleData> = {
+            publicationDate: { $gte: yesterday },
+            'analysis.isPromotional': { $ne: true }
+        };
+
+        return await collection
+            .find(query)
+            .sort({ 'analysis.sentimentScore': -1, publicationDate: -1 })
+            .limit(limit)
+            .toArray() as ProcessedArticleData[];
+    }
+
+    /**
      * Calculates Today and Week statistics - ALWAYS GLOBAL (no filters applied).
      */
     private static async getStats(): Promise<{ today: number; week: number; saved: number; enriched: number; total: number }> {

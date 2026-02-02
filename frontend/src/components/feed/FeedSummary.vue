@@ -28,6 +28,7 @@ const emit = defineEmits<{
   (e: 'toggle-language', lang: string): void;
   (e: 'select-tag', tag: string | null): void;
   (e: 'request-add-tag'): void;
+  (e: 'request-briefing'): void;
 }>();
 
 const isLangOpen = ref(false);
@@ -182,81 +183,107 @@ const getLangFlag = (lang: string) => {
         </button>
       </div>
 
-      <!-- Language Selector (Right of Filters) -->
-      <div class="relative">
-        <button
-          @click="isLangOpen = !isLangOpen"
-          :class="cn(
-            'flex flex-col justify-between h-[90px] w-full lg:w-48 glass rounded-2xl border p-4 transition-all duration-300 text-left group',
-            isLangOpen || selectedLanguages.length > 0
-              ? 'border-brand/30 bg-brand/5 shadow-lg' 
-              : 'border-brand/5 bg-bg-card/20 hover:border-brand/20'
-          )"
-        >
-          <div class="flex items-center justify-between w-full">
-            <div class="flex items-center gap-3">
-              <div class="p-2 rounded-xl bg-white/5 border border-white/10 text-brand">
-                <Languages class="h-4 w-4" />
-              </div>
-              <p class="text-[9px] font-black uppercase tracking-widest text-text-muted">Langues</p>
-            </div>
-            <ChevronDown :class="cn('h-4 w-4 text-text-muted transition-transform duration-300', isLangOpen && 'rotate-180')" />
-          </div>
-          
-          <div>
-            <p class="text-[11px] font-bold text-text-primary truncate">
-              {{ selectedLanguages.length === 0 ? t('sidebar.all_languages') : t('sidebar.selected_languages', { count: selectedLanguages.length }) }}
-            </p>
-            <div class="mt-2 h-1 w-full rounded-full bg-text-secondary/5 overflow-hidden">
-              <div class="h-full bg-brand/20 w-1/3"></div>
-            </div>
-          </div>
-        </button>
-
-        <!-- Dropdown Menu -->
-        <div 
-          v-if="isLangOpen" 
-          class="absolute top-full right-0 mt-2 w-64 glass rounded-2xl border border-brand/20 shadow-2xl z-[100] p-2 animate-in fade-in zoom-in-95 duration-200"
-        >
-          <div class="max-h-64 overflow-y-auto no-scrollbar space-y-1">
-            <!-- All Languages Option -->
-            <button
-              @click="emit('toggle-language', 'all')"
-              :class="cn(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-xs font-bold border mb-1',
-                selectedLanguages.length === 0
-                  ? 'bg-brand/10 border-brand/20 text-brand'
-                  : 'border-transparent text-text-muted hover:bg-white/5 hover:text-text-primary'
-              )"
-            >
+      <!-- Right Controls: Language Selector & Briefing -->
+      <div class="flex flex-col sm:flex-row gap-4">
+        <!-- Language Selector -->
+        <div class="relative flex-grow sm:flex-grow-0">
+          <button
+            @click="isLangOpen = !isLangOpen"
+            :class="cn(
+              'flex flex-col justify-between h-[90px] w-full lg:w-48 glass rounded-2xl border p-4 transition-all duration-300 text-left group',
+              isLangOpen || selectedLanguages.length > 0
+                ? 'border-brand/30 bg-brand/5 shadow-lg' 
+                : 'border-brand/5 bg-bg-card/20 hover:border-brand/20'
+            )"
+          >
+            <div class="flex items-center justify-between w-full">
               <div class="flex items-center gap-3">
-                <Globe class="h-4 w-4" />
-                <span class="uppercase tracking-wider">{{ t('sidebar.all_languages') }}</span>
+                <div class="p-2 rounded-xl bg-white/5 border border-white/10 text-brand">
+                  <Languages class="h-4 w-4" />
+                </div>
+                <p class="text-[9px] font-black uppercase tracking-widest text-text-muted">Langues</p>
               </div>
-              <Check v-if="selectedLanguages.length === 0" class="h-3.5 w-3.5" />
-            </button>
-
-            <div class="h-px bg-brand/5 mx-2 my-1"></div>
-
-            <button
-              v-for="lang in allLanguages"
-              :key="lang"
-              @click="emit('toggle-language', lang)"
-              :class="cn(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-xs font-bold border',
-                selectedLanguages.includes(lang)
-                  ? 'bg-brand/10 border-brand/20 text-brand'
-                  : 'border-transparent text-text-muted hover:bg-white/5 hover:text-text-primary'
-              )"
-            >
-              <div class="flex items-center gap-3">
-                <span class="text-base">{{ getLangFlag(lang) }}</span>
-                <span class="uppercase tracking-wider">{{ lang }}</span>
+              <ChevronDown :class="cn('h-4 w-4 text-text-muted transition-transform duration-300', isLangOpen && 'rotate-180')" />
+            </div>
+            
+            <div>
+              <p class="text-[11px] font-bold text-text-primary truncate">
+                {{ selectedLanguages.length === 0 ? t('sidebar.all_languages') : t('sidebar.selected_languages', { count: selectedLanguages.length }) }}
+              </p>
+              <div class="mt-2 h-1 w-full rounded-full bg-text-secondary/5 overflow-hidden">
+                <div class="h-full bg-brand/20 w-1/3"></div>
               </div>
-              <Check v-if="selectedLanguages.includes(lang)" class="h-3.5 w-3.5" />
-            </button>
+            </div>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div 
+            v-if="isLangOpen" 
+            class="absolute top-full right-0 mt-2 w-64 glass rounded-2xl border border-brand/20 shadow-2xl z-[100] p-2 animate-in fade-in zoom-in-95 duration-200"
+          >
+            <div class="max-h-64 overflow-y-auto no-scrollbar space-y-1">
+              <!-- All Languages Option -->
+              <button
+                @click="emit('toggle-language', 'all')"
+                :class="cn(
+                  'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-xs font-bold border mb-1',
+                  selectedLanguages.length === 0
+                    ? 'bg-brand/10 border-brand/20 text-brand'
+                    : 'border-transparent text-text-muted hover:bg-white/5 hover:text-text-primary'
+                )"
+              >
+                <div class="flex items-center gap-3">
+                  <Globe class="h-4 w-4" />
+                  <span class="uppercase tracking-wider">{{ t('sidebar.all_languages') }}</span>
+                </div>
+                <Check v-if="selectedLanguages.length === 0" class="h-3.5 w-3.5" />
+              </button>
+
+              <div class="h-px bg-brand/5 mx-2 my-1"></div>
+
+              <button
+                v-for="lang in allLanguages"
+                :key="lang"
+                @click="emit('toggle-language', lang)"
+                :class="cn(
+                  'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-xs font-bold border',
+                  selectedLanguages.includes(lang)
+                    ? 'bg-brand/10 border-brand/20 text-brand'
+                    : 'border-transparent text-text-muted hover:bg-white/5 hover:text-text-primary'
+                )"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="text-base">{{ getLangFlag(lang) }}</span>
+                  <span class="uppercase tracking-wider">{{ lang }}</span>
+                </div>
+                <Check v-if="selectedLanguages.includes(lang)" class="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
+
+        <!-- Briefing Button -->
+        <button
+          @click="emit('request-briefing')"
+          class="flex flex-col justify-between h-[90px] w-full lg:w-48 glass rounded-2xl border border-brand/30 bg-brand/10 p-4 transition-all duration-300 text-left hover:scale-[1.02] hover:bg-brand/20 group relative overflow-hidden"
+        >
+          <div class="absolute inset-0 bg-gradient-to-br from-brand/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          
+          <div class="flex items-center justify-between w-full relative z-10">
+            <div class="flex items-center gap-3">
+              <div class="p-2 rounded-xl bg-brand/20 border border-brand/30 text-brand animate-pulse">
+                <Sparkles class="h-4 w-4" />
+              </div>
+              <p class="text-[9px] font-black uppercase tracking-widest text-brand">Intelligence</p>
+            </div>
+            <div class="w-1.5 h-1.5 rounded-full bg-brand animate-ping"></div>
+          </div>
+          
+          <div class="relative z-10">
+            <p class="text-[11px] font-black text-white uppercase tracking-tighter">Générer Briefing</p>
+            <p class="text-[8px] font-bold text-brand/70 uppercase">Daily Synthesis</p>
+          </div>
+        </button>
       </div>
     </div>
 
