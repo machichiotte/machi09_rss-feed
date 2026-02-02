@@ -52,6 +52,7 @@ interface Article {
 const articles = ref<Article[]>([]);
 const loading = ref(true);
 const loadingMore = ref(false);
+const isFiltering = ref(false);
 const processing = ref(false);
 const searchQuery = ref('');
 const selectedCategory = ref<string | null>(null);
@@ -210,11 +211,15 @@ const handleDeleteSource = (category: string, name: string) => {
 async function loadArticles(reset = false) {
   if (reset) {
     currentPage.value = 1;
-    articles.value = [];
-    loading.value = true;
+    // Si on a déjà des articles, on ne les vide pas immédiatement pour éviter le saut (Seamless Filtering)
+    if (articles.value.length === 0) {
+      loading.value = true;
+    } else {
+      isFiltering.value = true;
+    }
     error.value = null;
   } else {
-    if (loadingMore.value || loading.value) return;
+    if (loadingMore.value || loading.value || isFiltering.value) return;
     loadingMore.value = true;
   }
 
@@ -252,6 +257,7 @@ async function loadArticles(reset = false) {
   } finally {
     loading.value = false;
     loadingMore.value = false;
+    isFiltering.value = false;
   }
 }
 
@@ -314,6 +320,9 @@ watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, p
     const newPreferredLanguage = newValues[4] as string;
     localStorage.preferredLanguage = newPreferredLanguage;
     
+    // Set isFiltering to true instantly for responsive feedback
+    if (articles.value.length > 0) isFiltering.value = true;
+
     if (filterTimeout) clearTimeout(filterTimeout);
     filterTimeout = setTimeout(() => loadArticles(true), 300);
 }, { deep: true });
@@ -463,6 +472,15 @@ onUnmounted(() => {
             :preferred-language="preferredLanguage"
             @filter-change="handleFilterChange"
           />
+
+          <!-- Seamless Filter Indicator -->
+          <div 
+            v-if="isFiltering" 
+            class="flex items-center justify-center gap-3 py-4 animate-in fade-in slide-in-from-top-2 duration-300"
+          >
+            <RefreshCw class="h-4 w-4 text-brand animate-spin" />
+            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Mise à jour du flux...</span>
+          </div>
 
           <ArticleFeed 
             ref="feedRef"

@@ -91,7 +91,7 @@ h4 {
 
 /* Glassmorphism utilities */
 .glass {
-    @apply backdrop-blur-xl bg-bg-card/85 border border-brand/15;
+    @apply backdrop-blur-xl bg-bg-card/85 border border-brand/15 transition-all duration-300;
 }
 
 .glass-card {
@@ -115,7 +115,7 @@ h4 {
 
 /* Hiérarchie de texte */
 .title-news {
-    @apply font-display font-bold leading-tight;
+    @apply font-display font-bold leading-[1.15] tracking-tight;
     color: var(--text-primary);
 }
 
@@ -125,7 +125,7 @@ h4 {
 }
 
 .meta-news {
-    @apply text-xs font-medium uppercase tracking-wider;
+    @apply text-[10px] font-black uppercase tracking-[0.2em];
     color: var(--text-muted);
 }
 

@@ -19,6 +19,8 @@ interface RssItem {
     content?: string;
     isoDate?: string;
     pubDate?: string;
+    author?: string;
+    creator?: string;
     enclosure?: { url?: string };
     'media:content'?: { $: { url?: string } };
     'media:thumbnail'?: { $: { url?: string } };
@@ -138,27 +140,43 @@ export class RssService {
             return false;
         }
 
-        const article: ProcessedArticleData = {
-            title: item.title || 'No title',
-            link: item.link,
-            publicationDate: item.isoDate || item.pubDate || null,
+        const article = this.mapToArticleData(item, feed, category);
+        await RssRepository.save(article);
+        return true;
+    }
+
+    private static mapToArticleData(item: RssItem, feed: RssFeedConfig, category: string): ProcessedArticleData {
+        return {
+            title: item.title ?? 'No title',
+            link: item.link ?? '',
+            publicationDate: this.extractDates(item),
             sourceFeed: feed.url,
             feedName: feed.name,
-            category: category,
-            language: feed.language || 'en',
+            category,
+            language: feed.language ?? 'en',
             fetchedAt: new Date().toISOString(),
             processedAt: new Date().toISOString(),
-            summary: item.contentSnippet || item.content || null,
+            summary: this.extractSummary(item),
             imageUrl: this.extractImageUrl(item),
-            sourceColor: feed.color || generateSourceColor(feed.name),
+            author: this.extractAuthor(item),
+            sourceColor: feed.color ?? generateSourceColor(feed.name),
             analysis: undefined,
             error: null,
             scrapedContent: false,
             fullText: null
         };
+    }
 
-        await RssRepository.save(article);
-        return true;
+    private static extractDates(item: RssItem): string | null {
+        return item.isoDate ?? item.pubDate ?? null;
+    }
+
+    private static extractSummary(item: RssItem): string | null {
+        return item.contentSnippet ?? item.content ?? null;
+    }
+
+    private static extractAuthor(item: RssItem): string | null {
+        return item.creator ?? item.author ?? null;
     }
 
     /**

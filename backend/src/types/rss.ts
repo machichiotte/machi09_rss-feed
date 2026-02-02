@@ -28,6 +28,7 @@ export interface ProcessedArticleData {
     scrapedContent?: boolean;
     fullText?: string | null;
     imageUrl?: string | null;
+    author?: string | null;
     sourceColor?: string | null;
     isBookmarked?: boolean;
 }
