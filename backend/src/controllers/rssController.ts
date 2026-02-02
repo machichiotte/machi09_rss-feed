@@ -27,6 +27,7 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
     const onlyInsights = req.query.onlyInsights === 'true';
     const dateRange = req.query.dateRange as string;
     const isBookmarked = req.query.isBookmarked === 'true';
+    const bookmarkIds = req.query.bookmarkIds as string;
 
     logger.info(`Fetching RSS articles: page=${page}, limit=${limit}, category=${category}, search=${search}, source=${feedName}, onlyInsights=${onlyInsights}, dateRange=${dateRange}`);
 
@@ -41,7 +42,8 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
       translationStatus,
       onlyInsights,
       dateRange,
-      isBookmarked
+      isBookmarked,
+      bookmarkIds
     });
 
     res.status(200).json({

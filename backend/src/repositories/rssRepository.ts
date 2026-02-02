@@ -18,6 +18,7 @@ export interface FetchOptions {
     onlyInsights?: boolean;
     dateRange?: string;
     isBookmarked?: boolean;
+    bookmarkIds?: string;
 }
 
 export class RssRepository {
@@ -110,7 +111,15 @@ export class RssRepository {
         }
 
         if (options.isBookmarked) {
-            query.isBookmarked = true;
+            if (options.bookmarkIds) {
+                const ids = options.bookmarkIds.split(',').filter(id => id.length === 24).map(id => new ObjectId(id));
+                query._id = { $in: ids } as Filter<ProcessedArticleData>['_id'];
+            } else {
+                // If isBookmarked is true but no ids provided, return nothing if we are strict,
+                // or use the legacy global flag if we want to support both.
+                // Let's use the legacy flag as fallback
+                query.isBookmarked = true;
+            }
         }
 
         this.applyDateFilter(query, options.dateRange);

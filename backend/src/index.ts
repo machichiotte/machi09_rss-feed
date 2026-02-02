@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import cron from 'node-cron';
 import { connectToDatabase } from './config/database';
 import rssRoutes from './routes/rssRoutes';
+import userRoutes from './routes/userRoutes';
 import logger from './utils/logger';
 import { RssService } from './services/rssService';
 
@@ -71,6 +72,9 @@ app.get('/api', (_req, res) => {
 
 // RSS Routes
 app.use('/api/rss', rssRoutes);
+
+// User Routes
+app.use('/api/user', userRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

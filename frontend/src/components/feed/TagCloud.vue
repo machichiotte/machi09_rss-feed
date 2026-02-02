@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Search, Hash, X } from 'lucide-vue-next';
+import { Search, Hash, X, Plus } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -12,6 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'select-tag', tag: string | null): void;
+  (e: 'request-add-tag'): void;
 }>();
 
 const searchQuery = ref('');
@@ -32,34 +33,37 @@ const filteredTags = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="flex items-center gap-4 min-w-0">
     <!-- Tag Search -->
-    <div class="relative group">
+    <div class="relative group w-48 flex-shrink-0">
       <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted group-focus-within:text-brand transition-colors" />
       <input 
         v-model="searchQuery"
         type="text" 
-        :placeholder="placeholder || 'Rechercher un tag...'"
-        class="w-full bg-bg-card/50 border border-brand/10 rounded-xl pl-10 pr-4 py-2 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-brand/40 focus:bg-bg-card transition-all"
+        :placeholder="placeholder || 'Filtrer les tags...'"
+        class="w-full bg-brand/5 border border-brand/5 rounded-xl pl-9 pr-8 py-1.5 text-[9px] font-black uppercase tracking-[0.1em] text-text-primary outline-none focus:border-brand/30 focus:bg-brand/10 transition-all placeholder:text-text-muted/40"
       />
       <button 
         v-if="searchQuery" 
         @click="searchQuery = ''"
-        class="absolute right-3 top-1/2 -translate-y-1/2"
+        class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-brand transition-colors"
       >
-        <X class="h-3 w-3 text-text-muted hover:text-brand" />
+        <X class="h-3 w-3" />
       </button>
     </div>
 
-    <!-- Tags List -->
-    <div class="flex flex-wrap gap-2 max-h-60 overflow-y-auto no-scrollbar pr-1">
+    <!-- Vertical Separator -->
+    <div class="h-5 w-px bg-brand/10 flex-shrink-0"></div>
+
+    <!-- Tags List (Horizontal Scrollable) -->
+    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar flex-grow pr-4">
       <button 
         @click="emit('select-tag', null)"
         :class="cn(
-          'px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border',
+          'px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex-shrink-0',
           selectedTag === null 
-            ? 'bg-text-primary text-bg-card border-text-primary shadow-lg' 
-            : 'bg-bg-card/70 text-text-secondary border-brand/5 hover:border-brand/20 shadow-sm'
+            ? 'bg-brand text-white border-brand shadow-lg icon-glow-brand' 
+            : 'bg-white/5 text-text-muted border-white/5 hover:border-brand/20'
         )"
       >
         TOUS
@@ -70,19 +74,28 @@ const filteredTags = computed(() => {
         :key="tag"
         @click="emit('select-tag', tag)"
         :class="cn(
-          'px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border shadow-sm flex items-center gap-1',
+          'px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex-shrink-0 flex items-center gap-1.5',
           selectedTag === tag
-            ? 'bg-brand text-white border-brand shadow-md icon-glow-brand' 
-            : 'bg-bg-card/80 text-text-secondary border-brand/5 hover:border-brand/20'
+            ? 'bg-brand/20 text-brand border-brand/40 shadow-inner' 
+            : 'bg-white/5 text-text-muted/70 border-white/5 hover:border-brand/20'
         )"
       >
-        <Hash class="h-2.5 w-2.5 opacity-50" />
+        <Hash class="h-2.5 w-2.5 opacity-40" />
         {{ tag }}
       </button>
 
-      <div v-if="filteredTags.length === 0" class="w-full py-4 text-center">
-        <p class="text-[9px] font-bold uppercase tracking-widest text-text-muted italic">Aucun tag trouvé</p>
+      <div v-if="filteredTags.length === 0" class="flex-shrink-0">
+        <p class="text-[9px] font-bold uppercase tracking-widest text-text-muted/40 italic">Aucun résultat</p>
       </div>
+
+      <!-- Add Tag Action -->
+      <button 
+        @click="emit('request-add-tag')"
+        class="flex-shrink-0 h-7 w-7 flex items-center justify-center rounded-xl bg-brand/10 border border-brand/20 text-brand hover:bg-brand hover:text-white transition-all shadow-sm active:scale-90 ml-2"
+        title="Ajouter un tag"
+      >
+        <Plus class="h-3.5 w-3.5" />
+      </button>
     </div>
   </div>
 </template>

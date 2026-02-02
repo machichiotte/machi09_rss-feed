@@ -20,6 +20,14 @@ import { useI18n } from './composables/useI18n';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 // Types
+interface UserUserSettings {
+  viewMode: 'grid' | 'list' | 'compact';
+  globalInsightMode: boolean;
+  globalSummaryMode: boolean;
+  autoTranslate: boolean;
+  preferredLanguage: string;
+}
+
 interface Article {
   _id: string;
   title: string;
@@ -69,13 +77,49 @@ const viewMode = ref<'grid' | 'list' | 'compact'>((localStorage.viewMode as 'gri
 const isDark = ref(false);
 const showOnlyInsights = ref(false);
 const showOnlyBookmarks = ref(false);
+const userId = ref(localStorage.userId || `user_${Math.random().toString(36).substring(2, 15)}`);
+if (!localStorage.userId) localStorage.userId = userId.value;
+
 const dateRange = ref('all');
 const customTags = ref<string[]>(JSON.parse(localStorage.customTags || '[]'));
+const bookmarkedIds = ref<string[]>(JSON.parse(localStorage.bookmarkedIds || '[]'));
 const isSettingsOpen = ref(false);
+const settingsTab = ref('feeds');
 
-watch(customTags, (newTags) => {
-  localStorage.customTags = JSON.stringify(newTags);
+// Sync triggers
+const syncProfile = async () => {
+  try {
+    await axios.post(`${API_BASE_URL}/api/user/${userId.value}/profile`, {
+      bookmarks: bookmarkedIds.value,
+      customTags: customTags.value,
+      settings: {
+        viewMode: viewMode.value,
+        globalInsightMode: globalInsightMode.value,
+        globalSummaryMode: globalSummaryMode.value,
+        autoTranslate: autoTranslate.value,
+        preferredLanguage: preferredLanguage.value,
+      }
+    });
+  } catch (e) {
+    console.error('Failed to sync user profile:', e);
+  }
+};
+
+watch([customTags, bookmarkedIds], () => {
+  localStorage.customTags = JSON.stringify(customTags.value);
+  localStorage.bookmarkedIds = JSON.stringify(bookmarkedIds.value);
+  syncProfile();
 }, { deep: true });
+
+watch([viewMode, globalInsightMode, globalSummaryMode, autoTranslate, preferredLanguage], () => {
+  localStorage.viewMode = viewMode.value;
+  localStorage.globalInsightMode = globalInsightMode.value;
+  localStorage.globalSummaryMode = globalSummaryMode.value;
+  localStorage.autoTranslate = autoTranslate.value;
+  localStorage.preferredLanguage = preferredLanguage.value;
+  syncProfile();
+});
+
 const error = ref<string | null>(null);
 const serverStats = ref({ today: 0, week: 0, saved: 0, enriched: 0, total: 0 });
 
@@ -160,33 +204,24 @@ const fetchMetadata = async () => {
 
 const handleToggleBookmark = async (id: string) => {
   const article = articles.value.find(a => a._id === id);
-  if (!article) return;
+  const isNowBookmarked = !bookmarkedIds.value.includes(id);
+  
+  if (isNowBookmarked) {
+    bookmarkedIds.value.push(id);
+  } else {
+    bookmarkedIds.value = bookmarkedIds.value.filter(bid => bid !== id);
+  }
 
-  // Optimistic UI
-  article.isBookmarked = !article.isBookmarked;
+  // Update local article if found
+  if (article) {
+    article.isBookmarked = isNowBookmarked;
+  }
 
-  try {
-    const response = await axios.patch(`${API_BASE_URL}/api/rss/articles/${id}/bookmark`);
-    // Sync with actual result from server just in case
-    article.isBookmarked = response.data.isBookmarked;
-    console.log(`Article ${id} bookmark status: ${article.isBookmarked}`);
-    
-    // If we are in "Bookmarks only" view and unbookmarked, remove from list
-    if (showOnlyBookmarks.value && !article.isBookmarked) {
-      setTimeout(() => {
-        articles.value = articles.value.filter(a => a._id !== id);
-      }, 300);
-    }
-    
-    // Refresh stats to update the saved counter
-    const statsResponse = await axios.get(`${API_BASE_URL}/api/rss?limit=1`);
-    if (statsResponse.data.stats) {
-      serverStats.value = statsResponse.data.stats;
-    }
-  } catch (err) {
-    console.error(`Failed to toggle bookmark for ${id}:`, err);
-    // Rollback on error
-    article.isBookmarked = !article.isBookmarked;
+  // If we are in "Bookmarks only" view and unbookmarked, remove from list
+  if (showOnlyBookmarks.value && !isNowBookmarked) {
+    setTimeout(() => {
+      articles.value = articles.value.filter(a => a._id !== id);
+    }, 300);
   }
 };
 
@@ -236,7 +271,7 @@ async function loadArticles(reset = false) {
   }
 
   try {
-    const params = {
+    const params: Record<string, unknown> = {
       page: currentPage.value,
       limit: limit.value,
       category: selectedCategory.value,
@@ -245,18 +280,27 @@ async function loadArticles(reset = false) {
       search: searchQuery.value,
       source: selectedSource.value,
       onlyInsights: showOnlyInsights.value,
-      isBookmarked: showOnlyBookmarks.value,
       dateRange: dateRange.value
     };
+
+    if (showOnlyBookmarks.value) {
+      params.isBookmarked = true;
+      params.bookmarkIds = bookmarkedIds.value.join(',');
+    }
     
     const response = await axios.get(`${API_BASE_URL}/api/rss`, { params });
     const data = response.data;
-    const newArticles = data.articles || data.data || [];
+    const newArticles = (data.articles || data.data || []).map((a: Article) => ({
+      ...a,
+      isBookmarked: bookmarkedIds.value.includes(a._id)
+    }));
     
     // Update stats from server
     if (data.stats) {
       serverStats.value = data.stats;
     }
+    // Update saved count with current local knowledge
+    serverStats.value.saved = bookmarkedIds.value.length;
     
     articles.value = reset ? newArticles : [...articles.value, ...newArticles];
     totalArticles.value = data.total || 0;
@@ -314,6 +358,10 @@ const selectCategory = (category: string | null) => {
 
 
 const toggleSelectedLanguage = (lang: string) => {
+  if (lang === 'all') {
+    selectedLanguages.value = [];
+    return;
+  }
   if (selectedLanguages.value.includes(lang)) {
     selectedLanguages.value = selectedLanguages.value.filter(l => l !== lang);
   } else {
@@ -370,11 +418,35 @@ watch(viewMode, (val) => {
   localStorage.viewMode = val;
 });
 
-onMounted(() => {
+const applyProfileSettings = (settings: Partial<UserUserSettings> | null) => {
+  if (!settings) return;
+  if (settings.viewMode) viewMode.value = settings.viewMode;
+  if (settings.globalInsightMode !== undefined) globalInsightMode.value = settings.globalInsightMode;
+  if (settings.globalSummaryMode !== undefined) globalSummaryMode.value = settings.globalSummaryMode;
+  if (settings.autoTranslate !== undefined) autoTranslate.value = settings.autoTranslate;
+  if (settings.preferredLanguage) preferredLanguage.value = settings.preferredLanguage;
+};
+
+const initializeUserProfile = async () => {
+  try {
+    const { data: profile } = await axios.get(`${API_BASE_URL}/api/user/${userId.value}/profile`);
+    if (profile?.updatedAt) {
+      bookmarkedIds.value = profile.bookmarks || [];
+      customTags.value = profile.customTags || [];
+      applyProfileSettings(profile.settings);
+    }
+  } catch {
+    console.warn('Sync failed on mount, using local storage');
+  }
+};
+
+onMounted(async () => {
   const savedTheme = localStorage.theme;
   const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   isDark.value = savedTheme === 'dark' || (!savedTheme && isSystemDark);
   applyTheme();
+
+  await initializeUserProfile();
 
   fetchMetadata();
   loadArticles(true);
@@ -423,6 +495,7 @@ onUnmounted(() => {
     />
 
     <SettingsModal 
+      v-model:active-tab="settingsTab"
       :is-open="isSettingsOpen"
       :is-dark="isDark"
       :global-insight-mode="globalInsightMode"
@@ -478,6 +551,7 @@ onUnmounted(() => {
           @filter-change="handleFilterChange"
           @toggle-language="toggleSelectedLanguage"
           @select-tag="selectCategory"
+          @request-add-tag="settingsTab = 'filters'; isSettingsOpen = true;"
         />
 
         <!-- Seamless Filter Indicator -->

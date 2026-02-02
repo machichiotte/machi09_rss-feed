@@ -39,6 +39,7 @@ const props = defineProps<{
   languages: string[];
   selectedSentiment: string | null;
   customTags: string[];
+  activeTab: string;
 }>();
 
 const emit = defineEmits<{
@@ -53,11 +54,19 @@ const emit = defineEmits<{
   'update:preferredLanguage': [val: string],
   'toggleSentiment': [sentiment: string],
   'addCustomTag': [tag: string],
-  'removeCustomTag': [tag: string]
+  'removeCustomTag': [tag: string],
+  'update:activeTab': [val: string]
 }>();
 
-const activeTab = ref('feeds');
 const expandedCategories = ref<Record<string, boolean>>({});
+const newTag = ref('');
+
+const handleAddTag = () => {
+  if (newTag.value.trim()) {
+    emit('addCustomTag', newTag.value.trim());
+    newTag.value = '';
+  }
+};
 
 const toggleCategory = (cat: string) => {
   expandedCategories.value[cat] = !expandedCategories.value[cat];
@@ -157,7 +166,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
           <button
             v-for="tab in tabs"
             :key="tab.id"
-            @click="activeTab = tab.id"
+            @click="emit('update:activeTab', tab.id)"
             :class="cn(
               'flex items-center gap-4 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all text-left group',
               activeTab === tab.id
@@ -284,12 +293,16 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
               <div class="flex flex-col gap-6">
                 <div class="flex gap-2">
                   <input 
+                    v-model="newTag"
                     type="text" 
                     placeholder="Ajouter un tag de veille (ex: Bitcoin, IA, Tech...)"
                     class="flex-1 bg-brand/5 border border-brand/10 rounded-2xl px-5 py-4 text-xs font-bold text-text-primary outline-none focus:border-brand/40 focus:bg-brand/10 transition-all"
-                    @keyup.enter="(e: any) => { if(e.target.value) { emit('addCustomTag', e.target.value); e.target.value = ''; } }"
+                    @keyup.enter="handleAddTag"
                   />
-                  <button class="p-4 rounded-2xl bg-brand text-white shadow-lg icon-glow-brand hover:scale-105 active:scale-95 transition-all">
+                  <button 
+                    @click="handleAddTag"
+                    class="p-4 rounded-2xl bg-brand text-white shadow-lg icon-glow-brand hover:scale-105 active:scale-95 transition-all"
+                  >
                     <Plus class="h-5 w-5" />
                   </button>
                 </div>

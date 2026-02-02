@@ -4,7 +4,7 @@ import { useI18n } from '../../composables/useI18n';
 import { twMerge } from 'tailwind-merge';
 import { clsx } from 'clsx';
 import TagCloud from './TagCloud.vue';
-import { Sun, Calendar, Database, Star, Sparkles, Languages, Hash, ChevronDown, Check } from 'lucide-vue-next';
+import { Sun, Calendar, Database, Star, Sparkles, Languages, ChevronDown, Check, Globe } from 'lucide-vue-next';
 
 const props = defineProps<{
   counts: {
@@ -27,6 +27,7 @@ const emit = defineEmits<{
   (e: 'filter-change', filter: string): void;
   (e: 'toggle-language', lang: string): void;
   (e: 'select-tag', tag: string | null): void;
+  (e: 'request-add-tag'): void;
 }>();
 
 const isLangOpen = ref(false);
@@ -193,17 +194,22 @@ const getLangFlag = (lang: string) => {
           )"
         >
           <div class="flex items-center justify-between w-full">
-            <div class="p-2 rounded-xl bg-white/5 border border-white/10 text-brand">
-              <Languages class="h-4 w-4" />
+            <div class="flex items-center gap-3">
+              <div class="p-2 rounded-xl bg-white/5 border border-white/10 text-brand">
+                <Languages class="h-4 w-4" />
+              </div>
+              <p class="text-[9px] font-black uppercase tracking-widest text-text-muted">Langues</p>
             </div>
             <ChevronDown :class="cn('h-4 w-4 text-text-muted transition-transform duration-300', isLangOpen && 'rotate-180')" />
           </div>
           
           <div>
-            <p class="text-[9px] font-black uppercase tracking-widest text-text-muted mb-0.5">Langues</p>
             <p class="text-[11px] font-bold text-text-primary truncate">
               {{ selectedLanguages.length === 0 ? t('sidebar.all_languages') : t('sidebar.selected_languages', { count: selectedLanguages.length }) }}
             </p>
+            <div class="mt-2 h-1 w-full rounded-full bg-text-secondary/5 overflow-hidden">
+              <div class="h-full bg-brand/20 w-1/3"></div>
+            </div>
           </div>
         </button>
 
@@ -213,6 +219,25 @@ const getLangFlag = (lang: string) => {
           class="absolute top-full right-0 mt-2 w-64 glass rounded-2xl border border-brand/20 shadow-2xl z-[100] p-2 animate-in fade-in zoom-in-95 duration-200"
         >
           <div class="max-h-64 overflow-y-auto no-scrollbar space-y-1">
+            <!-- All Languages Option -->
+            <button
+              @click="emit('toggle-language', 'all')"
+              :class="cn(
+                'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-xs font-bold border mb-1',
+                selectedLanguages.length === 0
+                  ? 'bg-brand/10 border-brand/20 text-brand'
+                  : 'border-transparent text-text-muted hover:bg-white/5 hover:text-text-primary'
+              )"
+            >
+              <div class="flex items-center gap-3">
+                <Globe class="h-4 w-4" />
+                <span class="uppercase tracking-wider">{{ t('sidebar.all_languages') }}</span>
+              </div>
+              <Check v-if="selectedLanguages.length === 0" class="h-3.5 w-3.5" />
+            </button>
+
+            <div class="h-px bg-brand/5 mx-2 my-1"></div>
+
             <button
               v-for="lang in allLanguages"
               :key="lang"
@@ -236,19 +261,13 @@ const getLangFlag = (lang: string) => {
     </div>
 
     <!-- Tag Cloud (Relocated from Sidebar) -->
-    <div v-if="categories && categories.length > 0" class="glass rounded-3xl p-6 border-brand/5 bg-bg-card/20">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="font-black text-text-muted text-[10px] uppercase tracking-[0.25em] flex items-center gap-2 px-1">
-          <Hash class="h-3 w-3 text-brand" /> {{ t('sidebar.discovery') }}
-        </h2>
-        <div class="h-px flex-grow bg-brand/10 mx-4"></div>
-      </div>
-      
+    <div v-if="categories && categories.length > 0" class="glass rounded-2xl px-4 py-3 border-brand/5 bg-bg-card/20">
       <TagCloud 
         :tags="categories" 
         :selected-tag="selectedCategory"
         :placeholder="t('sidebar.search_tags')"
         @select-tag="emit('select-tag', $event)"
+        @request-add-tag="emit('request-add-tag')"
       />
     </div>
   </div>
