@@ -60,63 +60,47 @@ async function processBatch(articles: ProcessedArticleData[]) {
 async function processSingleArticle(article: ProcessedArticleData) {
     try {
         const startTime = Date.now();
-        let contentToAnalyze = article.summary || '';
+        const contentToAnalyze = await prepareArticleContent(article);
 
-        // 1. Deep Scraping (if not already done)
-        if (!article.scrapedContent) {
-            logger.info(`🧵 [AI Worker] Deep Scraping: ${article.link}`);
-            const fullText = await ScraperService.extractFullText(article.link);
-
-            if (fullText) {
-                logger.info(`   ✅ Scraped ${fullText.length} characters.`);
-                article.fullText = fullText;
-                article.scrapedContent = true;
-                contentToAnalyze = fullText;
-
-                // Save scrambled content early so we don't lose it if AI fails
-                await RssRepository.updateById(article._id!, {
-                    fullText: article.fullText,
-                    scrapedContent: true
-                });
-            } else {
-                logger.warn(`   ⚠️ Scraping failed, falling back to RSS summary.`);
-            }
-        } else if (article.fullText) {
-            contentToAnalyze = article.fullText;
-        }
-
-        // 2. AI Analysis
+        // Analysis and Translation
         logger.info(`🧵 [AI Worker] Analyzing: "${article.title.slice(0, 50)}..." (${article.language})`);
+        const { analysis, translations } = await aiService.analyzeArticle(article.title, contentToAnalyze, article.language || 'en');
 
-        const { analysis, translations } = await aiService.analyzeArticle(
-            article.title,
-            contentToAnalyze,
-            article.language || 'en'
-        );
+        await RssRepository.updateById(article._id!, { analysis, translations, processedAt: new Date().toISOString() });
+        logger.info(`🧵 [AI Worker] Done in ${Date.now() - startTime}ms: ${analysis.sentiment}`);
 
-        const duration = Date.now() - startTime;
-
-        // 3. Update Final Results
-        await RssRepository.updateById(article._id!, {
-            analysis,
-            translations,
-            processedAt: new Date().toISOString()
-        });
-
-        logger.info(`🧵 [AI Worker] Done in ${duration}ms: ${analysis.sentiment}`);
-
-        // Notify parent thread
-        if (parentPort) {
-            parentPort.postMessage({ type: 'COMPLETED', id: article._id, title: article.title });
-        }
-
-        // Small breathing room for CPU
+        if (parentPort) parentPort.postMessage({ type: 'COMPLETED', id: article._id, title: article.title });
         await delay(500);
-
     } catch (err) {
         logger.error(`❌ [AI Worker] Error on article ${article.link}:`, err);
         await RssRepository.updateErrorStatus(article.link, 'AI Analysis Failed');
     }
+}
+
+async function prepareArticleContent(article: ProcessedArticleData): Promise<string> {
+    if (article.fullText) return article.fullText;
+
+    if (!article.scrapedContent) {
+        logger.info(`🧵 [AI Worker] Deep Scraping: ${article.link}`);
+        const fullText = await ScraperService.extractFullText(article.link);
+        if (fullText) {
+            article.fullText = fullText;
+            article.scrapedContent = true;
+            await RssRepository.updateById(article._id!, { fullText, scrapedContent: true });
+            return fullText;
+        }
+    }
+
+    if (!article.imageUrl) {
+        logger.info(`🧵 [AI Worker] Extracting Image: ${article.link}`);
+        const imageUrl = await ScraperService.extractMainImage(article.link);
+        if (imageUrl) {
+            article.imageUrl = imageUrl;
+            await RssRepository.updateById(article._id!, { imageUrl });
+        }
+    }
+
+    return article.summary || '';
 }
 
 function delay(ms: number) {

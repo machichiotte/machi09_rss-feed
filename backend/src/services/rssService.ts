@@ -11,6 +11,18 @@ import logger from '@/utils/logger';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+interface RssItem {
+    title?: string;
+    link?: string;
+    contentSnippet?: string;
+    content?: string;
+    isoDate?: string;
+    pubDate?: string;
+    enclosure?: { url?: string };
+    'media:content'?: { $: { url?: string } };
+    'media:thumbnail'?: { $: { url?: string } };
+}
+
 const parser = new Parser({
     timeout: 20000, // 20 seconds timeout
     headers: {
@@ -86,21 +98,22 @@ export class RssService {
      * @param {string} category - The category associated with this feed.
      * @returns {Promise<number>} Number of new articles saved.
      */
+    private static extractImageUrl(item: RssItem): string | null {
+        if (item.enclosure?.url) return item.enclosure.url;
+        if (item['media:content']?.$.url) return item['media:content'].$.url;
+        if (item['media:thumbnail']?.$.url) return item['media:thumbnail'].$.url;
+        return null;
+    }
+
     private static async fetchFeedOnly(feed: RssFeedConfig, category: string): Promise<number> {
         const rssFeed = await parser.parseURL(feed.url);
         let newCount = 0;
 
         for (const item of rssFeed.items) {
-            if (!item.link) continue;
-
-            const existing = await RssRepository.findByLink(item.link);
-            if (existing) continue;
-
-            const title = item.title || 'No title';
-            const summary = item.contentSnippet || item.content || null;
+            if (!item.link || await RssRepository.findByLink(item.link)) continue;
 
             const article: ProcessedArticleData = {
-                title: title,
+                title: item.title || 'No title',
                 link: item.link,
                 publicationDate: item.isoDate || item.pubDate || null,
                 sourceFeed: feed.url,
@@ -109,8 +122,9 @@ export class RssService {
                 language: feed.language || 'en',
                 fetchedAt: new Date().toISOString(),
                 processedAt: new Date().toISOString(),
-                summary: summary,
-                analysis: undefined, // Analysis will be done later
+                summary: item.contentSnippet || item.content || null,
+                imageUrl: this.extractImageUrl(item),
+                analysis: undefined,
                 error: null,
                 scrapedContent: false,
             };

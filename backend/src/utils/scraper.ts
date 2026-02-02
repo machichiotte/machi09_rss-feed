@@ -70,4 +70,34 @@ export class ScraperService {
             return null;
         }
     }
+
+    /**
+     * Attempts to extract the main image from an article URL.
+     */
+    public static async extractMainImage(url: string): Promise<string | null> {
+        try {
+            const response = await axios.get(url, { headers: { 'User-Agent': this.USER_AGENT }, timeout: 8000 });
+            if (response.status !== 200) return null;
+
+            const $ = cheerio.load(response.data);
+
+            const metaImage = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content');
+            if (metaImage) return metaImage;
+
+            return this.findSignificantImage($);
+        } catch {
+            return null;
+        }
+    }
+
+    private static findSignificantImage($: cheerio.CheerioAPI): string | null {
+        const selectors = ['article img', '.article-header img', '.post-thumbnail img', '.entry-content img', 'main img'];
+        for (const selector of selectors) {
+            const src = $(selector).first().attr('src');
+            if (src && (src.startsWith('http') || src.startsWith('//'))) {
+                return src.startsWith('//') ? `https:${src}` : src;
+            }
+        }
+        return null;
+    }
 }

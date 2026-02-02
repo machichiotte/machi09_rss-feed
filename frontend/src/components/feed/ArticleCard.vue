@@ -29,13 +29,13 @@ interface Article {
     sentiment: 'bullish' | 'bearish' | 'neutral';
     sentimentScore: number;
     iaSummary?: string;
-    isPromotional?: boolean;
   };
   translations?: Record<string, {
     title: string;
     summary: string;
     iaSummary?: string;
   }>;
+  imageUrl?: string;
 }
 
 const props = defineProps<{
@@ -111,58 +111,49 @@ const hasTranslation = (article: Article) => {
       viewMode === 'compact' && 'p-5 flex flex-col h-full'
     )"
   >
-    <!-- Card Header / Metadata -->
-    <div
-      :class="cn(
-        'flex justify-between items-center mb-6',
-        viewMode === 'list' && 'hidden'
-      )"
+    <!-- cinematic Image Header (Grid & Compact) -->
+    <div 
+      v-if="viewMode !== 'list'"
+      class="relative w-full overflow-hidden rounded-[2rem] aspect-[21/9] mb-6 shadow-inner bg-brand/5 border border-brand/10 group/img h-48"
     >
-      <div class="flex gap-2 flex-wrap">
-        <span class="px-3 py-1.5 rounded-xl meta-news bg-bg-card/80 border border-brand/5 flex items-center gap-1.5 shadow-sm">
-          {{ article.category }}
-          <span class="mx-1 opacity-50">•</span>
-          {{ getLangFlag(article.language || 'en') }}
-        </span>
-
-        <span v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse">
-          {{ t('common.promotional') }}
-        </span>
-        
-        <!-- AI Sentiment Hub -->
-        <div 
-          v-if="article.analysis" 
-          :class="cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all',
-            article.analysis?.sentiment === 'bullish' 
-              ? 'bg-success/20 text-success border-success/30 icon-glow-success' 
-              : article.analysis?.sentiment === 'bearish'
-                ? 'bg-danger/20 text-danger border-danger/30'
-                : 'bg-text-secondary/10 text-text-secondary border-text-secondary/20'
-          )"
-        >
-          <TrendingUp v-if="article.analysis?.sentiment !== 'neutral'" :class="cn('h-3 w-3', article.analysis?.sentiment === 'bearish' && 'rotate-180')" />
-          <Minus v-else class="h-3 w-3" />
-          {{ Math.round((article.analysis?.sentimentScore || 0) * 100) }}%
-        </div>
+      <div v-if="article.imageUrl" class="absolute inset-0">
+        <img 
+          :src="article.imageUrl" 
+          :alt="article.title"
+          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          loading="lazy"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-bg-card/80 via-transparent to-transparent opacity-60"></div>
+      </div>
+      <div v-else class="absolute inset-0 bg-gradient-to-br from-brand/10 via-brand/5 to-transparent flex items-center justify-center">
+        <Sparkles class="h-12 w-12 text-brand/20 animate-pulse" />
       </div>
       
-      <span class="meta-news flex items-center gap-1.5">
-        <Clock class="h-3 w-3" />
-        {{ formatDate(article.publicationDate || article.fetchedAt) }}
-      </span>
+      <!-- Overlaid Badge -->
+      <div class="absolute bottom-4 left-4 flex gap-2">
+        <span class="px-2.5 py-1 rounded-lg bg-bg-card/90 backdrop-blur-md text-[9px] font-black uppercase tracking-widest text-brand border border-brand/20 shadow-xl">
+          {{ article.feedName }}
+        </span>
+      </div>
     </div>
 
     <!-- Main Content Area -->
     <div
       :class="cn(
         'flex-1 flex flex-col',
-        viewMode === 'list' && 'flex-row gap-6'
+        viewMode === 'list' && 'flex-row gap-8'
       )"
     >
-      <!-- Thumbnail Placeholder for List Mode or Grid -->
-      <div v-if="viewMode === 'list'" class="w-24 h-24 sm:w-40 sm:h-40 shrink-0 rounded-3xl bg-brand/5 border border-brand/10 flex items-center justify-center overflow-hidden">
-        <Rss class="h-10 w-10 text-brand/20" />
+      <!-- Thumbnail for List Mode -->
+      <div v-if="viewMode === 'list'" class="w-32 h-32 sm:w-48 sm:h-48 shrink-0 rounded-[2rem] bg-brand/5 border border-brand/10 flex items-center justify-center overflow-hidden relative shadow-lg group/img">
+        <img 
+          v-if="article.imageUrl"
+          :src="article.imageUrl" 
+          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          loading="lazy"
+        />
+        <Rss v-else class="h-12 w-12 text-brand/20" />
+        <div class="absolute inset-0 bg-gradient-to-tr from-brand/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
       </div>
 
       <div
@@ -171,65 +162,96 @@ const hasTranslation = (article: Article) => {
           viewMode !== 'compact' && 'mb-8'
         )"
       >
-        <div class="mb-4">
-          <div v-if="viewMode === 'list'" class="flex gap-2 mb-2">
-            <span class="text-[10px] font-bold uppercase tracking-widest text-brand">{{ article.feedName }}</span>
-            <span class="text-[10px] text-text-muted">•</span>
-            <span class="text-[10px] text-text-muted uppercase">{{ formatDate(article.publicationDate || article.fetchedAt) }}</span>
-          </div>
+        <!-- Categories & Meta (Moved inside flex group for list) -->
+        <div class="flex items-center gap-3 mb-4 flex-wrap">
+          <span class="px-3 py-1.5 rounded-xl meta-news bg-brand/5 border border-brand/10 flex items-center gap-1.5 shadow-sm text-[10px]">
+            {{ article.category }}
+            <span class="mx-1 opacity-50">•</span>
+            {{ getLangFlag(article.language || 'en') }}
+          </span>
 
+          <span class="meta-news flex items-center gap-1.5 text-[10px]">
+            <Clock class="h-3.5 w-3.5" />
+            {{ formatDate(article.publicationDate || article.fetchedAt) }}
+          </span>
+
+          <span v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+            {{ t('common.promotional') }}
+          </span>
+          
+          <div 
+            v-if="article.analysis" 
+            :class="cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all',
+              article.analysis?.sentiment === 'bullish' 
+                ? 'bg-success/20 text-success border-success/30' 
+                : article.analysis?.sentiment === 'bearish'
+                  ? 'bg-danger/20 text-danger border-danger/30'
+                  : 'bg-text-secondary/10 text-text-secondary border-text-secondary/20'
+            )"
+          >
+            <TrendingUp v-if="article.analysis?.sentiment !== 'neutral'" :class="cn('h-3 w-3', article.analysis?.sentiment === 'bearish' && 'rotate-180')" />
+            <Minus v-else class="h-3 w-3" />
+            {{ Math.round((article.analysis?.sentimentScore || 0) * 100) }}%
+          </div>
+        </div>
+
+        <div class="mb-5">
           <h3
             :class="cn(
-              'title-news leading-[1.3] group-hover:text-brand transition-colors cursor-pointer flex-1',
-              viewMode === 'grid' && 'text-xl',
-              viewMode === 'list' && 'text-xl md:text-2xl font-black',
-              viewMode === 'compact' && 'text-base font-bold'
+              'title-news leading-[1.2] group-hover:text-brand transition-colors cursor-pointer flex-1 mb-2',
+              viewMode === 'grid' && 'text-xl font-black uppercase tracking-tight',
+              viewMode === 'list' && 'text-2xl md:text-3xl font-black uppercase tracking-tighter',
+              viewMode === 'compact' && 'text-base font-black uppercase tracking-tight'
             )"
           >
             <a :href="article.link" target="_blank" rel="noopener noreferrer">
               {{ getArticleTitle(article) }}
             </a>
           </h3>
+          <div v-if="viewMode === 'list'" class="flex items-center gap-2 mb-4">
+            <span class="text-xs font-black uppercase tracking-widest text-brand/60 italic">{{ article.feedName }}</span>
+          </div>
         </div>
       
         <!-- AI Summary Block -->
-        <div v-if="globalInsightMode && (article.analysis?.iaSummary || hasTranslation(article))" class="mb-4 p-5 rounded-2xl bg-insight/10 border border-insight/20 relative overflow-hidden group/ia transition-all duration-300 shadow-sm text-balance">
-          <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-insight"></div>
+        <div v-if="globalInsightMode && (article.analysis?.iaSummary || hasTranslation(article))" class="mb-5 p-6 rounded-[2rem] bg-insight/5 border border-insight/10 relative overflow-hidden group/ia transition-all duration-300 shadow-sm">
+          <div class="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b from-insight to-insight/40"></div>
         
-          <div class="flex justify-between items-center mb-2">
-            <p class="text-[10px] font-black uppercase tracking-widest text-insight flex items-center gap-1">
-              <Sparkles class="h-3 w-3" /> 
+          <div class="flex justify-between items-center mb-3">
+            <p class="text-[10px] font-black uppercase tracking-widest text-insight flex items-center gap-2">
+              <Sparkles class="h-3.5 w-3.5" /> 
               {{ t('article.ai_insight') }}
-              <span v-if="translationToggles[article._id] && article.language?.toLowerCase() !== preferredLanguage.toLowerCase()" class="ml-2 px-2 py-0.5 rounded-full bg-translate/10 text-translate border border-translate/20 text-[8px] flex items-center gap-1">
+              <span v-if="translationToggles[article._id] && article.language?.toLowerCase() !== preferredLanguage.toLowerCase()" class="ml-2 px-2.5 py-1 rounded-full bg-translate/10 text-translate border border-translate/20 text-[8px] flex items-center gap-1.5 font-bold">
                 {{ getLangFlag(article.language || 'en') }} 
-                <ArrowRight class="h-2 w-2" /> 
+                <ArrowRight class="h-2.5 w-2.5" /> 
                 {{ getLangFlag(preferredLanguage) }}
               </span>
             </p>
           </div>
 
-          <h4 v-if="translationToggles[article._id] && getArticleInsightTitle(article)" class="text-xs font-bold text-text-primary dark:text-insight mb-2 leading-tight">
+          <h4 v-if="translationToggles[article._id] && getArticleInsightTitle(article)" class="text-[13px] font-black text-text-primary dark:text-insight/90 mb-2 leading-tight uppercase tracking-tight">
             {{ getArticleInsightTitle(article) }}
           </h4>
 
-          <p class="body-news italic">
+          <p class="text-sm font-medium leading-relaxed italic text-text-primary/90">
             "{{ getArticleInsight(article) }}"
           </p>
         </div>
 
         <!-- Reader Block - Original RSS Summary -->
-        <div v-if="globalSummaryMode && article.summary && viewMode !== 'compact'" class="mb-4 p-5 rounded-2xl bg-summary/10 border border-summary/20 relative overflow-hidden group/reader transition-all duration-300 shadow-sm">
-          <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-summary"></div>
+        <div v-if="globalSummaryMode && article.summary && viewMode !== 'compact'" class="mb-4 p-6 rounded-[2rem] bg-bg-card/30 border border-brand/5 relative overflow-hidden group/reader transition-all duration-300 shadow-sm">
+          <div class="absolute left-0 top-0 bottom-0 w-2 bg-text-muted/20"></div>
         
-          <div class="flex justify-between items-center mb-2">
-            <p class="text-[10px] font-black uppercase tracking-widest text-summary flex items-center gap-1">
-              <FileText class="h-3 w-3" /> 
+          <div class="flex justify-between items-center mb-3">
+            <p class="text-[10px] font-black uppercase tracking-widest text-text-muted/60 flex items-center gap-2">
+              <FileText class="h-3.5 w-3.5" /> 
               {{ t('article.source_summary') }}
             </p>
           </div>
 
-          <p class="body-news opacity-80">
-            {{ article.summary.replace(/<[^>]*>/g, '').slice(0, 300) }}...
+          <p class="text-[13px] leading-relaxed text-text-primary/70 font-medium">
+            {{ article.summary.replace(/<[^>]*>/g, '').slice(0, 250) }}...
           </p>
         </div>
       </div>
