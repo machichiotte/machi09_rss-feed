@@ -105,7 +105,7 @@ const hasTranslation = (article: Article) => {
 
 const getDomain = (url: string) => {
   try {
-    return new URL(url).hostname;
+    return new window.URL(url).hostname;
   } catch {
     return '';
   }

@@ -287,8 +287,8 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
                   </div>
                 </div>
                 <div class="relative flex items-center justify-center">
-                   <div :class="cn('h-4 w-4 rounded-full transition-all duration-500 shadow-lg', setting.state ? `bg-${setting.color} shadow-${setting.color}/50 scale-125` : 'bg-text-muted/20 scale-100')"></div>
-                   <div v-if="setting.state && setting.id === 'globalInsightMode'" class="absolute h-8 w-8 rounded-full border border-insight/50 animate-ping"></div>
+                  <div :class="cn('h-4 w-4 rounded-full transition-all duration-500 shadow-lg', setting.state ? `bg-${setting.color} shadow-${setting.color}/50 scale-125` : 'bg-text-muted/20 scale-100')"></div>
+                  <div v-if="setting.state && setting.id === 'globalInsightMode'" class="absolute h-8 w-8 rounded-full border border-insight/50 animate-ping"></div>
                 </div>
               </button>
             </div>

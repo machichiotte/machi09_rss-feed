@@ -154,8 +154,7 @@ export class RssService {
             analysis: undefined,
             error: null,
             scrapedContent: false,
-            content: null,
-            scrapedAt: null
+            fullText: null
         };
 
         await RssRepository.save(article);
