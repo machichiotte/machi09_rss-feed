@@ -105,10 +105,14 @@ const feedSummaryCounts = computed(() => {
 });
 
 const handleFilterChange = (filterId: string) => {
-  if (filterId === '24h' || filterId === '7d') {
-    dateRange.value = dateRange.value === filterId ? 'all' : filterId;
-  } else if (filterId === 'saved') {
-    showOnlyBookmarks.value = !showOnlyBookmarks.value;
+  if (filterId === 'saved') {
+    // Switch to Saved view (exclusive)
+    showOnlyBookmarks.value = true;
+    dateRange.value = 'all'; 
+  } else {
+    // Switch to date/all view (exclusive)
+    showOnlyBookmarks.value = false;
+    dateRange.value = filterId;
   }
 };
 
@@ -456,7 +460,7 @@ onUnmounted(() => {
 
           <FeedSummary 
             :counts="feedSummaryCounts"
-            :active-filter="dateRange"
+            :active-filter="showOnlyBookmarks ? 'saved' : dateRange"
             :preferred-language="preferredLanguage"
             @filter-change="handleFilterChange"
           />

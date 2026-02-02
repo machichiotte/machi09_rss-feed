@@ -51,7 +51,7 @@ const getCount = (id: string) => {
       :class="cn(
         'group relative overflow-hidden glass rounded-2xl px-4 py-3.5 transition-all duration-300 text-left border flex flex-col justify-between h-[90px]',
         props.activeFilter === filter.id 
-          ? twMerge(filter.bg, filter.border, 'shadow-lg ring-2 ring-brand/30 scale-[1.02]') 
+          ? twMerge(filter.bg.replace('/10', '/25'), filter.border, 'shadow-lg ring-2 ring-brand/50 scale-[1.02]') 
           : 'bg-bg-card/40 border-brand/5 hover:border-brand/20 hover:scale-[1.01]'
       )"
     >
