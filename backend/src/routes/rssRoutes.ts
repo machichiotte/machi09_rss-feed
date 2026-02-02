@@ -1,8 +1,15 @@
 // src/routes/rssRoutes.ts
 import { Router } from 'express';
-import { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata } from '@/controllers/rssController';
+import { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata, toggleSource } from '@/controllers/rssController';
 
-const router = Router();
+const router: Router = Router();
+
+/**
+ * @route   PATCH /api/rss/sources/:name/toggle
+ * @desc    Toggle a source on or off
+ * @access  Public
+ */
+router.patch('/sources/:name/toggle', toggleSource);
 
 /**
  * @route   GET /api/rss/metadata

@@ -16,9 +16,9 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 const modes = [
-  { id: 'grid', icon: LayoutGrid },
-  { id: 'list', icon: List },
-  { id: 'compact', icon: LayoutPanelLeft }
+  { id: 'grid', icon: LayoutGrid, label: 'Grille' },
+  { id: 'list', icon: List, label: 'Liste' },
+  { id: 'compact', icon: LayoutPanelLeft, label: 'Compact' }
 ] as const;
 </script>
 

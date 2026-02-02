@@ -3,9 +3,10 @@ import { fork, ChildProcess } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { RssRepository } from '@/repositories/rssRepository';
-import { rssConfig } from '@/config/rssConfig';
 import { ProcessedArticleData, RssFeedConfig } from '@/types/rss';
+import { generateSourceColor } from '@/utils/colors';
 import logger from '@/utils/logger';
+import { SourceRepository } from '@/repositories/sourceRepository';
 
 // ESM compatibility for __filename and __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -43,13 +44,22 @@ export class RssService {
     public static async processAllFeeds(): Promise<{ processed: number; errors: number }> {
         logger.info('🚀 Starting Optimized RSS feed processing...');
 
-        // 1. Fetch all feeds in parallel (with concurrency limit)
+        // 1. Fetch enabled sources from DB
+        const enabledSourcesByCategory = await SourceRepository.getEnabledSources();
         const allFeeds: { feed: RssFeedConfig; category: string }[] = [];
-        for (const [category, feeds] of Object.entries(rssConfig.categories)) {
-            for (const feed of feeds) {
-                if (feed.enabled) {
-                    allFeeds.push({ feed, category });
-                }
+
+        for (const [category, sources] of Object.entries(enabledSourcesByCategory)) {
+            for (const source of sources) {
+                allFeeds.push({
+                    feed: {
+                        name: source.name,
+                        url: source.url || '',
+                        enabled: source.enabled,
+                        language: source.language as 'en' | 'fr' | 'es' | 'de' | 'pt' | 'ar' | 'zh' | 'ja',
+                        color: source.color
+                    },
+                    category
+                });
             }
         }
 
@@ -106,34 +116,50 @@ export class RssService {
     }
 
     private static async fetchFeedOnly(feed: RssFeedConfig, category: string): Promise<number> {
-        const rssFeed = await parser.parseURL(feed.url);
-        let newCount = 0;
+        try {
+            const rssFeed = await parser.parseURL(feed.url);
+            let newCount = 0;
 
-        for (const item of rssFeed.items) {
-            if (!item.link || await RssRepository.findByLink(item.link)) continue;
+            for (const item of rssFeed.items) {
+                if (await this.processSingleItem(item, feed, category)) {
+                    newCount++;
+                }
+            }
+            return newCount;
+        } catch (error: unknown) { // Explicitly type error as unknown
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            logger.error(`Error fetching feed ${feed.name}: ${errorMessage}`);
+            return 0;
+        }
+    }
 
-            const article: ProcessedArticleData = {
-                title: item.title || 'No title',
-                link: item.link,
-                publicationDate: item.isoDate || item.pubDate || null,
-                sourceFeed: feed.url,
-                feedName: feed.name,
-                category: category,
-                language: feed.language || 'en',
-                fetchedAt: new Date().toISOString(),
-                processedAt: new Date().toISOString(),
-                summary: item.contentSnippet || item.content || null,
-                imageUrl: this.extractImageUrl(item),
-                analysis: undefined,
-                error: null,
-                scrapedContent: false,
-            };
-
-            await RssRepository.save(article);
-            newCount++;
+    private static async processSingleItem(item: RssItem, feed: RssFeedConfig, category: string): Promise<boolean> {
+        if (!item.link || await RssRepository.findByLink(item.link)) {
+            return false;
         }
 
-        return newCount;
+        const article: ProcessedArticleData = {
+            title: item.title || 'No title',
+            link: item.link,
+            publicationDate: item.isoDate || item.pubDate || null,
+            sourceFeed: feed.url,
+            feedName: feed.name,
+            category: category,
+            language: feed.language || 'en',
+            fetchedAt: new Date().toISOString(),
+            processedAt: new Date().toISOString(),
+            summary: item.contentSnippet || item.content || null,
+            imageUrl: this.extractImageUrl(item),
+            sourceColor: feed.color || generateSourceColor(feed.name),
+            analysis: undefined,
+            error: null,
+            scrapedContent: false,
+            content: null,
+            scrapedAt: null
+        };
+
+        await RssRepository.save(article);
+        return true;
     }
 
     /**

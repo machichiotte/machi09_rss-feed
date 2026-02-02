@@ -27,13 +27,16 @@ export class RssRepository {
      * @param {FetchOptions} options - Search and pagination options.
      * @returns {Promise<{ articles: ProcessedArticleData[]; total: number }>}
      */
-    public static async fetchAll(options: FetchOptions = {}): Promise<{ articles: ProcessedArticleData[]; total: number }> {
+    public static async fetchAll(options: FetchOptions = {}): Promise<{ articles: ProcessedArticleData[]; total: number; stats: { today: number; week: number } }> {
         const db = getDatabase();
         const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
         const { page = 1, limit = 20, category, sentiment, language, feedName } = options;
 
         const query = this.buildFilterQuery(options);
         const total = await collection.countDocuments(query);
+
+        // Get stats for Today and Week based on the current filters (category, source, etc.)
+        const stats = await this.getStats(options);
 
         let documents;
 
@@ -58,8 +61,31 @@ export class RssRepository {
 
         return {
             articles: documents as ProcessedArticleData[],
-            total
+            total,
+            stats
         };
+    }
+
+    /**
+     * Calculates Today and Week statistics based on current filters.
+     */
+    private static async getStats(options: FetchOptions): Promise<{ today: number; week: number }> {
+        const db = getDatabase();
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+
+        // Base query from options but without existing date range
+        const baseQuery = this.buildFilterQuery({ ...options, dateRange: 'all' });
+
+        const now = new Date();
+        const dayLimit = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+        const weekLimit = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+        const [today, week] = await Promise.all([
+            collection.countDocuments({ ...baseQuery, publicationDate: { $gte: dayLimit } }),
+            collection.countDocuments({ ...baseQuery, publicationDate: { $gte: weekLimit } })
+        ]);
+
+        return { today, week };
     }
 
 

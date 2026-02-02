@@ -28,6 +28,7 @@ export interface ProcessedArticleData {
     scrapedContent?: boolean;
     fullText?: string | null;
     imageUrl?: string | null;
+    sourceColor?: string | null;
 }
 
 export interface FinancialAnalysis {
@@ -65,6 +66,7 @@ export interface RssFeedConfig {
     enabled?: boolean;    // Activer/désactiver ce flux spécifique
     category?: string;    // Catégorie (ajoutée dynamiquement)
     language?: 'fr' | 'en' | 'es' | 'de' | 'it' | 'pt' | 'nl' | 'ru' | 'zh' | 'ja' | 'ar'; // Langue du flux
+    color?: string;       // Couleur de la marque du flux
 }
 
 /**

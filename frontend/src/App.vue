@@ -43,6 +43,8 @@ interface Article {
     summary: string;
     iaSummary?: string;
   }>;
+  imageUrl?: string;
+  sourceColor?: string;
 }
 
 // State
@@ -69,6 +71,7 @@ const showOnlyInsights = ref(false);
 const dateRange = ref('all');
 const isSettingsOpen = ref(false);
 const error = ref<string | null>(null);
+const serverStats = ref({ today: 0, week: 0 });
 
 // i18n Setup
 const { t } = useI18n(preferredLanguage);
@@ -82,7 +85,7 @@ const hasMore = ref(false);
 // Metadata State
 const allCategories = ref<string[]>([]);
 const allSources = ref<string[]>([]);
-const groupedSources = ref<Record<string, { name: string; language: string }[]>>({});
+const groupedSources = ref<Record<string, { name: string; language: string; enabled: boolean }[]>>({});
 const allLanguages = ref<string[]>([]);
 
 // Feed Ref for infinite scroll
@@ -91,13 +94,9 @@ let observer: IntersectionObserver | null = null;
 
 // Methods
 const feedSummaryCounts = computed(() => {
-  const now = new Date();
-  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
   return {
-    today: articles.value.filter(a => new Date(a.publicationDate || a.fetchedAt) >= dayAgo).length,
-    week: articles.value.filter(a => new Date(a.publicationDate || a.fetchedAt) >= weekAgo).length,
+    today: serverStats.value.today,
+    week: serverStats.value.week,
     unread: totalArticles.value,
     saved: 0
   };
@@ -144,6 +143,31 @@ const fetchMetadata = async () => {
   }
 };
 
+const handleToggleSource = async (_category: string, name: string, enabled: boolean) => {
+  try {
+    // Optimistic UI update already happened in the modal via proxy, 
+    // but ensured here if needed.
+    await axios.patch(`${API_BASE_URL}/api/rss/sources/${encodeURIComponent(name)}/toggle`, { enabled });
+    console.log(`Source ${name} status updated to ${enabled}`);
+  } catch (err) {
+    console.error(`Failed to toggle source ${name}:`, err);
+    // Rollback if needed (though metadata refetch is safer)
+    fetchMetadata();
+  }
+};
+
+const handleDeleteSource = (category: string, name: string) => {
+  if (groupedSources.value[category]) {
+    groupedSources.value[category] = groupedSources.value[category].filter(s => s.name !== name);
+    // Remove category if empty
+    if (groupedSources.value[category].length === 0) {
+      delete groupedSources.value[category];
+      allCategories.value = allCategories.value.filter(c => c !== category);
+    }
+    allSources.value = allSources.value.filter(s => s !== name);
+  }
+};
+
 /**
  * Fetches articles from the Nexus API with current filters and pagination.
  * @param reset If true, resets pagination and clears current articles.
@@ -176,6 +200,11 @@ async function loadArticles(reset = false) {
     const response = await axios.get(`${API_BASE_URL}/api/rss`, { params });
     const data = response.data;
     const newArticles = data.articles || data.data || [];
+    
+    // Update stats from server
+    if (data.stats) {
+      serverStats.value = data.stats;
+    }
     
     articles.value = reset ? newArticles : [...articles.value, ...newArticles];
     totalArticles.value = data.total || 0;
@@ -353,10 +382,12 @@ onUnmounted(() => {
       @update:global-summary-mode="globalSummaryMode = $event"
       @update:auto-translate="autoTranslate = $event"
       @update:view-mode="viewMode = $event"
+      @delete-source="handleDeleteSource"
+      @toggle-source="handleToggleSource"
     />
 
-    <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-10 relative">
-      <div class="flex flex-col lg:flex-row gap-0 pt-0">
+    <main class="w-full max-w-[1910px] mx-auto px-4 sm:px-6 lg:px-10 pt-8 pb-10 relative">
+      <div class="flex flex-col lg:flex-row gap-8 items-start">
         <Sidebar 
           :total-articles="totalArticles"
           :categories="allCategories"
@@ -375,7 +406,7 @@ onUnmounted(() => {
 
         <div class="flex-1 lg:ml-80 w-full min-h-[60vh]">
           <!-- Processing State Banner -->
-          <div v-if="processing" class="glass rounded-3xl p-6 border-brand/20 flex items-center justify-between animate-pulse mb-8 mt-6">
+          <div v-if="processing" class="glass-card rounded-3xl p-6 border-brand/20 flex items-center justify-between animate-pulse mb-8">
             <div class="flex items-center gap-4">
               <div class="h-10 w-10 bg-brand/20 rounded-full flex items-center justify-center">
                 <RefreshCw class="h-5 w-5 text-brand animate-spin" />

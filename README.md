@@ -23,6 +23,7 @@
 - **🕸️ Deep Scraping**: Full-text article extraction using Axios & Cheerio for high-precision analysis.
 - **🧠 Advanced AI Insights**: Smart summaries and sentiment analysis using local transformers (multi-language support).
 - **🏛️ Intelligent Nexus UI**: Premium dashboard with centralized toggles for AI, Translation, and Reader Mode.
+- **🛡️ Persistent Source Toggling**: Enable/disable RSS sources directly from the UI with full backend persistence in MongoDB.
 - **🔍 Granular Filtering**: Server-side filtering by Source, Category, Language, Sentiment, Date Range, and "Only Insights".
 - **📜 Smart Pagination & Search**: Rapid full-text search and infinite scrolling for seamless navigation.
 - **🐳 Docker Ready**: Optimized multi-stage builds with pre-cached AI models.
@@ -123,13 +124,14 @@ pnpm dev
 | **GET** | `/api/rss` | Get paginated articles (`?page=1&limit=24&category=...`) |
 | **GET** | `/api/rss/metadata` | Get available filter options (categories, sources, lang) |
 | **POST** | `/api/rss/process` | Trigger manual feed fetch (asynchronous) |
+| **PATCH** | `/api/rss/sources/:name/toggle` | Toggle source enabled/disabled status with DB persistence |
 | **GET** | `/api/rss/search` | Search articles (`?link=...`) |
 
 ---
 
 ## ⚙️ Configuration
 
-- **RSS Sources**: List of feeds is in `backend/src/config/sources.ts`.
+- **RSS Sources**: Sources are initialized from `backend/src/config/sources.ts` but managed dynamically via the `rssSources` collection in MongoDB.
 - **System Config**: Delays and categories are in `backend/src/config/rssConfig.ts`.
 - **Cron Schedule**: Adjusted in your `.env` file via `RSS_CRON_SCHEDULE`.
 - **AI Optimization**: AI models are pre-downloaded during Docker build to `models_cache` for instant startup.

@@ -63,7 +63,7 @@ const getLangFlag = (lang?: string) => {
 
 <template>
   <header class="sticky top-0 z-30 glass border-b-brand/10 h-20 overflow-hidden">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-10">
       <div class="flex justify-between h-20 items-center">
         <!-- Logo -->
         <div class="flex items-center gap-4 group cursor-pointer" @click="emit('update:searchQuery', '')">

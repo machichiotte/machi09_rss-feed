@@ -4,7 +4,7 @@ import { RssRepository } from '@/repositories/rssRepository';
 import { RssService } from '@/services/rssService';
 import { handleControllerError } from '@/utils/errorHandler';
 import logger from '@/utils/logger';
-import { rssSources } from '@/config/sources';
+import { SourceRepository } from '@/repositories/sourceRepository';
 
 /**
  * Retrieves RSS articles with pagination, sorting and filtering.
@@ -29,7 +29,7 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
 
     logger.info(`Fetching RSS articles: page=${page}, limit=${limit}, category=${category}, search=${search}, source=${feedName}, onlyInsights=${onlyInsights}, dateRange=${dateRange}`);
 
-    const { articles, total } = await RssRepository.fetchAll({
+    const { articles, total, stats } = await RssRepository.fetchAll({
       page,
       limit,
       category,
@@ -48,6 +48,7 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
       page,
       limit,
       count: articles.length,
+      stats,
       data: articles,
     });
   } catch (error) {
@@ -148,22 +149,29 @@ async function getRssArticleByLink(req: Request, res: Response): Promise<void> {
  */
 async function getMetadata(_req: Request, res: Response): Promise<void> {
   try {
+    // Ensure sources are initialized in DB
+    await SourceRepository.initializeSources();
 
-    const categories = Object.keys(rssSources);
+    const dbSources = await SourceRepository.getAllSources();
+
+    const categories = Array.from(new Set(dbSources.map(s => s.category))).sort();
     const languages = new Set<string>();
     const sources = new Set<string>();
-    const groupedSources: Record<string, { name: string; language: string }[]> = {};
+    const groupedSources: Record<string, { name: string; language: string; enabled: boolean }[]> = {};
 
-    for (const [category, feeds] of Object.entries(rssSources)) {
-      groupedSources[category] = [];
-      for (const feed of feeds) {
-        if (feed.language) languages.add(feed.language);
-        sources.add(feed.name);
-        groupedSources[category].push({
-          name: feed.name,
-          language: feed.language || 'en'
-        });
+    for (const source of dbSources) {
+      if (source.language) languages.add(source.language);
+      sources.add(source.name);
+
+      if (!groupedSources[source.category]) {
+        groupedSources[source.category] = [];
       }
+
+      groupedSources[source.category].push({
+        name: source.name,
+        language: source.language || 'en',
+        enabled: source.enabled
+      });
     }
 
     res.status(200).json({
@@ -177,4 +185,40 @@ async function getMetadata(_req: Request, res: Response): Promise<void> {
   }
 }
 
-export { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata };
+/**
+ * Toggles the enabled state of a specific RSS source.
+ * 
+ * @route   PATCH /api/rss/sources/:name/toggle
+ * @param {Request} req - Express request object.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>}
+ */
+async function toggleSource(req: Request, res: Response): Promise<void> {
+  try {
+    const { name } = req.params;
+    const enabled = req.body.enabled === true;
+
+    if (name === undefined) {
+      res.status(400).json({ error: 'Source name is required' });
+      return;
+    }
+
+    logger.info(`Toggling source ${name} to ${enabled}`);
+    const success = await SourceRepository.toggleSource(name as string, enabled);
+
+    if (!success) {
+      res.status(404).json({ error: 'Source not found or no change made' });
+      return;
+    }
+
+    res.status(200).json({
+      message: `Source ${name} status updated`,
+      name,
+      enabled
+    });
+  } catch (error) {
+    handleControllerError(res, error, toggleSource.name);
+  }
+}
+
+export { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata, toggleSource };

@@ -29,6 +29,7 @@ interface Article {
     sentiment: 'bullish' | 'bearish' | 'neutral';
     sentimentScore: number;
     iaSummary?: string;
+    isPromotional?: boolean;
   };
   translations?: Record<string, {
     title: string;
@@ -36,6 +37,7 @@ interface Article {
     iaSummary?: string;
   }>;
   imageUrl?: string;
+  sourceColor?: string;
 }
 
 const props = defineProps<{
@@ -100,22 +102,43 @@ const getArticleInsight = (article: Article) => {
 const hasTranslation = (article: Article) => {
   return !!(article.translations && article.translations[props.preferredLanguage]);
 };
+
+const getDomain = (url: string) => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+};
 </script>
 
 <template>
   <article 
     :class="cn(
-      'group glass-card rounded-[2.5rem] transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl dark:hover:shadow-brand/5',
-      viewMode === 'grid' && 'p-8 flex flex-col h-full',
-      viewMode === 'list' && 'p-6 flex flex-row gap-8 items-start h-auto',
-      viewMode === 'compact' && 'p-5 flex flex-col h-full'
+      'group glass-card rounded-[2.5rem] transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl dark:hover:shadow-brand/5 relative overflow-hidden flex flex-col h-full',
+      viewMode === 'list' && 'flex-row gap-0 h-auto'
     )"
+    :style="{ 
+      borderLeft: (viewMode === 'list' && article.sourceColor) ? `5px solid ${article.sourceColor}` : undefined,
+      '--source-color': article.sourceColor || 'var(--brand)'
+    }"
   >
+    <!-- Source Accent Glow -->
+    <div 
+      v-if="article.sourceColor"
+      class="absolute top-0 right-0 w-32 h-32 bg-[var(--source-color)] opacity-[0.03] blur-[50px] pointer-events-none group-hover:opacity-[0.08] transition-opacity duration-700"
+    ></div>
+
     <!-- cinematic Image Header (Grid & Compact) -->
     <div 
       v-if="viewMode !== 'list'"
-      class="relative w-full overflow-hidden rounded-[2rem] aspect-[21/9] mb-6 shadow-inner bg-brand/5 border border-brand/10 group/img h-48"
+      class="relative w-full overflow-hidden border-b border-brand/5 group/img h-52 shrink-0"
     >
+      <div 
+        v-if="article.sourceColor"
+        class="absolute top-0 left-0 right-0 h-1.5 z-20"
+        :style="{ backgroundColor: article.sourceColor }"
+      ></div>
       <div v-if="article.imageUrl" class="absolute inset-0">
         <img 
           :src="article.imageUrl" 
@@ -123,29 +146,23 @@ const hasTranslation = (article: Article) => {
           class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           loading="lazy"
         />
-        <div class="absolute inset-0 bg-gradient-to-t from-bg-card/80 via-transparent to-transparent opacity-60"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-bg-card/40 via-transparent to-transparent opacity-60"></div>
       </div>
       <div v-else class="absolute inset-0 bg-gradient-to-br from-brand/10 via-brand/5 to-transparent flex items-center justify-center">
         <Sparkles class="h-12 w-12 text-brand/20 animate-pulse" />
-      </div>
-      
-      <!-- Overlaid Badge -->
-      <div class="absolute bottom-4 left-4 flex gap-2">
-        <span class="px-2.5 py-1 rounded-lg bg-bg-card/90 backdrop-blur-md text-[9px] font-black uppercase tracking-widest text-brand border border-brand/20 shadow-xl">
-          {{ article.feedName }}
-        </span>
       </div>
     </div>
 
     <!-- Main Content Area -->
     <div
       :class="cn(
-        'flex-1 flex flex-col',
-        viewMode === 'list' && 'flex-row gap-8'
+        'flex-1 flex flex-col p-8',
+        viewMode === 'compact' && 'p-5',
+        viewMode === 'list' && 'p-8 flex-row gap-8'
       )"
     >
       <!-- Thumbnail for List Mode -->
-      <div v-if="viewMode === 'list'" class="w-32 h-32 sm:w-48 sm:h-48 shrink-0 rounded-[2rem] bg-brand/5 border border-brand/10 flex items-center justify-center overflow-hidden relative shadow-lg group/img">
+      <div v-if="viewMode === 'list'" class="w-40 h-40 sm:w-56 sm:h-56 shrink-0 rounded-[1.5rem] bg-brand/5 border border-brand/10 flex items-center justify-center overflow-hidden relative shadow-lg group/img m-0">
         <img 
           v-if="article.imageUrl"
           :src="article.imageUrl" 
@@ -163,22 +180,30 @@ const hasTranslation = (article: Article) => {
         )"
       >
         <!-- Categories & Meta (Moved inside flex group for list) -->
-        <div class="flex items-center gap-3 mb-4 flex-wrap">
-          <span class="px-3 py-1.5 rounded-xl meta-news bg-brand/5 border border-brand/10 flex items-center gap-1.5 shadow-sm text-[10px]">
+        <div class="flex items-center gap-3 mb-6 flex-wrap">
+          <div class="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-bg-card border border-brand/20 shadow-sm">
+            <img 
+              v-if="getDomain(article.link)"
+              :src="`https://www.google.com/s2/favicons?domain=${getDomain(article.link)}&sz=64`"
+              class="w-4 h-4 rounded-sm transition-all"
+              @error="($event.target as HTMLImageElement).style.display = 'none'"
+            />
+            <span class="text-[10px] font-black uppercase tracking-widest" :style="{ color: article.sourceColor || 'var(--brand)' }">
+              {{ article.feedName }}
+            </span>
+          </div>
+
+          <span class="px-3 py-2 rounded-xl meta-news bg-brand/5 border border-brand/10 flex items-center gap-2 shadow-sm text-[10px] font-bold text-text-primary">
             {{ article.category }}
-            <span class="mx-1 opacity-50">•</span>
+            <span class="mx-1 opacity-30 text-text-muted">•</span>
             {{ getLangFlag(article.language || 'en') }}
           </span>
 
-          <span class="meta-news flex items-center gap-1.5 text-[10px]">
-            <Clock class="h-3.5 w-3.5" />
+          <span class="meta-news flex items-center gap-2 text-[10px] font-bold text-text-muted">
+            <Clock class="h-4 w-4" />
             {{ formatDate(article.publicationDate || article.fetchedAt) }}
           </span>
 
-          <span v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-            {{ t('common.promotional') }}
-          </span>
-          
           <div 
             v-if="article.analysis" 
             :class="cn(
@@ -199,19 +224,16 @@ const hasTranslation = (article: Article) => {
         <div class="mb-5">
           <h3
             :class="cn(
-              'title-news leading-[1.2] group-hover:text-brand transition-colors cursor-pointer flex-1 mb-2',
-              viewMode === 'grid' && 'text-xl font-black uppercase tracking-tight',
+              'title-news leading-[1.25] group-hover:text-brand transition-colors cursor-pointer flex-1 mb-2',
+              viewMode === 'grid' && 'text-xl font-bold uppercase tracking-tight',
               viewMode === 'list' && 'text-2xl md:text-3xl font-black uppercase tracking-tighter',
-              viewMode === 'compact' && 'text-base font-black uppercase tracking-tight'
+              viewMode === 'compact' && 'text-base font-bold uppercase tracking-tight'
             )"
           >
             <a :href="article.link" target="_blank" rel="noopener noreferrer">
               {{ getArticleTitle(article) }}
             </a>
           </h3>
-          <div v-if="viewMode === 'list'" class="flex items-center gap-2 mb-4">
-            <span class="text-xs font-black uppercase tracking-widest text-brand/60 italic">{{ article.feedName }}</span>
-          </div>
         </div>
       
         <!-- AI Summary Block -->
@@ -260,19 +282,19 @@ const hasTranslation = (article: Article) => {
     <!-- Card Footer -->
     <div
       v-if="viewMode !== 'compact'" :class="cn(
-        'pt-6 border-t border-text-secondary/10 flex items-center justify-between',
-        viewMode === 'list' && 'border-t-0 pt-0'
+        'px-8 pb-8 pt-4 border-t border-text-secondary/5 flex items-center justify-between',
+        viewMode === 'list' && 'border-t-0 pt-0 px-8 pb-8'
       )"
     >
-      <div v-if="viewMode === 'grid'" class="flex items-center gap-2">
-        <span class="meta-news opacity-80 tracking-tighter">{{ article.feedName }}</span>
+      <div v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+        {{ t('common.promotional') }}
       </div>
       
       <a 
         :href="article.link" 
         target="_blank" 
         rel="noopener noreferrer"
-        class="group/btn flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-text-primary text-bg-card text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg active:scale-95 ml-auto"
+        class="group/btn flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-text-primary text-bg-card text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-md active:scale-95 ml-auto"
       >
         {{ t('common.view_source') }}
         <ExternalLink class="h-3 w-3 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />

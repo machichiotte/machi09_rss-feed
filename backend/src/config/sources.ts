@@ -1,13 +1,13 @@
 import { RssCategoryConfig } from '@/types/rss';
 
 export const rssSources: RssCategoryConfig = {
-    'Crypto News': [
+    'Crypto': [
         // English - Major
-        { name: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', enabled: true, language: 'en' },
-        { name: 'CoinTelegraph', url: 'https://cointelegraph.com/rss', enabled: true, language: 'en' },
-        { name: 'Decrypt', url: 'https://decrypt.co/feed', enabled: true, language: 'en' },
+        { name: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', enabled: true, language: 'en', color: '#00d4ff' },
+        { name: 'CoinTelegraph', url: 'https://cointelegraph.com/rss', enabled: true, language: 'en', color: '#fab115' },
+        { name: 'Decrypt', url: 'https://decrypt.co/feed', enabled: true, language: 'en', color: '#ffffff' },
         { name: 'The Block', url: 'https://www.theblock.co/feed/', enabled: false, language: 'en' }, // Often limited
-        { name: 'Crypto Briefing', url: 'https://cryptobriefing.com/feed/', enabled: true, language: 'en' },
+        { name: 'Crypto Briefing', url: 'https://cryptobriefing.com/feed/', enabled: true, language: 'en', color: '#2b2b2b' },
         { name: 'CoinJournal', url: 'https://coinjournal.net/feed/', enabled: true, language: 'en' },
         { name: 'NewsBTC', url: 'https://www.newsbtc.com/feed/', enabled: true, language: 'en' },
         { name: 'CryptoSlate', url: 'https://cryptoslate.com/feed/', enabled: false, language: 'en' }, // Status code 403 (Forbidden)
@@ -60,11 +60,11 @@ export const rssSources: RssCategoryConfig = {
     ],
     'Finance': [
         // English
-        { name: 'CNBC Finance', url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', enabled: true, language: 'en' },
-        { name: 'Bloomberg Markets', url: 'https://feeds.bloomberg.com/markets/news.rss', enabled: true, language: 'en' },
-        { name: 'Bloomberg Wealth', url: 'https://feeds.bloomberg.com/wealth/news.rss', enabled: true, language: 'en' },
-        { name: 'WSJ Business', url: 'https://feeds.content.dowjones.io/public/rss/WSJcomUSBusiness', enabled: true, language: 'en' },
-        { name: 'Dow Jones Markets', url: 'https://feeds.content.dowjones.io/public/rss/RSSMarketsMain', enabled: true, language: 'en' },
+        { name: 'CNBC Finance', url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', enabled: true, language: 'en', color: '#005596' },
+        { name: 'Bloomberg Markets', url: 'https://feeds.bloomberg.com/markets/news.rss', enabled: true, language: 'en', color: '#2800d7' },
+        { name: 'Bloomberg Wealth', url: 'https://feeds.bloomberg.com/wealth/news.rss', enabled: true, language: 'en', color: '#2800d7' },
+        { name: 'WSJ Business', url: 'https://feeds.content.dowjones.io/public/rss/WSJcomUSBusiness', enabled: true, language: 'en', color: '#000000' },
+        { name: 'Dow Jones Markets', url: 'https://feeds.content.dowjones.io/public/rss/RSSMarketsMain', enabled: true, language: 'en', color: '#000000' },
         { name: 'Investing UK', url: 'https://uk.investing.com/rss/news/cryptocurrency.rss', enabled: false, language: 'en' }, // Specific crypto
         { name: 'Investing AU', url: 'https://au.investing.com/rss/news/cryptocurrency.rss', enabled: false, language: 'en' },
 
@@ -76,12 +76,12 @@ export const rssSources: RssCategoryConfig = {
         { name: 'Boursier.com', url: 'https://www.boursier.com/rss/actualites/actualites.rss', enabled: false, language: 'fr' }, // Status code 403 (Forbidden)
         { name: 'L\'Opinion', url: 'https://www.lopinion.fr/abonnement/rss', enabled: false, language: 'fr' }, // URL frequently broken or restricted
     ],
-    'Tech News': [
+    'Tech': [
         // English
-        { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', enabled: true, language: 'en' },
-        { name: 'Wired', url: 'https://www.wired.com/feed/rss', enabled: true, language: 'en' },
-        { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', enabled: true, language: 'en' },
-        { name: 'Bloomberg Technology', url: 'https://feeds.bloomberg.com/technology/news.rss', enabled: true, language: 'en' },
+        { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', enabled: true, language: 'en', color: '#00a562' },
+        { name: 'Wired', url: 'https://www.wired.com/feed/rss', enabled: true, language: 'en', color: '#000000' },
+        { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', enabled: true, language: 'en', color: '#e5127d' },
+        { name: 'Bloomberg Technology', url: 'https://feeds.bloomberg.com/technology/news.rss', enabled: true, language: 'en', color: '#2800d7' },
 
         // French
         { name: '01net', url: 'https://www.01net.com/actualites/feed/', enabled: true, language: 'fr' },
@@ -98,10 +98,10 @@ export const rssSources: RssCategoryConfig = {
         { name: 'CNET France', url: 'https://www.cnetfrance.fr/rss/news/', enabled: false, language: 'fr' }, // Status code 404
         { name: 'Developpez.com', url: 'https://www.developpez.com/index/rss/', enabled: true, language: 'fr' },
     ],
-    'General News': [
+    'Général': [
         // English / International
-        { name: 'France 24 English', url: 'https://www.france24.com/en/rss', enabled: true, language: 'en' },
-        { name: 'Reuters Best', url: 'https://reutersbest.com/feed/', enabled: true, language: 'en' },
+        { name: 'France 24 English', url: 'https://www.france24.com/en/rss', enabled: true, language: 'en', color: '#0078d7' },
+        { name: 'Reuters Best', url: 'https://reutersbest.com/feed/', enabled: true, language: 'en', color: '#ff8000' },
         { name: 'Reuters My News', url: 'https://www.reuters.com/my-news/feed/', enabled: false, language: 'en' }, // Status code 401 (Unauthorized)
         { name: 'FT UK', url: 'https://www.ft.com/rss/home/uk', enabled: true, language: 'en' },
         { name: 'Dow Jones World', url: 'https://feeds.content.dowjones.io/public/rss/RSSWorldNews', enabled: true, language: 'en' },

@@ -43,46 +43,38 @@ const getCount = (id: string) => {
 </script>
 
 <template>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
     <button
       v-for="filter in filters"
       :key="filter.id"
       @click="emit('filter-change', filter.id)"
       :class="cn(
-        'group relative overflow-hidden glass rounded-[2rem] p-5 transition-all duration-500 text-left border',
+        'group relative overflow-hidden glass rounded-2xl px-4 py-3.5 transition-all duration-300 text-left border flex flex-col justify-between h-[90px]',
         props.activeFilter === filter.id 
-          ? twMerge(filter.bg, filter.border, 'scale-[1.02] shadow-xl') 
-          : 'bg-bg-card/30 border-brand/5 hover:border-brand/20 hover:bg-bg-card/50'
+          ? twMerge(filter.bg, filter.border, 'shadow-md') 
+          : 'bg-bg-card/40 border-brand/5 hover:border-brand/20'
       )"
     >
-      <!-- Background Decorative Element -->
-      <div 
-        :class="cn(
-          'absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-2xl opacity-0 group-hover:opacity-20 transition-opacity',
-          filter.bg
-        )"
-      ></div>
-
-      <div class="flex items-center justify-between mb-3 relative z-10">
-        <div :class="cn('p-2.5 rounded-2xl bg-white/5 border border-white/10 shadow-sm', filter.color)">
-          <component :is="filter.icon" class="h-5 w-5" />
+      <div class="flex items-center justify-between relative z-10">
+        <div class="flex items-center gap-3 min-w-0">
+          <div :class="cn('p-2 rounded-xl bg-white/5 border border-white/10 shadow-sm shrink-0', filter.color)">
+            <component :is="filter.icon" class="h-4 w-4" />
+          </div>
+          <p class="text-[9px] font-black uppercase tracking-[0.1em] text-text-muted transition-colors group-hover:text-text-primary truncate">
+            {{ t(filter.label) }}
+          </p>
         </div>
-        <div class="flex flex-col items-end">
-          <span :class="cn('text-2xl font-black tracking-tight', props.activeFilter === filter.id ? filter.color : 'text-text-primary')">
-            {{ getCount(filter.id) }}
-          </span>
-        </div>
+        <span :class="cn('text-2xl font-black tracking-tighter tabular-nums', props.activeFilter === filter.id ? filter.color : 'text-text-primary')">
+          {{ getCount(filter.id) }}
+        </span>
       </div>
 
       <div class="relative z-10">
-        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-0.5">{{ t(filter.label) }}</p>
-        <div class="flex items-center gap-1.5">
-          <div :class="cn('h-1 w-8 rounded-full bg-text-secondary/10 overflow-hidden')">
-            <div 
-              :class="cn('h-full transition-all duration-1000', props.activeFilter === filter.id ? filter.bg.replace('/10', '') : 'bg-text-secondary/20')"
-              :style="{ width: props.activeFilter === filter.id ? '100%' : '30%' }"
-            ></div>
-          </div>
+        <div :class="cn('h-1 w-full rounded-full bg-text-secondary/5 overflow-hidden')">
+          <div 
+            :class="cn('h-full transition-all duration-1000', props.activeFilter === filter.id ? filter.bg.replace('/10', '') : 'bg-brand/20')"
+            :style="{ width: props.activeFilter === filter.id ? '100%' : '30%' }"
+          ></div>
         </div>
       </div>
     </button>
