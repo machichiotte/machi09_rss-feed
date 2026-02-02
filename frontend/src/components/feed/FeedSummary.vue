@@ -27,10 +27,46 @@ function cn(...inputs: unknown[]) {
 }
 
 const filters = [
-  { id: '24h', label: 'summary.today', icon: Sun, color: 'text-brand', bg: 'bg-brand/10', border: 'border-brand/20' },
-  { id: '7d', label: 'summary.this_week', icon: Calendar, color: 'text-insight', bg: 'bg-insight/10', border: 'border-insight/20' },
-  { id: 'all', label: 'summary.total', icon: Database, color: 'text-summary', bg: 'bg-summary/10', border: 'border-summary/20' },
-  { id: 'saved', label: 'summary.saved', icon: Star, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  { 
+    id: '24h', 
+    label: 'summary.today', 
+    icon: Sun, 
+    color: 'text-brand', 
+    bg: 'bg-brand/10', 
+    activeBg: 'bg-brand/25',
+    lineBg: 'bg-brand',
+    border: 'border-brand/20' 
+  },
+  { 
+    id: '7d', 
+    label: 'summary.this_week', 
+    icon: Calendar, 
+    color: 'text-insight', 
+    bg: 'bg-insight/10', 
+    activeBg: 'bg-insight/25',
+    lineBg: 'bg-insight',
+    border: 'border-insight/20' 
+  },
+  { 
+    id: 'all', 
+    label: 'summary.total', 
+    icon: Database, 
+    color: 'text-summary', 
+    bg: 'bg-summary/10', 
+    activeBg: 'bg-summary/25',
+    lineBg: 'bg-summary',
+    border: 'border-summary/20' 
+  },
+  { 
+    id: 'saved', 
+    label: 'summary.saved', 
+    icon: Star, 
+    color: 'text-amber-500', 
+    bg: 'bg-amber-500/10', 
+    activeBg: 'bg-amber-500/25',
+    lineBg: 'bg-amber-500',
+    border: 'border-amber-500/20' 
+  },
 ];
 
 const getCount = (id: string) => {
@@ -51,7 +87,7 @@ const getCount = (id: string) => {
       :class="cn(
         'group relative overflow-hidden glass rounded-2xl px-4 py-3.5 transition-all duration-300 text-left border flex flex-col justify-between h-[90px]',
         props.activeFilter === filter.id 
-          ? twMerge(filter.bg.replace('/10', '/25'), filter.border, 'shadow-lg ring-2 ring-brand/50 scale-[1.02]') 
+          ? twMerge(filter.activeBg, filter.border, 'shadow-lg ring-2 ring-brand/50 scale-[1.02]') 
           : 'bg-bg-card/40 border-brand/5 hover:border-brand/20 hover:scale-[1.01]'
       )"
     >
@@ -84,7 +120,7 @@ const getCount = (id: string) => {
       <div class="relative z-10">
         <div :class="cn('h-1 w-full rounded-full bg-text-secondary/5 overflow-hidden')">
           <div 
-            :class="cn('h-full transition-all duration-1000', props.activeFilter === filter.id ? filter.bg.replace('/10', '') : 'bg-brand/20')"
+            :class="cn('h-full transition-all duration-1000', props.activeFilter === filter.id ? filter.lineBg : 'bg-brand/20')"
             :style="{ width: props.activeFilter === filter.id ? '100%' : '30%' }"
           ></div>
         </div>
