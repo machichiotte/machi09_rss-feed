@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { Sun, Calendar, Database, Star, Sparkles, Languages, Hash } from 'lucide-vue-next';
-import { toRef } from 'vue';
+import { ref, computed, toRef } from 'vue';
 import { useI18n } from '../../composables/useI18n';
 import { twMerge } from 'tailwind-merge';
 import { clsx } from 'clsx';
-import { computed } from 'vue';
 import TagCloud from './TagCloud.vue';
+import { Sun, Calendar, Database, Star, Sparkles, Languages, Hash, ChevronDown, Check } from 'lucide-vue-next';
 
 const props = defineProps<{
   counts: {
@@ -29,6 +28,8 @@ const emit = defineEmits<{
   (e: 'toggle-language', lang: string): void;
   (e: 'select-tag', tag: string | null): void;
 }>();
+
+const isLangOpen = ref(false);
 
 const { t } = useI18n(toRef(props, 'preferredLanguage'));
 
@@ -180,27 +181,56 @@ const getLangFlag = (lang: string) => {
         </button>
       </div>
 
-      <!-- Language Quick Filters (Right of Favorites) -->
-      <div v-if="allLanguages && allLanguages.length > 0" class="lg:w-64 flex-shrink-0 flex flex-col glass rounded-2xl border border-brand/10 p-3 bg-bg-card/20 min-h-[90px]">
-        <div class="flex items-center gap-2 mb-2 px-1">
-          <Languages class="h-3 w-3 text-brand" />
-          <span class="text-[9px] font-black uppercase tracking-widest text-text-muted">{{ t('sidebar.all_languages') }}</span>
-        </div>
-        <div class="flex flex-wrap gap-1.5 overflow-y-auto no-scrollbar max-h-12 lg:max-h-none">
-          <button
-            v-for="lang in allLanguages"
-            :key="lang"
-            @click="emit('toggle-language', lang)"
-            :class="cn(
-              'flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all duration-300',
-              selectedLanguages?.includes(lang)
-                ? 'bg-brand text-white border-brand shadow-sm scale-105'
-                : 'bg-white/5 text-text-muted border-white/5 hover:border-brand/30'
-            )"
-          >
-            <span class="text-xs">{{ getLangFlag(lang) }}</span>
-            <span class="text-[8px] font-bold uppercase">{{ lang }}</span>
-          </button>
+      <!-- Language Selector (Right of Filters) -->
+      <div class="relative">
+        <button
+          @click="isLangOpen = !isLangOpen"
+          :class="cn(
+            'flex flex-col justify-between h-[90px] w-full lg:w-48 glass rounded-2xl border p-4 transition-all duration-300 text-left group',
+            isLangOpen || selectedLanguages.length > 0
+              ? 'border-brand/30 bg-brand/5 shadow-lg' 
+              : 'border-brand/5 bg-bg-card/20 hover:border-brand/20'
+          )"
+        >
+          <div class="flex items-center justify-between w-full">
+            <div class="p-2 rounded-xl bg-white/5 border border-white/10 text-brand">
+              <Languages class="h-4 w-4" />
+            </div>
+            <ChevronDown :class="cn('h-4 w-4 text-text-muted transition-transform duration-300', isLangOpen && 'rotate-180')" />
+          </div>
+          
+          <div>
+            <p class="text-[9px] font-black uppercase tracking-widest text-text-muted mb-0.5">Langues</p>
+            <p class="text-[11px] font-bold text-text-primary truncate">
+              {{ selectedLanguages.length === 0 ? t('sidebar.all_languages') : t('sidebar.selected_languages', { count: selectedLanguages.length }) }}
+            </p>
+          </div>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div 
+          v-if="isLangOpen" 
+          class="absolute top-full right-0 mt-2 w-64 glass rounded-2xl border border-brand/20 shadow-2xl z-[100] p-2 animate-in fade-in zoom-in-95 duration-200"
+        >
+          <div class="max-h-64 overflow-y-auto no-scrollbar space-y-1">
+            <button
+              v-for="lang in allLanguages"
+              :key="lang"
+              @click="emit('toggle-language', lang)"
+              :class="cn(
+                'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-xs font-bold border',
+                selectedLanguages.includes(lang)
+                  ? 'bg-brand/10 border-brand/20 text-brand'
+                  : 'border-transparent text-text-muted hover:bg-white/5 hover:text-text-primary'
+              )"
+            >
+              <div class="flex items-center gap-3">
+                <span class="text-base">{{ getLangFlag(lang) }}</span>
+                <span class="uppercase tracking-wider">{{ lang }}</span>
+              </div>
+              <Check v-if="selectedLanguages.includes(lang)" class="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

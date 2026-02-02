@@ -6,7 +6,6 @@ import { RefreshCw } from 'lucide-vue-next';
 // Layout Components
 import AuroraBackground from './components/layout/AuroraBackground.vue';
 import Navbar from './components/layout/Navbar.vue';
-import Sidebar from './components/layout/Sidebar.vue';
 import Footer from './components/layout/Footer.vue';
 import SettingsModal from './components/settings/SettingsModal.vue';
 
@@ -66,13 +65,17 @@ const preferredLanguage = ref(localStorage.preferredLanguage || 'fr');
 if (!localStorage.preferredLanguage) localStorage.preferredLanguage = 'fr';
 const insightVisibility = ref<Record<string, boolean>>({}); // articleId -> visible
 const translationToggles = ref<Record<string, boolean>>({}); // articleId -> isTranslated
-const showLangDropdown = ref(false);
 const viewMode = ref<'grid' | 'list' | 'compact'>((localStorage.viewMode as 'grid' | 'list' | 'compact') || 'grid');
 const isDark = ref(false);
 const showOnlyInsights = ref(false);
 const showOnlyBookmarks = ref(false);
 const dateRange = ref('all');
+const customTags = ref<string[]>(JSON.parse(localStorage.customTags || '[]'));
 const isSettingsOpen = ref(false);
+
+watch(customTags, (newTags) => {
+  localStorage.customTags = JSON.stringify(newTags);
+}, { deep: true });
 const error = ref<string | null>(null);
 const serverStats = ref({ today: 0, week: 0, saved: 0, enriched: 0, total: 0 });
 
@@ -87,6 +90,10 @@ const hasMore = ref(false);
 
 // Metadata State
 const allCategories = ref<string[]>([]);
+const allCategoriesComposed = computed(() => {
+  const fromRss = allCategories.value || [];
+  return [...new Set([...fromRss, ...customTags.value])].sort((a, b) => a.localeCompare(b));
+});
 const allSources = ref<string[]>([]);
 const groupedSources = ref<Record<string, { name: string; language: string; enabled: boolean }[]>>({});
 const allLanguages = ref<string[]>([]);
@@ -425,6 +432,8 @@ onUnmounted(() => {
       :view-mode="viewMode"
       :grouped-sources="groupedSources"
       :languages="allLanguages"
+      :selected-sentiment="selectedSentiment"
+      :custom-tags="customTags"
       @close="isSettingsOpen = false"
       @toggle-theme="toggleTheme"
       @update:global-insight-mode="globalInsightMode = $event"
@@ -432,83 +441,67 @@ onUnmounted(() => {
       @update:auto-translate="autoTranslate = $event"
       @update:view-mode="viewMode = $event"
       @update:preferred-language="preferredLanguage = $event"
+      @toggle-sentiment="toggleSentiment"
+      @add-custom-tag="(tag) => customTags.push(tag)"
+      @remove-custom-tag="(tag) => customTags = customTags.filter(t => t !== tag)"
       @delete-source="handleDeleteSource"
       @toggle-source="handleToggleSource"
     />
 
     <main class="w-full max-w-[1910px] mx-auto px-4 sm:px-6 lg:px-10 pt-8 pb-10 relative">
-      <div class="flex flex-col lg:flex-row gap-8 items-start">
-        <Sidebar 
-          :total-articles="totalArticles"
-          :categories="allCategories"
-          :selected-category="selectedCategory"
-          :selected-sentiment="selectedSentiment"
-          v-model:show-only-insights="showOnlyInsights"
-          :languages="allLanguages"
-          :selected-languages="selectedLanguages"
-          v-model:show-lang-dropdown="showLangDropdown"
-          v-model:show-only-bookmarks="showOnlyBookmarks"
+      <div class="w-full min-h-[60vh]">
+        <!-- Processing State Banner -->
+        <div v-if="processing" class="glass-card rounded-3xl p-6 border-brand/20 flex items-center justify-between animate-pulse mb-8">
+          <div class="flex items-center gap-4">
+            <div class="h-10 w-10 bg-brand/20 rounded-full flex items-center justify-center">
+              <RefreshCw class="h-5 w-5 text-brand animate-spin" />
+            </div>
+            <div>
+              <p class="font-bold text-text-primary">{{ t('feed.syncing_nexus') }}</p>
+              <p class="text-xs text-text-muted">{{ t('feed.retrieving_intel') }}</p>
+            </div>
+          </div>
+          <div class="hidden sm:flex gap-1.5">
+            <div v-for="i in 3" :key="i" class="h-1.5 w-6 bg-brand rounded-full animate-bounce" :style="{ animationDelay: `${i*0.2}s` }"></div>
+          </div>
+        </div>
+
+        <FeedSummary 
+          :counts="feedSummaryCounts"
+          :active-filter="showOnlyBookmarks ? 'saved' : (showOnlyInsights ? 'enriched' : dateRange)"
           :preferred-language="preferredLanguage"
-          @select-category="selectCategory"
-          @toggle-sentiment="toggleSentiment"
-          @toggle-selected-language="toggleSelectedLanguage"
+          :all-languages="allLanguages"
+          :selected-languages="selectedLanguages"
+          :global-insight-mode="globalInsightMode"
+          :categories="allCategoriesComposed"
+          :selected-category="selectedCategory"
+          @filter-change="handleFilterChange"
+          @toggle-language="toggleSelectedLanguage"
+          @select-tag="selectCategory"
         />
 
-        <div class="flex-1 lg:ml-80 w-full min-h-[60vh]">
-          <!-- Processing State Banner -->
-          <div v-if="processing" class="glass-card rounded-3xl p-6 border-brand/20 flex items-center justify-between animate-pulse mb-8">
-            <div class="flex items-center gap-4">
-              <div class="h-10 w-10 bg-brand/20 rounded-full flex items-center justify-center">
-                <RefreshCw class="h-5 w-5 text-brand animate-spin" />
-              </div>
-              <div>
-                <p class="font-bold text-text-primary">{{ t('feed.syncing_nexus') }}</p>
-                <p class="text-xs text-text-muted">{{ t('feed.retrieving_intel') }}</p>
-              </div>
-            </div>
-            <div class="hidden sm:flex gap-1.5">
-              <div v-for="i in 3" :key="i" class="h-1.5 w-6 bg-brand rounded-full animate-bounce" :style="{ animationDelay: `${i*0.2}s` }"></div>
-            </div>
-          </div>
-
-          <FeedSummary 
-            :counts="feedSummaryCounts"
-            :active-filter="showOnlyBookmarks ? 'saved' : (showOnlyInsights ? 'enriched' : dateRange)"
-            :preferred-language="preferredLanguage"
-            :all-languages="allLanguages"
-            :selected-languages="selectedLanguages"
-            :global-insight-mode="globalInsightMode"
-            :categories="allCategories"
-            :selected-category="selectedCategory"
-            @filter-change="handleFilterChange"
-            @toggle-language="toggleSelectedLanguage"
-            @select-tag="selectCategory"
-          />
-
-          <!-- Seamless Filter Indicator -->
-          <div 
-            v-if="isFiltering" 
-            class="flex items-center justify-center gap-3 py-4 animate-in fade-in slide-in-from-top-2 duration-300"
-          >
-            <RefreshCw class="h-4 w-4 text-brand animate-spin" />
-            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Mise à jour du flux...</span>
-          </div>
-
-          <ArticleFeed 
-            ref="feedRef"
-            :articles="articles"
-            :loading="loading"
-            :error="error"
-            :has-more="hasMore"
-            :global-insight-mode="globalInsightMode"
-            :global-summary-mode="globalSummaryMode"
-            :preferred-language="preferredLanguage"
-            :translation-toggles="translationToggles"
-            :view-mode="viewMode"
-            @toggle-bookmark="handleToggleBookmark"
-            @retry="loadArticles(true)"
-          />
+        <!-- Seamless Filter Indicator -->
+        <div 
+          v-if="isFiltering" 
+          class="flex items-center justify-center gap-3 py-4 animate-in fade-in slide-in-from-top-2 duration-300"
+        >
+          <RefreshCw class="h-4 w-4 text-brand animate-spin" />
+          <span class="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Mise à jour du flux...</span>
         </div>
+
+        <ArticleFeed 
+          ref="feedRef"
+          :articles="articles"
+          :loading="loading"
+          :error="error"
+          :has-more="hasMore"
+          :global-insight-mode="globalInsightMode"
+          :global-summary-mode="globalSummaryMode"
+          :preferred-language="preferredLanguage"
+          :translation-toggles="translationToggles"
+          :view-mode="viewMode"
+          @toggle-bookmark="handleToggleBookmark"
+        />
       </div>
     </main>
 
