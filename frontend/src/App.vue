@@ -99,7 +99,7 @@ const feedSummaryCounts = computed(() => {
   return {
     today: serverStats.value.today,
     week: serverStats.value.week,
-    unread: totalArticles.value,
+    total: totalArticles.value,
     saved: serverStats.value.saved
   };
 });

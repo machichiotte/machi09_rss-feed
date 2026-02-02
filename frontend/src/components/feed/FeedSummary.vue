@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Sun, Calendar, Mail, Star } from 'lucide-vue-next';
+import { Sun, Calendar, Database, Star } from 'lucide-vue-next';
 import { toRef } from 'vue';
 import { useI18n } from '../../composables/useI18n';
 import { twMerge } from 'tailwind-merge';
@@ -9,7 +9,7 @@ const props = defineProps<{
   counts: {
     today: number;
     week: number;
-    unread: number;
+    total: number;
     saved: number;
   };
   activeFilter: string;
@@ -29,14 +29,14 @@ function cn(...inputs: unknown[]) {
 const filters = [
   { id: '24h', label: 'summary.today', icon: Sun, color: 'text-brand', bg: 'bg-brand/10', border: 'border-brand/20' },
   { id: '7d', label: 'summary.this_week', icon: Calendar, color: 'text-insight', bg: 'bg-insight/10', border: 'border-insight/20' },
-  { id: 'unread', label: 'summary.unread', icon: Mail, color: 'text-summary', bg: 'bg-summary/10', border: 'border-summary/20' },
+  { id: 'all', label: 'summary.total', icon: Database, color: 'text-summary', bg: 'bg-summary/10', border: 'border-summary/20' },
   { id: 'saved', label: 'summary.saved', icon: Star, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
 ];
 
 const getCount = (id: string) => {
   if (id === '24h') return props.counts.today;
   if (id === '7d') return props.counts.week;
-  if (id === 'unread') return props.counts.unread;
+  if (id === 'all') return props.counts.total;
   if (id === 'saved') return props.counts.saved;
   return 0;
 };
@@ -51,16 +51,28 @@ const getCount = (id: string) => {
       :class="cn(
         'group relative overflow-hidden glass rounded-2xl px-4 py-3.5 transition-all duration-300 text-left border flex flex-col justify-between h-[90px]',
         props.activeFilter === filter.id 
-          ? twMerge(filter.bg, filter.border, 'shadow-md') 
-          : 'bg-bg-card/40 border-brand/5 hover:border-brand/20'
+          ? twMerge(filter.bg, filter.border, 'shadow-lg ring-2 ring-brand/30 scale-[1.02]') 
+          : 'bg-bg-card/40 border-brand/5 hover:border-brand/20 hover:scale-[1.01]'
       )"
     >
       <div class="flex items-center justify-between relative z-10">
         <div class="flex items-center gap-3 min-w-0">
-          <div :class="cn('p-2 rounded-xl bg-white/5 border border-white/10 shadow-sm shrink-0', filter.color)">
+          <div
+            :class="cn(
+              'p-2 rounded-xl shadow-sm shrink-0 transition-all',
+              props.activeFilter === filter.id 
+                ? twMerge(filter.bg.replace('/10', '/20'), 'border-2', filter.border.replace('/20', '/40'), filter.color)
+                : 'bg-white/5 border border-white/10', filter.color
+            )"
+          >
             <component :is="filter.icon" class="h-4 w-4" />
           </div>
-          <p class="text-[9px] font-black uppercase tracking-[0.1em] text-text-muted transition-colors group-hover:text-text-primary truncate">
+          <p
+            :class="cn(
+              'text-[9px] font-black uppercase tracking-[0.1em] transition-colors truncate',
+              props.activeFilter === filter.id ? filter.color : 'text-text-muted group-hover:text-text-primary'
+            )"
+          >
             {{ t(filter.label) }}
           </p>
         </div>

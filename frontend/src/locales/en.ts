@@ -52,7 +52,7 @@ export default {
     summary: {
         today: "Today",
         this_week: "This Week",
-        unread: "Unread",
+        total: "Total",
         saved: "Saved"
     }
 };
