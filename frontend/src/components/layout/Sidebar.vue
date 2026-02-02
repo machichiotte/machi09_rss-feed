@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { 
-  Filter, 
-  Sparkles, 
-  ChevronDown,
-  Bookmark
+  Filter
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -19,12 +16,8 @@ const props = defineProps<{
   categories: string[];
   selectedCategory: string | null;
   selectedSentiment: string | null;
-  showOnlyInsights: boolean;
-  languages: string[];
-  selectedLanguages: string[];
   showLangDropdown: boolean;
   preferredLanguage: string;
-  showOnlyBookmarks: boolean;
 }>();
 
 const { t } = useI18n(toRef(props, 'preferredLanguage'));
@@ -32,25 +25,12 @@ const { t } = useI18n(toRef(props, 'preferredLanguage'));
 const emit = defineEmits<{
   (e: 'selectCategory', cat: string | null): void;
   (e: 'toggleSentiment', sent: string): void;
-  (e: 'update:showOnlyInsights', val: boolean): void;
-  (e: 'toggleSelectedLanguage', lang: string): void;
-  (e: 'update:showLangDropdown', val: boolean): void;
-  (e: 'update:showOnlyBookmarks', val: boolean): void;
 }>();
 
 function cn(...inputs: unknown[]) {
   return twMerge(clsx(inputs));
 }
 
-const getLangFlag = (lang?: string) => {
-  if (!lang) return '🌍';
-  const map: Record<string, string> = {
-    'fr': '🇫🇷', 'en': '🇺🇸', 'es': '🇪🇸', 'de': '🇩🇪',
-    'it': '🇮🇹', 'pt': '🇵🇹', 'nl': '🇳🇱', 'ru': '🇷🇺',
-    'zh': '🇨🇳', 'ja': '🇯🇵', 'ar': '🇸🇦', 'cn': '🇨🇳'
-  };
-  return map[lang.toLowerCase()] || '🌍';
-};
 </script>
 
 <template>
@@ -89,74 +69,6 @@ const getLangFlag = (lang?: string) => {
           <div :class="cn('w-2 h-2 rounded-full', sent === 'bullish' ? 'bg-success icon-glow-success' : sent === 'bearish' ? 'bg-danger' : 'bg-text-muted', selectedSentiment === sent ? 'opacity-100' : 'opacity-30')"></div>
         </button>
       </div>
-    </div>
-
-    <!-- 4. Content Origin -->
-    <div class="glass rounded-2xl py-4 px-6 space-y-3 border-brand/5 bg-bg-card/30">
-      <h2 class="font-black text-text-muted text-[10px] uppercase tracking-[0.25em]">{{ t('sidebar.content_origin') }}</h2>
-      
-      <!-- Only AI Insights Toggle -->
-      <button 
-        @click="emit('update:showOnlyInsights', !showOnlyInsights)"
-        :class="cn(
-          'w-full flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest',
-          showOnlyInsights 
-            ? 'bg-insight/10 border-insight/20 text-insight' 
-            : 'bg-bg-card/50 border-brand/10 text-text-muted'
-        )"
-      >
-        <span>{{ t('sidebar.only_ai') }}</span>
-        <Sparkles :class="cn('h-3 w-3', showOnlyInsights ? 'text-insight' : 'text-text-muted')" />
-      </button>
-
-
-
-      <!-- Language Dropdown -->
-      <div>
-        <button 
-          @click="emit('update:showLangDropdown', !showLangDropdown)"
-          class="w-full flex items-center justify-between bg-bg-card/50 border border-brand/10 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:bg-bg-card transition-all"
-        >
-          <span v-if="selectedLanguages.length === 0">{{ t('sidebar.all_languages') }}</span>
-          <span v-else>{{ t('sidebar.selected_languages', { count: selectedLanguages.length }) }}</span>
-          <ChevronDown :class="cn('h-3 w-3 text-text-muted transition-transform', showLangDropdown && 'rotate-180')" />
-        </button>
-
-        <div v-if="showLangDropdown" class="mt-2 space-y-1 max-h-48 overflow-y-auto no-scrollbar">
-          <button 
-            v-for="lang in languages" 
-            :key="lang"
-            @click="emit('toggleSelectedLanguage', lang)"
-            :class="cn(
-              'w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              selectedLanguages.includes(lang) ? 'bg-brand/10 text-brand' : 'text-text-secondary hover:bg-bg-card'
-            )"
-          >
-            <div class="flex items-center gap-2">
-              <span>{{ getLangFlag(lang) }}</span>
-              <span class="uppercase">{{ lang }}</span>
-            </div>
-            <div v-if="selectedLanguages.includes(lang)" class="w-1.5 h-1.5 bg-brand rounded-full"></div>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Bookmarks Toggle -->
-      <button 
-        @click="emit('update:showOnlyBookmarks', !showOnlyBookmarks)"
-        :class="cn(
-          'w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all text-[11px] font-black uppercase tracking-widest group shadow-sm',
-          showOnlyBookmarks 
-            ? 'bg-brand text-white border-brand shadow-brand/20' 
-            : 'bg-bg-card/50 border-brand/10 text-text-muted hover:border-brand/30'
-        )"
-      >
-        <span class="flex items-center gap-2">
-          <Bookmark :class="cn('h-3.5 w-3.5', showOnlyBookmarks ? 'fill-current' : 'group-hover:text-brand transition-colors')" />
-          {{ t('sidebar.favorites') }}
-        </span>
-        <div v-if="showOnlyBookmarks" class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></div>
-      </button>
     </div>
   </aside>
 </template>

@@ -13,7 +13,7 @@ export default {
         view_source: "Voir la source"
     },
     nav: {
-        insights: "Montrer l'analyse IA",
+        insights: "Enrichissement IA",
         summary: "Résumé",
         translate: "Traduire"
     },
@@ -23,7 +23,7 @@ export default {
         discovery: "Découverte",
         market_sentiment: "Sentiment du Marché",
         content_origin: "Origine du Contenu",
-        only_ai: "Analyses par IA",
+        only_ai: "Synthèses",
         anytime: "Toute période",
         last_1h: "Dernière heure",
         last_24h: "Dernières 24 heures",
@@ -53,6 +53,7 @@ export default {
         today: "Aujourd'hui",
         this_week: "Cette semaine",
         total: "Tous les articles",
-        saved: "Sauvegardés"
+        saved: "Favoris",
+        enriched: "Synthèses"
     }
 };

@@ -74,7 +74,7 @@ const showOnlyBookmarks = ref(false);
 const dateRange = ref('all');
 const isSettingsOpen = ref(false);
 const error = ref<string | null>(null);
-const serverStats = ref({ today: 0, week: 0, saved: 0, total: 0 });
+const serverStats = ref({ today: 0, week: 0, saved: 0, enriched: 0, total: 0 });
 
 // i18n Setup
 const { t } = useI18n(preferredLanguage);
@@ -101,18 +101,23 @@ const feedSummaryCounts = computed(() => {
     today: serverStats.value.today,
     week: serverStats.value.week,
     total: serverStats.value.total,
-    saved: serverStats.value.saved
+    saved: serverStats.value.saved,
+    enriched: serverStats.value.enriched
   };
 });
 
 const handleFilterChange = (filterId: string) => {
   if (filterId === 'saved') {
-    // Switch to Saved view (exclusive)
     showOnlyBookmarks.value = true;
+    showOnlyInsights.value = false;
     dateRange.value = 'all'; 
-  } else {
-    // Switch to date/all view (exclusive)
+  } else if (filterId === 'enriched') {
     showOnlyBookmarks.value = false;
+    showOnlyInsights.value = true;
+    dateRange.value = 'all';
+  } else {
+    showOnlyBookmarks.value = false;
+    showOnlyInsights.value = false;
     dateRange.value = filterId;
   }
 };
@@ -468,9 +473,16 @@ onUnmounted(() => {
 
           <FeedSummary 
             :counts="feedSummaryCounts"
-            :active-filter="showOnlyBookmarks ? 'saved' : dateRange"
+            :active-filter="showOnlyBookmarks ? 'saved' : (showOnlyInsights ? 'enriched' : dateRange)"
             :preferred-language="preferredLanguage"
+            :all-languages="allLanguages"
+            :selected-languages="selectedLanguages"
+            :global-insight-mode="globalInsightMode"
+            :categories="allCategories"
+            :selected-category="selectedCategory"
             @filter-change="handleFilterChange"
+            @toggle-language="toggleSelectedLanguage"
+            @select-tag="selectCategory"
           />
 
           <!-- Seamless Filter Indicator -->
