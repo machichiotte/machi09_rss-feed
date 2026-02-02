@@ -73,7 +73,7 @@ const showOnlyBookmarks = ref(false);
 const dateRange = ref('all');
 const isSettingsOpen = ref(false);
 const error = ref<string | null>(null);
-const serverStats = ref({ today: 0, week: 0, saved: 0 });
+const serverStats = ref({ today: 0, week: 0, saved: 0, total: 0 });
 
 // i18n Setup
 const { t } = useI18n(preferredLanguage);
@@ -99,7 +99,7 @@ const feedSummaryCounts = computed(() => {
   return {
     today: serverStats.value.today,
     week: serverStats.value.week,
-    total: totalArticles.value,
+    total: serverStats.value.total,
     saved: serverStats.value.saved
   };
 });
@@ -385,12 +385,11 @@ onUnmounted(() => {
 
     <Navbar 
       v-model:search-query="searchQuery"
-      v-model:preferred-language="preferredLanguage"
+      :preferred-language="preferredLanguage"
       v-model:auto-translate="autoTranslate"
       v-model:global-insight-mode="globalInsightMode"
       v-model:global-summary-mode="globalSummaryMode"
       v-model:view-mode="viewMode"
-      :languages="allLanguages"
       :is-dark="isDark"
       :processing="processing"
       @toggle-theme="toggleTheme"
@@ -407,12 +406,14 @@ onUnmounted(() => {
       :preferred-language="preferredLanguage"
       :view-mode="viewMode"
       :grouped-sources="groupedSources"
+      :languages="allLanguages"
       @close="isSettingsOpen = false"
       @toggle-theme="toggleTheme"
       @update:global-insight-mode="globalInsightMode = $event"
       @update:global-summary-mode="globalSummaryMode = $event"
       @update:auto-translate="autoTranslate = $event"
       @update:view-mode="viewMode = $event"
+      @update:preferred-language="preferredLanguage = $event"
       @delete-source="handleDeleteSource"
       @toggle-source="handleToggleSource"
     />

@@ -7,8 +7,7 @@ import {
   Sparkles, 
   FileText, 
   Sun, 
-  Moon, 
-  ChevronDown,
+  Moon,
   Settings
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
@@ -23,7 +22,6 @@ import LayoutToggle from './LayoutToggle.vue';
 const props = defineProps<{
   searchQuery: string;
   preferredLanguage: string;
-  languages: string[];
   autoTranslate: boolean;
   globalInsightMode: boolean;
   globalSummaryMode: boolean;
@@ -50,15 +48,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-const getLangFlag = (lang?: string) => {
-  if (!lang) return '🌍';
-  const map: Record<string, string> = {
-    'fr': '🇫🇷', 'en': '🇺🇸', 'es': '🇪🇸', 'de': '🇩🇪',
-    'it': '🇮🇹', 'pt': '🇵🇹', 'nl': '🇳🇱', 'ru': '🇷🇺',
-    'zh': '🇨🇳', 'ja': '🇯🇵', 'ar': '🇸🇦', 'cn': '🇨🇳'
-  };
-  return map[lang.toLowerCase()] || '🌍';
-};
+
 </script>
 
 <template>
@@ -96,19 +86,6 @@ const getLangFlag = (lang?: string) => {
 
           <!-- Controls -->
           <div class="hidden md:flex items-center gap-3">
-            <div class="relative group">
-              <select 
-                :value="preferredLanguage"
-                @change="emit('update:preferredLanguage', ($event.target as HTMLSelectElement).value)"
-                class="appearance-none bg-bg-card/70 border border-brand/20 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold focus:ring-2 focus:ring-brand/20 outline-none cursor-pointer uppercase min-w-[100px] text-text-secondary transition-all hover:bg-bg-card shadow-sm"
-              >
-                <option v-for="lang in languages" :key="lang" :value="lang">
-                  {{ getLangFlag(lang) }} {{ lang.toUpperCase() }}
-                </option>
-              </select>
-              <ChevronDown class="h-3 w-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" />
-            </div>
-
             <!-- Global Translate Toggle -->
             <button 
               @click="emit('update:autoTranslate', !autoTranslate)"

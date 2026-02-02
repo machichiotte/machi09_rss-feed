@@ -70,7 +70,7 @@ export class RssRepository {
     /**
      * Calculates Today and Week statistics - ALWAYS GLOBAL (no filters applied).
      */
-    private static async getStats(): Promise<{ today: number; week: number; saved: number }> {
+    private static async getStats(): Promise<{ today: number; week: number; saved: number; total: number }> {
         const db = getDatabase();
         const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
 
@@ -79,13 +79,14 @@ export class RssRepository {
         const dayLimit = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
         const weekLimit = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        const [today, week, saved] = await Promise.all([
+        const [today, week, saved, total] = await Promise.all([
             collection.countDocuments({ publicationDate: { $gte: dayLimit } }),
             collection.countDocuments({ publicationDate: { $gte: weekLimit } }),
-            collection.countDocuments({ isBookmarked: true })
+            collection.countDocuments({ isBookmarked: true }),
+            collection.countDocuments({})
         ]);
 
-        return { today, week, saved };
+        return { today, week, saved, total };
     }
 
 

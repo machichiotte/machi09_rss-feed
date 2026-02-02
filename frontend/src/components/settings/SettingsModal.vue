@@ -33,6 +33,7 @@ const props = defineProps<{
   preferredLanguage: string;
   viewMode: 'grid' | 'list' | 'compact';
   groupedSources: Record<string, (string | SourceObj)[]>;
+  languages: string[];
 }>();
 
 const emit = defineEmits<{
@@ -43,7 +44,8 @@ const emit = defineEmits<{
   'update:viewMode': [val: 'grid' | 'list' | 'compact'],
   'toggleTheme': [],
   'toggleSource': [category: string, name: string, enabled: boolean],
-  'deleteSource': [category: string, name: string]
+  'deleteSource': [category: string, name: string],
+  'update:preferredLanguage': [val: string]
 }>();
 
 const activeTab = ref('feeds');
@@ -313,6 +315,26 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
                   <component :is="theme.icon" :class="cn('h-10 w-10 transition-transform duration-500', ((theme.id === 'dark' && isDark) || (theme.id === 'light' && !isDark)) && 'scale-125 rotate-12')" />
                   <span class="text-[11px] font-black uppercase tracking-[0.2em]">{{ theme.label }}</span>
                   <div v-if="(theme.id === 'dark' && isDark) || (theme.id === 'light' && !isDark)" class="absolute bottom-0 left-0 right-0 h-1.5 bg-brand"></div>
+                </button>
+              </div>
+            </section>
+            <section class="p-8 rounded-[2.5rem] bg-bg-card border border-brand/10 shadow-md">
+              <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-8 border-b border-brand/10 pb-4">Langue de l'interface</h4>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <button 
+                  v-for="lang in languages" 
+                  :key="lang"
+                  @click="emit('update:preferredLanguage', lang)"
+                  :class="cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all relative overflow-hidden',
+                    preferredLanguage === lang
+                      ? 'bg-brand/10 border-brand/40 text-brand shadow-md' 
+                      : 'bg-bg-card/50 border-brand/5 text-text-secondary hover:bg-bg-card hover:border-brand/20'
+                  )"
+                >
+                  <span class="text-xl">{{ getLangFlag(lang) }}</span>
+                  <span class="text-[10px] font-black uppercase tracking-widest">{{ lang }}</span>
+                  <div v-if="preferredLanguage === lang" class="absolute bottom-0 left-0 right-0 h-1 bg-brand"></div>
                 </button>
               </div>
             </section>

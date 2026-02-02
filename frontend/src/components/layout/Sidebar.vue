@@ -57,18 +57,6 @@ const getLangFlag = (lang?: string) => {
 
 <template>
   <aside class="w-full lg:w-72 flex-shrink-0 space-y-3 lg:fixed lg:top-20 lg:pt-8 h-[calc(100vh-5rem)] overflow-y-auto no-scrollbar pb-10 pr-2">
-    <!-- 1. Quick Stats -->
-    <div class="glass rounded-2xl py-3 px-5 bg-brand/5 border-brand/20 relative overflow-hidden group h-[90px] flex flex-col justify-center">
-      <div class="absolute -right-4 -top-4 bg-brand/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-brand/20 transition-all"></div>
-      <div class="relative z-10">
-        <p class="text-[9px] font-black uppercase tracking-widest text-brand mb-1">{{ t('sidebar.total_insights') }}</p>
-        <div class="flex items-baseline gap-2">
-          <span class="text-3xl font-black tracking-tighter text-text-primary leading-none">{{ totalArticles.toLocaleString() }}</span>
-          <span class="text-[9px] font-bold text-text-muted uppercase italic tracking-tighter">{{ t('sidebar.articles') }}</span>
-        </div>
-      </div>
-    </div>
-
     <!-- 2. Tag Cloud / Discovery -->
     <div class="glass rounded-2xl py-5 px-6 border-brand/5 bg-bg-card/30">
       <h2 class="font-black text-text-muted mb-4 text-[10px] uppercase tracking-[0.25em] flex items-center gap-2">
