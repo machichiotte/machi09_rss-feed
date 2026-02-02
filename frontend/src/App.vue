@@ -10,7 +10,7 @@ import SettingsModal from './components/settings/SettingsModal.vue';
 
 // i18n
 // import { useI18n } from './composables/useI18n';
-// import type { UserUserSettings } from './types';
+import type { UserUserSettings } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -138,6 +138,14 @@ const triggerProcess = async () => {
   }
 };
 
+const applyProfileSettings = (settings: Partial<UserUserSettings>) => {
+  if (settings.viewMode) viewMode.value = settings.viewMode;
+  if (settings.globalInsightMode !== undefined) globalInsightMode.value = settings.globalInsightMode;
+  if (settings.globalSummaryMode !== undefined) globalSummaryMode.value = settings.globalSummaryMode;
+  if (settings.autoTranslate !== undefined) autoTranslate.value = settings.autoTranslate;
+  if (settings.preferredLanguage) preferredLanguage.value = settings.preferredLanguage;
+};
+
 const initializeUserProfile = async () => {
   try {
     const { data: profile } = await axios.get(`${API_BASE_URL}/api/user/${userId.value}/profile`);
@@ -145,12 +153,7 @@ const initializeUserProfile = async () => {
       bookmarkedIds.value = profile.bookmarks || [];
       customTags.value = profile.customTags || [];
       if (profile.settings) {
-          const s = profile.settings;
-          if (s.viewMode) viewMode.value = s.viewMode;
-          if (s.globalInsightMode !== undefined) globalInsightMode.value = s.globalInsightMode;
-          if (s.globalSummaryMode !== undefined) globalSummaryMode.value = s.globalSummaryMode;
-          if (s.autoTranslate !== undefined) autoTranslate.value = s.autoTranslate;
-          if (s.preferredLanguage) preferredLanguage.value = s.preferredLanguage;
+        applyProfileSettings(profile.settings);
       }
     }
   } catch {
@@ -231,26 +234,26 @@ onMounted(async () => {
     />
 
     <main class="w-full max-w-[1910px] mx-auto px-4 sm:px-6 lg:px-10 pt-8 pb-10 relative">
-        <router-view 
-            :search-query="searchQuery"
-            :preferred-language="preferredLanguage"
-            :auto-translate="autoTranslate"
-            :global-insight-mode="globalInsightMode"
-            :global-summary-mode="globalSummaryMode"
-            :view-mode="viewMode"
-            :is-dark="isDark"
-            :processing="processing"
-            :user-id="userId"
-            :bookmarked-ids="bookmarkedIds"
-            :custom-tags="customTags"
-            :grouped-sources="groupedSources"
-            :all-languages="allLanguages"
-            :all-categories="allCategories"
-            @update:bookmarked-ids="(ids: string[]) => bookmarkedIds = ids"
-            @update:custom-tags="(tags: string[]) => customTags = tags"
-            @open-settings="(tab: string) => { settingsTab = tab; isSettingsOpen = true; }"
-            @trigger-process="triggerProcess"
-        />
+      <router-view 
+        :search-query="searchQuery"
+        :preferred-language="preferredLanguage"
+        :auto-translate="autoTranslate"
+        :global-insight-mode="globalInsightMode"
+        :global-summary-mode="globalSummaryMode"
+        :view-mode="viewMode"
+        :is-dark="isDark"
+        :processing="processing"
+        :user-id="userId"
+        :bookmarked-ids="bookmarkedIds"
+        :custom-tags="customTags"
+        :grouped-sources="groupedSources"
+        :all-languages="allLanguages"
+        :all-categories="allCategories"
+        @update:bookmarked-ids="(ids: string[]) => bookmarkedIds = ids"
+        @update:custom-tags="(tags: string[]) => customTags = tags"
+        @open-settings="(tab: string) => { settingsTab = tab; isSettingsOpen = true; }"
+        @trigger-process="triggerProcess"
+      />
     </main>
 
     <Footer :preferred-language="preferredLanguage" />

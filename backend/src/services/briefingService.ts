@@ -13,20 +13,27 @@ export class BriefingService {
 
         // 1. Fetch top articles
         const articles = await RssRepository.getTopArticlesForBriefing(20);
+        logger.info(`🔍 Briefing found ${articles.length} articles to process from the last 24h.`);
 
         if (articles.length === 0) {
+            logger.warn('⚠️ No articles found for briefing generation.');
             throw new Error('No articles found for briefing');
         }
 
         // 2. Group by category for structure
         const categories = Array.from(new Set(articles.map(a => a.category || 'General')));
+        logger.info(`📂 Categories detected: ${categories.join(', ')}`);
+
         const sections: BriefingSection[] = [];
 
         for (const cat of categories) {
             const catArticles = articles.filter(a => (a.category || 'General') === cat).slice(0, 3);
+            logger.info(`📝 Processing section [${cat}] with ${catArticles.length} articles:\n   🔹 ${catArticles.map(a => a.title.slice(0, 60)).join('\n   🔹 ')}`);
+
             const textToSum = catArticles.map(a => `${a.title}: ${a.analysis?.iaSummary || a.summary || ''}`).join('\n\n');
 
             const summary = await aiService.summarize(textToSum) || 'No summary available for this section.';
+            logger.info(`✅ Section [${cat}] summarized.`);
 
             sections.push({
                 title: cat,
@@ -40,8 +47,10 @@ export class BriefingService {
         }
 
         // 3. Global Synthesis
+        logger.info('🧠 Synthesizing global briefing summary...');
         const fullText = sections.map(s => s.content).join('\n\n');
         const globalSummary = await aiService.summarize(fullText) || 'Flash briefing generated from today\'s top stories.';
+        logger.info('🎉 Briefing generation complete!');
 
         // 4. Determine Overall Sentiment
         const sentiments = articles.map(a => a.analysis?.sentiment).filter(Boolean);

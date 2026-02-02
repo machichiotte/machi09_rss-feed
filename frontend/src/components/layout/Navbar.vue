@@ -86,7 +86,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
           <!-- Controls -->
           <div class="hidden md:flex items-center gap-3">
-             <router-link 
+            <router-link 
               to="/analytics" 
               class="flex items-center gap-2 px-3 py-2 rounded-xl border border-brand/20 bg-bg-card/70 text-text-muted hover:bg-brand/10 hover:text-brand transition-all text-[10px] font-black uppercase tracking-widest shadow-sm"
               active-class="bg-brand/10 text-brand border-brand/40 shadow-inner"
