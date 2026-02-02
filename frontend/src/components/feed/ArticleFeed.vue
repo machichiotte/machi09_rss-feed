@@ -27,6 +27,9 @@ interface Article {
     summary: string;
     iaSummary?: string;
   }>;
+  imageUrl?: string;
+  sourceColor?: string;
+  isBookmarked?: boolean;
 }
 
 const props = defineProps<{
@@ -45,6 +48,7 @@ const { t } = useI18n(toRef(props, 'preferredLanguage'));
 
 const emit = defineEmits<{
   (e: 'retry'): void;
+  (e: 'toggleBookmark', id: string): void;
 }>();
 
 const loadMoreTrigger = ref<HTMLElement | null>(null);
@@ -111,6 +115,7 @@ defineExpose({ loadMoreTrigger });
         :preferred-language="preferredLanguage"
         :translation-toggles="translationToggles"
         :view-mode="viewMode"
+        @toggle-bookmark="emit('toggleBookmark', $event)"
       />
     </div>
 

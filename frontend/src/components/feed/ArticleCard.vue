@@ -6,7 +6,8 @@ import {
   Sparkles, 
   ArrowRight, 
   Minus,
-  FileText
+  FileText,
+  Bookmark
 } from 'lucide-vue-next';
 import { formatDistanceToNow } from 'date-fns';
 import { clsx } from 'clsx';
@@ -38,7 +39,12 @@ interface Article {
   }>;
   imageUrl?: string;
   sourceColor?: string;
+  isBookmarked?: boolean;
 }
+
+const emit = defineEmits<{
+  (e: 'toggleBookmark', id: string): void
+}>();
 
 const props = defineProps<{
   article: Article;
@@ -152,6 +158,19 @@ const getDomain = (url: string) => {
         <Sparkles class="h-12 w-12 text-brand/20 animate-pulse" />
       </div>
     </div>
+
+    <!-- Bookmark Toggle (Float) -->
+    <button 
+      @click.stop="emit('toggleBookmark', article._id)"
+      :class="cn(
+        'absolute top-4 right-4 z-40 p-2.5 rounded-2xl transition-all duration-300 backdrop-blur-md border shadow-lg group/bookmark',
+        article.isBookmarked 
+          ? 'bg-brand text-white border-brand scale-110 shadow-brand/20' 
+          : 'bg-bg-card/40 text-text-muted border-white/10 hover:bg-bg-card/60 hover:text-brand'
+      )"
+    >
+      <Bookmark :class="cn('h-5 w-5 transition-transform duration-300', article.isBookmarked ? 'fill-current' : 'group-hover/bookmark:scale-110')" />
+    </button>
 
     <!-- Main Content Area -->
     <div

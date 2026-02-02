@@ -17,6 +17,7 @@ export interface FetchOptions {
     translationStatus?: 'all' | 'translated' | 'original';
     onlyInsights?: boolean;
     dateRange?: string;
+    isBookmarked?: boolean;
 }
 
 export class RssRepository {
@@ -69,7 +70,7 @@ export class RssRepository {
     /**
      * Calculates Today and Week statistics based on current filters.
      */
-    private static async getStats(options: FetchOptions): Promise<{ today: number; week: number }> {
+    private static async getStats(options: FetchOptions): Promise<{ today: number; week: number; saved: number }> {
         const db = getDatabase();
         const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
 
@@ -80,12 +81,13 @@ export class RssRepository {
         const dayLimit = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
         const weekLimit = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        const [today, week] = await Promise.all([
+        const [today, week, saved] = await Promise.all([
             collection.countDocuments({ ...baseQuery, publicationDate: { $gte: dayLimit } }),
-            collection.countDocuments({ ...baseQuery, publicationDate: { $gte: weekLimit } })
+            collection.countDocuments({ ...baseQuery, publicationDate: { $gte: weekLimit } }),
+            collection.countDocuments({ ...baseQuery, isBookmarked: true })
         ]);
 
-        return { today, week };
+        return { today, week, saved };
     }
 
 
@@ -105,6 +107,10 @@ export class RssRepository {
 
         if (onlyInsights) {
             query['analysis.iaSummary'] = { $exists: true, $ne: null };
+        }
+
+        if (options.isBookmarked) {
+            query.isBookmarked = true;
         }
 
         this.applyDateFilter(query, options.dateRange);
@@ -301,5 +307,28 @@ export class RssRepository {
             }
         );
         return result.modifiedCount > 0;
+    }
+
+    /**
+     * Toggles the bookmark status of an article.
+     * 
+     * @param {string} id - The MongoDB ObjectId as a string.
+     * @returns {Promise<boolean>} The new bookmark state.
+     */
+    public static async toggleBookmark(id: string): Promise<boolean> {
+        const db = getDatabase();
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+        const _id = new ObjectId(id);
+
+        const article = await collection.findOne({ _id } as Filter<ProcessedArticleData>);
+        if (!article) throw new Error('Article not found');
+
+        const newState = !article.isBookmarked;
+        await collection.updateOne(
+            { _id } as Filter<ProcessedArticleData>,
+            { $set: { isBookmarked: newState } }
+        );
+
+        return newState;
     }
 }

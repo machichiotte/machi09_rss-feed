@@ -30,7 +30,8 @@ export default {
         last_7d: "7 derniers jours",
         all_languages: "Toutes les langues",
         selected_languages: "{count} Sélectionnées",
-        search_tags: "Rechercher un tag..."
+        search_tags: "Rechercher un tag...",
+        favorites: "Favoris"
     },
     feed: {
         syncing_nexus: "Synchronisation du Nexus",

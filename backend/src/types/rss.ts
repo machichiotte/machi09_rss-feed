@@ -29,6 +29,7 @@ export interface ProcessedArticleData {
     fullText?: string | null;
     imageUrl?: string | null;
     sourceColor?: string | null;
+    isBookmarked?: boolean;
 }
 
 export interface FinancialAnalysis {

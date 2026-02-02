@@ -26,6 +26,7 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
     const translationStatus = req.query.translationStatus as 'all' | 'translated' | 'original';
     const onlyInsights = req.query.onlyInsights === 'true';
     const dateRange = req.query.dateRange as string;
+    const isBookmarked = req.query.isBookmarked === 'true';
 
     logger.info(`Fetching RSS articles: page=${page}, limit=${limit}, category=${category}, search=${search}, source=${feedName}, onlyInsights=${onlyInsights}, dateRange=${dateRange}`);
 
@@ -39,7 +40,8 @@ async function getRssArticles(req: Request, res: Response): Promise<void> {
       feedName,
       translationStatus,
       onlyInsights,
-      dateRange
+      dateRange,
+      isBookmarked
     });
 
     res.status(200).json({
@@ -221,4 +223,31 @@ async function toggleSource(req: Request, res: Response): Promise<void> {
   }
 }
 
-export { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata, toggleSource };
+/**
+ * Toggles the bookmark status of an article.
+ * 
+ * @route   PATCH /api/rss/articles/:id/bookmark
+ */
+async function toggleBookmark(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      res.status(400).json({ error: 'Article ID is required' });
+      return;
+    }
+
+    logger.info(`Toggling bookmark for article ${id}`);
+    const isBookmarked = await RssRepository.toggleBookmark(id as string);
+
+    res.status(200).json({
+      message: isBookmarked ? 'Article bookmarked' : 'Bookmark removed',
+      id,
+      isBookmarked
+    });
+  } catch (error) {
+    handleControllerError(res, error, toggleBookmark.name);
+  }
+}
+
+export { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata, toggleSource, toggleBookmark };

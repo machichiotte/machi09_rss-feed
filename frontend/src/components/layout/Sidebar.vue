@@ -2,7 +2,8 @@
 import { 
   Filter, 
   Sparkles, 
-  ChevronDown 
+  ChevronDown,
+  Bookmark
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -24,6 +25,7 @@ const props = defineProps<{
   selectedLanguages: string[];
   showLangDropdown: boolean;
   preferredLanguage: string;
+  showOnlyBookmarks: boolean;
 }>();
 
 const { t } = useI18n(toRef(props, 'preferredLanguage'));
@@ -35,6 +37,7 @@ const emit = defineEmits<{
   (e: 'update:dateRange', val: string): void;
   (e: 'toggleSelectedLanguage', lang: string): void;
   (e: 'update:showLangDropdown', val: boolean): void;
+  (e: 'update:showOnlyBookmarks', val: boolean): void;
 }>();
 
 function cn(...inputs: unknown[]) {
@@ -164,6 +167,23 @@ const getLangFlag = (lang?: string) => {
           </button>
         </div>
       </div>
+      
+      <!-- Bookmarks Toggle -->
+      <button 
+        @click="emit('update:showOnlyBookmarks', !showOnlyBookmarks)"
+        :class="cn(
+          'w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all text-[11px] font-black uppercase tracking-widest group shadow-sm',
+          showOnlyBookmarks 
+            ? 'bg-brand text-white border-brand shadow-brand/20' 
+            : 'bg-bg-card/50 border-brand/10 text-text-muted hover:border-brand/30'
+        )"
+      >
+        <span class="flex items-center gap-2">
+          <Bookmark :class="cn('h-3.5 w-3.5', showOnlyBookmarks ? 'fill-current' : 'group-hover:text-brand transition-colors')" />
+          {{ t('sidebar.favorites') }}
+        </span>
+        <div v-if="showOnlyBookmarks" class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></div>
+      </button>
     </div>
   </aside>
 </template>

@@ -45,6 +45,7 @@ interface Article {
   }>;
   imageUrl?: string;
   sourceColor?: string;
+  isBookmarked?: boolean;
 }
 
 // State
@@ -68,10 +69,11 @@ const showLangDropdown = ref(false);
 const viewMode = ref<'grid' | 'list' | 'compact'>((localStorage.viewMode as 'grid' | 'list' | 'compact') || 'grid');
 const isDark = ref(false);
 const showOnlyInsights = ref(false);
+const showOnlyBookmarks = ref(false);
 const dateRange = ref('all');
 const isSettingsOpen = ref(false);
 const error = ref<string | null>(null);
-const serverStats = ref({ today: 0, week: 0 });
+const serverStats = ref({ today: 0, week: 0, saved: 0 });
 
 // i18n Setup
 const { t } = useI18n(preferredLanguage);
@@ -98,19 +100,15 @@ const feedSummaryCounts = computed(() => {
     today: serverStats.value.today,
     week: serverStats.value.week,
     unread: totalArticles.value,
-    saved: 0
+    saved: serverStats.value.saved
   };
 });
 
 const handleFilterChange = (filterId: string) => {
   if (filterId === '24h' || filterId === '7d') {
     dateRange.value = dateRange.value === filterId ? 'all' : filterId;
-  } else if (filterId === 'unread') {
-    dateRange.value = 'all';
-    searchQuery.value = '';
-    selectedCategory.value = null;
-    selectedSentiment.value = null;
-    showOnlyInsights.value = false;
+  } else if (filterId === 'saved') {
+    showOnlyBookmarks.value = !showOnlyBookmarks.value;
   }
 };
 
@@ -140,6 +138,32 @@ const fetchMetadata = async () => {
     allLanguages.value = response.data.languages || [];
   } catch {
     console.error('Failed to fetch metadata');
+  }
+};
+
+const handleToggleBookmark = async (id: string) => {
+  const article = articles.value.find(a => a._id === id);
+  if (!article) return;
+
+  // Optimistic UI
+  article.isBookmarked = !article.isBookmarked;
+
+  try {
+    const response = await axios.patch(`${API_BASE_URL}/api/rss/articles/${id}/bookmark`);
+    // Sync with actual result from server just in case
+    article.isBookmarked = response.data.isBookmarked;
+    console.log(`Article ${id} bookmark status: ${article.isBookmarked}`);
+    
+    // If we are in "Bookmarks only" view and unbookmarked, remove from list
+    if (showOnlyBookmarks.value && !article.isBookmarked) {
+      setTimeout(() => {
+        articles.value = articles.value.filter(a => a._id !== id);
+      }, 300);
+    }
+  } catch (err) {
+    console.error(`Failed to toggle bookmark for ${id}:`, err);
+    // Rollback on error
+    article.isBookmarked = !article.isBookmarked;
   }
 };
 
@@ -194,6 +218,7 @@ async function loadArticles(reset = false) {
       search: searchQuery.value,
       source: selectedSource.value,
       onlyInsights: showOnlyInsights.value,
+      isBookmarked: showOnlyBookmarks.value,
       dateRange: dateRange.value
     };
     
@@ -275,7 +300,7 @@ const toggleSentiment = (sent: string) => {
 
 // Watchers
 let filterTimeout: ReturnType<typeof setTimeout> | null = null;
-watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, preferredLanguage, showOnlyInsights, dateRange], (newValues) => {
+watch([selectedCategory, selectedSentiment, selectedLanguages, selectedSource, preferredLanguage, showOnlyInsights, showOnlyBookmarks, dateRange], (newValues) => {
     const newPreferredLanguage = newValues[4] as string;
     localStorage.preferredLanguage = newPreferredLanguage;
     
@@ -398,6 +423,7 @@ onUnmounted(() => {
           :languages="allLanguages"
           :selected-languages="selectedLanguages"
           v-model:show-lang-dropdown="showLangDropdown"
+          v-model:show-only-bookmarks="showOnlyBookmarks"
           :preferred-language="preferredLanguage"
           @select-category="selectCategory"
           @toggle-sentiment="toggleSentiment"
@@ -439,6 +465,7 @@ onUnmounted(() => {
             :preferred-language="preferredLanguage"
             :translation-toggles="translationToggles"
             :view-mode="viewMode"
+            @toggle-bookmark="handleToggleBookmark"
             @retry="loadArticles(true)"
           />
         </div>
