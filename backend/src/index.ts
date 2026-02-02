@@ -9,7 +9,7 @@ import logger from './utils/logger';
 import { RssService } from './services/rssService';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: '.env.development' });
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +20,7 @@ app.use(helmet({
 }));
 app.use(cors({
     origin: '*', // Allows any website to call this API
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
@@ -90,6 +90,8 @@ async function startServer(): Promise<void> {
         logger.info(`🚀 machi09_rss-feed server running on port ${PORT}`);
         logger.info(`📡 Health check: http://localhost:${PORT}/health`);
         logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+        // DEBUG: Force logger to show routes
+        console.log("DEBUG: Checking routes registration...");
     });
 
     try {

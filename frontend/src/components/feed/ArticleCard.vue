@@ -7,7 +7,8 @@ import {
   ArrowRight, 
   Minus,
   FileText,
-  Bookmark
+  Bookmark,
+  Rss
 } from 'lucide-vue-next';
 import { formatDistanceToNow } from 'date-fns';
 import { clsx } from 'clsx';
