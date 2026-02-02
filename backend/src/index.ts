@@ -6,6 +6,7 @@ import cron from 'node-cron';
 import { connectToDatabase } from './config/database';
 import rssRoutes from './routes/rssRoutes';
 import userRoutes from './routes/userRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 import logger from './utils/logger';
 import { RssService } from './services/rssService';
 
@@ -66,6 +67,7 @@ app.get('/api', (_req, res) => {
             health: '/health',
             rss: '/api/rss',
             rssSearch: '/api/rss/search?link=<url>',
+            analytics: '/api/analytics',
         },
     });
 });
@@ -75,6 +77,9 @@ app.use('/api/rss', rssRoutes);
 
 // User Routes
 app.use('/api/user', userRoutes);
+
+// Analytics Routes
+app.use('/api/analytics', analyticsRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

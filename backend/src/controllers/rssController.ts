@@ -161,7 +161,7 @@ async function getMetadata(_req: Request, res: Response): Promise<void> {
     const categories = Array.from(new Set(dbSources.map(s => s.category))).sort();
     const languages = new Set<string>();
     const sources = new Set<string>();
-    const groupedSources: Record<string, { name: string; language: string; enabled: boolean }[]> = {};
+    const groupedSources: Record<string, { name: string; language: string; enabled: boolean; maxArticles?: number }[]> = {};
 
     for (const source of dbSources) {
       if (source.language) languages.add(source.language);
@@ -174,7 +174,8 @@ async function getMetadata(_req: Request, res: Response): Promise<void> {
       groupedSources[source.category].push({
         name: source.name,
         language: source.language || 'en',
-        enabled: source.enabled
+        enabled: source.enabled,
+        maxArticles: source.maxArticles
       });
     }
 
@@ -226,6 +227,39 @@ async function toggleSource(req: Request, res: Response): Promise<void> {
 }
 
 /**
+ * Updates settings for a specific RSS source.
+ * 
+ * @route   PATCH /api/rss/sources/:name
+ */
+async function updateSourceSettings(req: Request, res: Response): Promise<void> {
+  try {
+    const { name } = req.params;
+    const data = req.body;
+
+    if (!name) {
+      res.status(400).json({ error: 'Source name is required' });
+      return;
+    }
+
+    logger.info(`Updating settings for source ${name}: ${JSON.stringify(data)}`);
+    const success = await SourceRepository.updateSource(name as string, data);
+
+    if (!success) {
+      res.status(404).json({ error: 'Source not found or no change made' });
+      return;
+    }
+
+    res.status(200).json({
+      message: `Source ${name} settings updated`,
+      name,
+      ...data
+    });
+  } catch (error) {
+    handleControllerError(res, error, updateSourceSettings.name);
+  }
+}
+
+/**
  * Toggles the bookmark status of an article.
  * 
  * @route   PATCH /api/rss/articles/:id/bookmark
@@ -252,4 +286,13 @@ async function toggleBookmark(req: Request, res: Response): Promise<void> {
   }
 }
 
-export { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata, toggleSource, toggleBookmark };
+export {
+  getRssArticles,
+  processRssFeeds,
+  deleteAllRssArticles,
+  getRssArticleByLink,
+  getMetadata,
+  toggleSource,
+  toggleBookmark,
+  updateSourceSettings
+};

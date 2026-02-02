@@ -12,6 +12,7 @@ export interface SourceConfig {
     language?: string;
     enabled: boolean;
     color?: string;
+    maxArticles?: number;
 }
 
 export class SourceRepository {
@@ -34,7 +35,8 @@ export class SourceRepository {
                         category,
                         language: feed.language,
                         enabled: feed.enabled !== false,
-                        color: feed.color
+                        color: feed.color,
+                        maxArticles: feed.maxArticles || 20 // Default limit if not set
                     });
                 }
             }
@@ -58,11 +60,18 @@ export class SourceRepository {
      * Toggles the enabled state of a source.
      */
     public static async toggleSource(name: string, enabled: boolean): Promise<boolean> {
+        return this.updateSource(name, { enabled });
+    }
+
+    /**
+     * Updates source properties by name.
+     */
+    public static async updateSource(name: string, data: Partial<SourceConfig>): Promise<boolean> {
         const db = getDatabase();
         const collection = db.collection<SourceConfig>(COLLECTION_NAME);
         const result = await collection.updateOne(
             { name },
-            { $set: { enabled } }
+            { $set: data }
         );
         return result.modifiedCount > 0;
     }

@@ -25,6 +25,7 @@ interface SourceObj {
   name: string;
   language: string;
   enabled: boolean;
+  maxArticles?: number;
 }
 
 const props = defineProps<{
@@ -55,7 +56,8 @@ const emit = defineEmits<{
   'toggleSentiment': [sentiment: string],
   'addCustomTag': [tag: string],
   'removeCustomTag': [tag: string],
-  'update:activeTab': [val: string]
+  'update:activeTab': [val: string],
+  'updateSourceLimit': [category: string, name: string, limit: number]
 }>();
 
 const expandedCategories = ref<Record<string, boolean>>({});
@@ -263,14 +265,34 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
                       <span class="text-lg drop-shadow-sm group-hover:scale-125 transition-transform duration-300">{{ getLangFlag(getSourceLang(source)) }}</span>
                       <span class="text-[8px] font-black text-brand/50 uppercase tracking-tighter">{{ getSourceLang(source) }}</span>
                     </div>
-                    <span class="text-[13px] font-black text-text-primary uppercase tracking-tight group-hover:translate-x-1 transition-transform truncate max-w-[120px]">
+                    <span class="text-[13px] font-black text-text-primary uppercase tracking-tight group-hover:translate-x-1 transition-transform truncate max-w-[100px]">
                       {{ getSourceName(source) }}
                     </span>
                   </div>
                   
-                  <button class="p-2.5 rounded-2xl text-danger/20 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all transform group-hover:scale-105 active:scale-95">
-                    <Trash2 class="h-4 w-4" />
-                  </button>
+                  <div class="flex items-center gap-3">
+                    <!-- Article Limit Input -->
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand/5 border border-brand/5 focus-within:border-brand/40 transition-all opacity-0 group-hover:opacity-100" @click.stop>
+                      <span class="text-[8px] font-black text-brand/40 uppercase">Limit</span>
+                      <input 
+                        type="number" 
+                        :value="typeof source === 'object' ? source.maxArticles : 20"
+                        @change="(e) => {
+                          const val = parseInt((e.target as HTMLInputElement).value);
+                          if (typeof source === 'object' && !isNaN(val)) {
+                            emit('updateSourceLimit', category as string, source.name, val);
+                          }
+                        }"
+                        class="w-10 bg-transparent text-[10px] font-black text-brand outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-center"
+                        min="1"
+                        max="500"
+                      />
+                    </div>
+
+                    <button class="p-2.5 rounded-2xl text-danger/20 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all transform hover:scale-105 active:scale-95">
+                      <Trash2 class="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -58,7 +58,8 @@ export class RssService {
                         url: source.url || '',
                         enabled: source.enabled,
                         language: source.language as 'en' | 'fr' | 'es' | 'de' | 'pt' | 'ar' | 'zh' | 'ja',
-                        color: source.color
+                        color: source.color,
+                        maxArticles: source.maxArticles
                     },
                     category
                 });
@@ -122,7 +123,9 @@ export class RssService {
             const rssFeed = await parser.parseURL(feed.url);
             let newCount = 0;
 
-            for (const item of rssFeed.items) {
+            const items = feed.maxArticles ? rssFeed.items.slice(0, feed.maxArticles) : rssFeed.items;
+
+            for (const item of items) {
                 if (await this.processSingleItem(item, feed, category)) {
                     newCount++;
                 }

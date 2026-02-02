@@ -1,6 +1,15 @@
 // src/routes/rssRoutes.ts
 import { Router } from 'express';
-import { getRssArticles, processRssFeeds, deleteAllRssArticles, getRssArticleByLink, getMetadata, toggleSource, toggleBookmark } from '@/controllers/rssController';
+import {
+    getRssArticles,
+    processRssFeeds,
+    deleteAllRssArticles,
+    getRssArticleByLink,
+    getMetadata,
+    toggleSource,
+    toggleBookmark,
+    updateSourceSettings
+} from '@/controllers/rssController';
 
 const router: Router = Router();
 
@@ -10,6 +19,7 @@ const router: Router = Router();
  * @access  Public
  */
 router.patch('/sources/:name/toggle', toggleSource);
+router.patch('/sources/:name', updateSourceSettings);
 
 /**
  * @route   PATCH /api/rss/articles/:id/bookmark

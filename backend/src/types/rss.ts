@@ -69,6 +69,7 @@ export interface RssFeedConfig {
     category?: string;    // Catégorie (ajoutée dynamiquement)
     language?: 'fr' | 'en' | 'es' | 'de' | 'it' | 'pt' | 'nl' | 'ru' | 'zh' | 'ja' | 'ar'; // Langue du flux
     color?: string;       // Couleur de la marque du flux
+    maxArticles?: number; // Nombre maximum d'articles à récupérer par scan
 }
 
 /**

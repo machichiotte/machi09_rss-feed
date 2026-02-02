@@ -8,11 +8,13 @@ import {
   FileText, 
   Sun, 
   Moon,
-  Settings
+  Settings,
+  BarChart3
 } from 'lucide-vue-next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { toRef } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useI18n } from '../../composables/useI18n';
 import LayoutToggle from './LayoutToggle.vue';
 
@@ -47,8 +49,6 @@ const emit = defineEmits<{
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
-
-
 </script>
 
 <template>
@@ -56,7 +56,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
     <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-10">
       <div class="flex justify-between h-20 items-center">
         <!-- Logo -->
-        <div class="flex items-center gap-4 group cursor-pointer" @click="emit('update:searchQuery', '')">
+        <router-link to="/" class="flex items-center gap-4 group cursor-pointer" @click="emit('update:searchQuery', '')">
           <div class="bg-brand/15 p-2.5 rounded-2xl shadow-xl shadow-brand/10 group-hover:scale-110 transition-transform duration-500 border border-brand/20 icon-glow-brand">
             <Rss class="h-6 w-6 text-brand" />
           </div>
@@ -69,7 +69,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
               <p class="text-[10px] uppercase tracking-[0.2em] font-black text-text-muted">Intelligent Feed</p>
             </div>
           </div>
-        </div>
+        </router-link>
         
         <div class="flex items-center gap-3 md:gap-6">
           <!-- Desktop Search -->
@@ -86,6 +86,15 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
           <!-- Controls -->
           <div class="hidden md:flex items-center gap-3">
+             <router-link 
+              to="/analytics" 
+              class="flex items-center gap-2 px-3 py-2 rounded-xl border border-brand/20 bg-bg-card/70 text-text-muted hover:bg-brand/10 hover:text-brand transition-all text-[10px] font-black uppercase tracking-widest shadow-sm"
+              active-class="bg-brand/10 text-brand border-brand/40 shadow-inner"
+            >
+              <BarChart3 class="h-4 w-4" />
+              <span class="hidden lg:inline">Analyze</span>
+            </router-link>
+
             <!-- Global Translate Toggle -->
             <button 
               @click="emit('update:autoTranslate', !autoTranslate)"
