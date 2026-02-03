@@ -1,10 +1,11 @@
 import axios from 'axios';
-import * as cheerio from 'cheerio';
+import { JSDOM } from 'jsdom';
+import { Readability } from '@mozilla/readability';
 import logger from './logger';
 
 /**
  * Service to extract the main text content from a news article URL.
- * Designed to bypass noise like ads, navigation, and footers.
+ * Designed to bypass noise like ads, navigation, and footers using Readability engine.
  */
 export class ScraperService {
     private static USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -16,45 +17,21 @@ export class ScraperService {
         try {
             const response = await axios.get(url, {
                 headers: { 'User-Agent': this.USER_AGENT },
-                timeout: 10000, // 10s cutoff
+                timeout: 15000, // Slightly longer timeout for deep scraping
             });
 
             if (response.status !== 200) return null;
 
-            const $ = cheerio.load(response.data);
+            const dom = new JSDOM(response.data, { url });
+            const reader = new Readability(dom.window.document);
+            const article = reader.parse();
 
-            // 1. Remove obvious noise
-            $('script, style, nav, footer, header, aside, .ads, .advertisement, .social-share, .comments').remove();
-
-            // 2. Targeted Selection (Ordered by likelihood of quality)
-            // We search for the main article body first
-            const selectors = [
-                'article',
-                '[role="main"]',
-                'main',
-                '.article-content',
-                '.post-content',
-                '.entry-content',
-                '.content'
-            ];
-
-            let content = '';
-            for (const selector of selectors) {
-                const element = $(selector);
-                if (element.length > 0) {
-                    // Extract text from paragraphs within this element
-                    content = element.find('p').map((_, el) => $(el).text().trim()).get().join('\n\n');
-                    if (content.length > 200) break; // Found something substantial
-                }
+            if (!article || !article.textContent) {
+                logger.warn(`⚠️ Readability failed to parse content for ${url}`);
+                return null;
             }
 
-            // 3. Fallback: just get all paragraphs if targeted selectors failed
-            if (content.length < 200) {
-                content = $('p').map((_, el) => $(el).text().trim()).get().join('\n\n');
-            }
-
-            // 4. Final cleaning: remove excessive whitespace
-            const cleanContent = content
+            const cleanContent = article.textContent
                 .replace(/\n\s*\n/g, '\n\n') // Normalize multiple newlines
                 .trim();
 
@@ -79,21 +56,25 @@ export class ScraperService {
             const response = await axios.get(url, { headers: { 'User-Agent': this.USER_AGENT }, timeout: 8000 });
             if (response.status !== 200) return null;
 
-            const $ = cheerio.load(response.data);
+            const dom = new JSDOM(response.data, { url });
+            const doc = dom.window.document;
 
-            const metaImage = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content');
-            if (metaImage) return metaImage;
-
-            return this.findSignificantImage($);
+            return this.getImageFromMeta(doc) || this.getImageFromContent(doc);
         } catch {
             return null;
         }
     }
 
-    private static findSignificantImage($: cheerio.CheerioAPI): string | null {
-        const selectors = ['article img', '.article-header img', '.post-thumbnail img', '.entry-content img', 'main img'];
-        for (const selector of selectors) {
-            const src = $(selector).first().attr('src');
+    private static getImageFromMeta(doc: any): string | null { // eslint-disable-line @typescript-eslint/no-explicit-any
+        return doc.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
+            doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content') ||
+            null;
+    }
+
+    private static getImageFromContent(doc: any): string | null { // eslint-disable-line @typescript-eslint/no-explicit-any
+        const mainImg = doc.querySelector('article img, main img, .content img');
+        if (mainImg) {
+            const src = mainImg.getAttribute('src');
             if (src && (src.startsWith('http') || src.startsWith('//'))) {
                 return src.startsWith('//') ? `https:${src}` : src;
             }
