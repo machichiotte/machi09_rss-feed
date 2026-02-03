@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { RefreshCw, Search } from 'lucide-vue-next';
 import ArticleCard from './ArticleCard.vue';
 import { toRef } from 'vue';
@@ -30,6 +30,8 @@ interface Article {
   imageUrl?: string;
   sourceColor?: string;
   isBookmarked?: boolean;
+  clusterId?: string;
+  variants?: Article[];
 }
 
 const props = defineProps<{
@@ -50,6 +52,31 @@ const emit = defineEmits<{
   (e: 'retry'): void;
   (e: 'toggleBookmark', id: string): void;
 }>();
+
+const processedArticles = ref<(Article & { variants?: Article[] })[]>([]);
+
+watch(() => props.articles, (newArticles: Article[]) => {
+  const results: (Article & { variants?: Article[] })[] = [];
+  const clusterMap = new Map<string, number>();
+
+  newArticles.forEach(article => {
+    if (article.clusterId && clusterMap.has(article.clusterId)) {
+      const primaryIndex = clusterMap.get(article.clusterId);
+      if (primaryIndex !== undefined) {
+        const primary = results[primaryIndex];
+        if (primary) {
+          if (!primary.variants) primary.variants = [];
+          primary.variants.push(article);
+        }
+      }
+    } else {
+      if (article.clusterId) clusterMap.set(article.clusterId, results.length);
+      results.push({ ...article, variants: [] });
+    }
+  });
+
+  processedArticles.value = results;
+}, { immediate: true });
 
 const loadMoreTrigger = ref<HTMLElement | null>(null);
 defineExpose({ loadMoreTrigger });
@@ -107,7 +134,7 @@ defineExpose({ loadMoreTrigger });
       ]"
     >
       <ArticleCard 
-        v-for="article in articles" 
+        v-for="article in processedArticles" 
         :key="article._id"
         :article="article"
         :global-insight-mode="globalInsightMode"

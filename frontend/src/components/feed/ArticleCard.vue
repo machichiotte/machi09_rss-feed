@@ -32,6 +32,7 @@ interface Article {
     sentimentScore: number;
     iaSummary?: string;
     isPromotional?: boolean;
+    entities?: { text: string; label: string; score: number }[];
   };
   translations?: Record<string, {
     title: string;
@@ -42,6 +43,7 @@ interface Article {
   author?: string;
   sourceColor?: string;
   isBookmarked?: boolean;
+  variants?: Article[];
 }
 
 const emit = defineEmits<{
@@ -212,6 +214,9 @@ const getDomain = (url: string) => {
             <span class="text-[9px] font-black uppercase tracking-[0.2em]" :style="{ color: article.sourceColor || 'var(--brand)' }">
               {{ article.feedName }}
             </span>
+            <span v-if="article.variants && article.variants.length > 0" class="px-2 py-0.5 rounded-lg bg-brand/5 border border-brand/10 text-[7px] font-black text-brand uppercase ml-1">
+              {{ t('article.other_sources', { count: article.variants.length }) }}
+            </span>
           </div>
 
           <span class="px-3 py-1.5 rounded-xl meta-news bg-brand/5 border border-brand/10 flex items-center gap-2 shadow-sm text-text-primary">
@@ -243,6 +248,24 @@ const getDomain = (url: string) => {
             <TrendingUp v-if="article.analysis?.sentiment !== 'neutral'" :class="cn('h-3 w-3', article.analysis?.sentiment === 'bearish' && 'rotate-180')" />
             <Minus v-else class="h-3 w-3" />
             {{ Math.round((article.analysis?.sentimentScore || 0) * 100) }}%
+          </div>
+
+          <!-- NER Entities -->
+          <div v-if="article.analysis?.entities && article.analysis.entities.length > 0" class="flex items-center gap-1.5 flex-wrap">
+            <span 
+              v-for="entity in article.analysis.entities.slice(0, 5)" 
+              :key="entity.text"
+              :class="cn(
+                'px-2 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-wider border shadow-sm transition-all hover:scale-105 cursor-default',
+                entity.label === 'ORG' ? 'bg-brand/10 text-brand border-brand/20' : 
+                entity.label === 'PER' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' :
+                entity.label === 'LOC' ? 'bg-sky-500/10 text-sky-500 border-sky-500/20' :
+                'bg-text-secondary/5 text-text-secondary border-text-secondary/10'
+              )"
+              :title="`${entity.label}: ${Math.round(entity.score * 100)}%`"
+            >
+              {{ entity.text }}
+            </span>
           </div>
         </div>
 

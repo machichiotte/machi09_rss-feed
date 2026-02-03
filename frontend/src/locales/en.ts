@@ -44,7 +44,8 @@ export default {
     article: {
         ai_insight: "AI Insight",
         source_summary: "Source Summary",
-        no_insight: "No AI Insight available"
+        no_insight: "No AI Insight available",
+        other_sources: "+{count} sources"
     },
     footer: {
         engineered_by: "Engineered by Machi"
