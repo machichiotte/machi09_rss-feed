@@ -1,7 +1,7 @@
-# --- Build Stage ---
-FROM node:20-slim AS builder
+# Dockerfile pour le backend
+FROM node:20-slim
 
-# Install system dependencies for native modules (sharp, etc.)
+# Installation des dépendances système pour native modules
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
@@ -9,54 +9,26 @@ RUN apt-get update && apt-get install -y \
     libvips-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Enable pnpm
+# Activation de pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copy package files
+# Copie des fichiers de dépendances
 COPY package.json pnpm-lock.yaml ./
 
-# Install all dependencies
+# Installation des dépendances (incluant dev pour tsx)
 RUN pnpm install --frozen-lockfile
 
-# Copy only the pre-download script for better caching
-COPY src/scripts/download_models.ts ./src/scripts/download_models.ts
-COPY tsconfig.json ./
+# Copie du reste du code
+COPY . .
 
-# Pre-download AI models (commented out - will download at runtime)
-# RUN pnpm dlx tsx src/scripts/download_models.ts
+# Création du dossier de cache pour les modèles IA
+RUN mkdir -p /app/models_cache && chown -R node:node /app
 
-# Now copy the rest of the source code
-COPY src ./src
+# Exposition du port
+EXPOSE 4009
 
-# Skip build - we'll use tsx to run TypeScript directly
-
-# --- Production Stage ---
-FROM node:20-slim AS runner
-
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-USER node
-ENV HOME=/home/node \
-    PATH=/home/node/.local/bin:$PATH
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=7860
-
-# Copy everything needed to run via tsx
-COPY --from=builder --chown=node:node /app/package.json ./
-COPY --from=builder --chown=node:node /app/pnpm-lock.yaml ./
-COPY --from=builder --chown=node:node /app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /app/src ./src
-COPY --from=builder --chown=node:node /app/tsconfig.json ./
-# models_cache will be created at runtime
-
-# Expose port
-EXPOSE 7860
-
-# Start using tsx to avoid ESM extension issues
+# On utilise tsx pour exécuter directement le TypeScript
+# Cela évite les problèmes d'extensions .js manquantes en mode ESM pur
 CMD ["pnpm", "dlx", "tsx", "src/index.ts"]
