@@ -149,14 +149,15 @@ class AiService {
     /**
      * Analyze the sentiment of a text.
      */
-    async analyzeSentiment(text: string): Promise<SentimentResult | null> {
+    async analyzeSentiment(text: string, articleTitle?: string): Promise<SentimentResult | null> {
         if (!this.isInitialized) await this.init();
         if (!this.sentimentPipeline) return null;
 
         try {
             const start = performance.now();
             const truncatedText = text.slice(0, 1024);
-            logger.info('   [AI] Starting sentiment analysis...');
+            const titlePrefix = articleTitle ? `[${articleTitle.slice(0, 30)}...]` : '';
+            logger.info(`   [AI] ${titlePrefix} Starting sentiment analysis...`);
             const result = await this.sentimentPipeline(truncatedText);
             const output = Array.isArray(result)
                 ? (Array.isArray(result[0]) ? result[0][0] : result[0])
@@ -168,7 +169,7 @@ class AiService {
             const sentimentOutput = output as Record<string, string | number>;
             const rawLabel = String(sentimentOutput.label);
             const mappedSentiment = this.mapSentimentLabel({ label: this.mapRawLabel(rawLabel), score: Number(sentimentOutput.score) });
-            logger.info(`   [AI] Sentiment analysis finished in ${duration}ms -> Result: ${mappedSentiment} (score: ${Number(sentimentOutput.score).toFixed(2)})`);
+            logger.info(`   [AI] ${titlePrefix} Sentiment analysis finished in ${duration}ms -> Result: ${mappedSentiment} (score: ${Number(sentimentOutput.score).toFixed(2)})`);
 
             return {
                 label: this.mapRawLabel(rawLabel),
@@ -192,7 +193,7 @@ class AiService {
     /**
      * Summarize a text using the local AI model.
      */
-    async summarize(text: string): Promise<string | null> {
+    async summarize(text: string, articleTitle?: string): Promise<string | null> {
         if (!this.isInitialized) await this.init();
         if (!this.summarizationPipeline) return null;
 
@@ -200,17 +201,18 @@ class AiService {
             if (text.length < 200) return null;
             const start = performance.now();
             const truncated = text.slice(0, 4000);
-            logger.info(`📝 [AI] Starting summarization...`);
+            const titlePrefix = articleTitle ? `[${articleTitle.slice(0, 30)}...]` : '';
+            logger.info(`📝 [AI] ${titlePrefix} Starting summarization...`);
             const result = await this.summarizationPipeline(truncated, {
                 max_new_tokens: 80,
                 min_new_tokens: 30,
             });
             const duration = (performance.now() - start).toFixed(0);
-            logger.info(`   [AI] Summarization finished in ${duration}ms`);
+            logger.info(`   [AI] ${titlePrefix} Summarization finished in ${duration}ms`);
 
             const output = (Array.isArray(result) ? result[0] : result) as Record<string, string>;
             const summary = output?.summary_text || null;
-            if (summary) logger.info(`   ✨ Summary Result: "${summary.slice(0, 50)}..."`);
+            if (summary) logger.info(`   ✨ ${titlePrefix} Summary Result: "${summary.slice(0, 50)}..."`);
             return summary;
         } catch (error) {
             logger.error('Error during summarization:', error);
@@ -221,18 +223,19 @@ class AiService {
     /**
      * Extracts named entities from text using the NER model.
      */
-    async extractEntities(text: string): Promise<ArticleEntity[]> {
+    async extractEntities(text: string, articleTitle?: string): Promise<ArticleEntity[]> {
         if (!this.isInitialized) await this.init();
         if (!this.nerPipeline) return [];
 
         try {
             const start = performance.now();
             const truncated = text.slice(0, 1500);
-            logger.info('   [AI] Starting NER extraction...');
+            const titlePrefix = articleTitle ? `[${articleTitle.slice(0, 30)}...]` : '';
+            logger.info(`   [AI] ${titlePrefix} Starting NER extraction...`);
             const results = await this.nerPipeline(truncated);
             const resultEntities = this.processNerResults(results as unknown as NerResult[]);
             const duration = (performance.now() - start).toFixed(0);
-            logger.info(`   [AI] NER extraction finished in ${duration}ms -> Found ${resultEntities.length} entities`);
+            logger.info(`   [AI] ${titlePrefix} NER extraction finished in ${duration}ms -> Found ${resultEntities.length} entities`);
             return resultEntities;
         } catch (error) {
             logger.error('Error during NER extraction:', error);

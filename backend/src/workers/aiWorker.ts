@@ -86,8 +86,8 @@ async function processArticleIncrementally(article: ProcessedArticleData) {
         logger.info(`🧵 [AI Worker] ⚡ FAST PATH: "${article.title.slice(0, 40)}..."`);
 
         const [sentiment, entities] = await Promise.all([
-            aiService.analyzeSentiment(content),
-            aiService.extractEntities(content)
+            aiService.analyzeSentiment(content, article.title),
+            aiService.extractEntities(content, article.title)
         ]);
 
         const analysis: ArticleAnalysis = {
@@ -127,7 +127,7 @@ async function processSummaryInBackground(id: string, content: string, title: st
     try {
         logger.info(`🧵 [AI Worker] 🐢 SLOW PATH START: Summarizing "${title.slice(0, 30)}..."`);
         const start = Date.now();
-        const iaSummary = await aiService.summarize(content);
+        const iaSummary = await aiService.summarize(content, title);
 
         if (iaSummary) {
             const existing = await RssRepository.findById(id);
