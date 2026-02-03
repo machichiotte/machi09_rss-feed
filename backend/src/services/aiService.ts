@@ -10,7 +10,9 @@ env.cacheDir = './models_cache';
 // Limit threads to half of available CPUs to leave room for the rest of the app
 const cpuCount = os.cpus().length;
 const allowedThreads = Math.max(1, Math.floor(cpuCount / 2));
-env.onnx.numThreads = allowedThreads;
+if (env.onnx) {
+    env.onnx.numThreads = allowedThreads;
+}
 
 logger.info(`🖥️ System: ${cpuCount} CPUs detected. Limiting AI engine to ${allowedThreads} threads.`);
 
