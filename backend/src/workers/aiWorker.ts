@@ -85,9 +85,10 @@ async function processArticleIncrementally(article: ProcessedArticleData) {
         // --- STAGE 1: FAST PATH ---
         logger.info(`🧵 [AI Worker] ⚡ FAST PATH: "${article.title.slice(0, 40)}..."`);
 
+        const articleContext = `${article.feedName} | ${article.title}`;
         const [sentiment, entities] = await Promise.all([
-            aiService.analyzeSentiment(content, article.title),
-            aiService.extractEntities(content, article.title)
+            aiService.analyzeSentiment(content, articleContext),
+            aiService.extractEntities(content, articleContext)
         ]);
 
         const analysis: ArticleAnalysis = {
@@ -106,7 +107,7 @@ async function processArticleIncrementally(article: ProcessedArticleData) {
 
         // --- STAGE 2: SLOW PATH ---
         if (content.length >= 200) {
-            processSummaryInBackground(id, content, article.title);
+            processSummaryInBackground(id, content, article.title, article.feedName || 'Unknown');
         }
 
     } catch (error) {
@@ -118,7 +119,7 @@ async function processArticleIncrementally(article: ProcessedArticleData) {
 /**
  * Handles summarization without blocking the main worker loop.
  */
-async function processSummaryInBackground(id: string, content: string, title: string) {
+async function processSummaryInBackground(id: string, content: string, title: string, feedName: string) {
     while (activeSummaries >= MAX_CONCURRENT_SUMMARIES) {
         await delay(2000);
     }
@@ -127,7 +128,8 @@ async function processSummaryInBackground(id: string, content: string, title: st
     try {
         logger.info(`🧵 [AI Worker] 🐢 SLOW PATH START: Summarizing "${title.slice(0, 30)}..."`);
         const start = Date.now();
-        const iaSummary = await aiService.summarize(content, title);
+        const articleContext = `${feedName} | ${title}`;
+        const iaSummary = await aiService.summarize(content, articleContext);
 
         if (iaSummary) {
             const existing = await RssRepository.findById(id);
