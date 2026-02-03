@@ -1,10 +1,9 @@
-import { parentPort } from 'worker_threads';
-import { connectToDatabase } from '../config/database'; // Relative path to avoid alias issues
+import { connectToDatabase } from '../config/database';
 import logger from '../utils/logger';
-import { ProcessedArticleData } from '../types/rss';
+import { ProcessedArticleData, FinancialAnalysis as ArticleAnalysis } from '../types/rss';
 import { ScraperService } from '../utils/scraper';
 import { RssRepository } from '../repositories/rssRepository';
-import { aiService } from '../services/aiService';
+import { aiService, SentimentResult } from '../services/aiService';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -17,17 +16,17 @@ let isRunning = true;
 
 async function startWorker() {
     try {
-        // 1. Initialize standalone DB connection for this thread
+        // 1. Initialize standalone DB connection
         await connectToDatabase();
         logger.info('🧵 [AI Worker] Database connected.');
 
-        // 2. Initialize AI Models (Heavy Load)
+        // 2. Initialize AI Models
         logger.info('🧵 [AI Worker] Initializing AI models...');
         await aiService.init();
         logger.info('🧵 [AI Worker] AI Models ready.');
 
         // 3. Main Loop
-        await mainLoop();
+        await runWorker();
 
     } catch (startupError) {
         logger.error('❌ [AI Worker] Fatal Startup Error:', startupError);
@@ -35,94 +34,152 @@ async function startWorker() {
     }
 }
 
-async function mainLoop() {
+// Flag for summary concurrency control
+let activeSummaries = 0;
+const MAX_CONCURRENT_SUMMARIES = 1;
+
+/**
+ * Main worker loop.
+ */
+async function runWorker() {
+    logger.info('🧵 [AI Worker] Starting incremental analysis loop...');
+
     while (isRunning) {
         try {
-            // Fetch a small batch of pending articles
-            const pending = await RssRepository.findPendingAnalysis(5);
+            const pendingArticles = await RssRepository.findPendingAnalysis(10);
 
-            if (pending.length === 0) {
-                // No work? Sleep for 5 seconds to save resources
+            if (pendingArticles.length === 0) {
                 await delay(5000);
                 continue;
             }
 
-            logger.info(`🧵 [AI Worker] Processing batch of ${pending.length} articles...`);
-            await processBatch(pending);
+            for (const article of pendingArticles) {
+                if (!isRunning) break;
+                await processArticleIncrementally(article);
+            }
 
-        } catch (loopError) {
-            logger.error('❌ [AI Worker] Error in main loop:', loopError);
-            await delay(5000); // Backoff on error
+        } catch (error) {
+            logger.error('🧵 [AI Worker] Fatal error in loop:', error);
+            await delay(10000);
         }
     }
 }
 
-async function processBatch(articles: ProcessedArticleData[]) {
-    for (const article of articles) {
-        await processSingleArticle(article);
+/**
+ * Processes an article in stages:
+ * 1. Fast Path: Sentiment + NER (awaited, then saved)
+ * 2. Slow Path: Summarization (not awaited here)
+ */
+async function processArticleIncrementally(article: ProcessedArticleData) {
+    const startTime = Date.now();
+    const id = article._id ? article._id.toString() : '';
+    if (!id) return;
+
+    try {
+        const content = await prepareArticleContent(article);
+        if (!content) {
+            await RssRepository.updateById(id, { processedAt: new Date().toISOString() });
+            return;
+        }
+
+        // --- STAGE 1: FAST PATH ---
+        logger.info(`🧵 [AI Worker] ⚡ FAST PATH: "${article.title.slice(0, 40)}..."`);
+
+        const [sentiment, entities] = await Promise.all([
+            aiService.analyzeSentiment(content),
+            aiService.extractEntities(content)
+        ]);
+
+        const analysis: ArticleAnalysis = {
+            sentiment: mapSentimentLabel(sentiment),
+            sentimentScore: sentiment?.score || 0,
+            entities: entities,
+            isPromotional: detectPromo(article.title, content)
+        };
+
+        await RssRepository.updateById(id, {
+            analysis,
+            processedAt: new Date().toISOString()
+        });
+
+        logger.info(`🧵 [AI Worker] ✅ FAST PATH DONE for [${id}] in ${Date.now() - startTime}ms`);
+
+        // --- STAGE 2: SLOW PATH ---
+        if (content.length >= 200) {
+            processSummaryInBackground(id, content, article.title);
+        }
+
+    } catch (error) {
+        logger.error(`🧵 [AI Worker] Error processing article ${id}:`, error);
+        await RssRepository.updateById(id, { error: String(error), processedAt: new Date().toISOString() });
     }
 }
 
-async function processSingleArticle(article: ProcessedArticleData) {
-    try {
-        const startTime = Date.now();
-        const contentToAnalyze = await prepareArticleContent(article);
-
-        // Analysis and Translation
-        logger.info(`🧵 [AI Worker] 🚀 START Analysis: "${article.title.slice(0, 50)}..." [ID: ${article._id}]`);
-        const { analysis, translations } = await aiService.analyzeArticle(article.title, contentToAnalyze, article.language || 'en');
-
-        await RssRepository.updateById(article._id!, { analysis, translations, processedAt: new Date().toISOString() });
-        const duration = Date.now() - startTime;
-        logger.info(`🧵 [AI Worker] ✨ FINISHED: "${article.title.slice(0, 30)}..." in ${duration}ms`);
-
-        if (parentPort) parentPort.postMessage({ type: 'COMPLETED', id: article._id, title: article.title });
-        await delay(500);
-    } catch (err) {
-        logger.error(`❌ [AI Worker] Error on article ${article.link}:`, err);
-        await RssRepository.updateErrorStatus(article.link, 'AI Analysis Failed');
+/**
+ * Handles summarization without blocking the main worker loop.
+ */
+async function processSummaryInBackground(id: string, content: string, title: string) {
+    while (activeSummaries >= MAX_CONCURRENT_SUMMARIES) {
+        await delay(2000);
     }
+
+    activeSummaries++;
+    try {
+        logger.info(`🧵 [AI Worker] 🐢 SLOW PATH START: Summarizing "${title.slice(0, 30)}..."`);
+        const start = Date.now();
+        const iaSummary = await aiService.summarize(content);
+
+        if (iaSummary) {
+            const existing = await RssRepository.findById(id);
+            const updatedAnalysis = {
+                ...(existing?.analysis || {}),
+                iaSummary
+            };
+
+            await RssRepository.updateById(id, { analysis: updatedAnalysis as ArticleAnalysis });
+            logger.info(`🧵 [AI Worker] ✨ SLOW PATH DONE (${Date.now() - start}ms) for [${id}]`);
+        }
+    } catch (error) {
+        logger.error(`🧵 [AI Worker] ❌ Summary failed for ${id}:`, error);
+    } finally {
+        activeSummaries--;
+    }
+}
+
+function mapSentimentLabel(s: SentimentResult | null): 'bullish' | 'bearish' | 'neutral' {
+    if (s?.label === 'POSITIVE') return 'bullish';
+    if (s?.label === 'NEGATIVE') return 'bearish';
+    return 'neutral';
+}
+
+function detectPromo(title: string, summary: string): boolean {
+    const promoKeywords = ['sale', 'discount', 'limited offer', 'buy now', 'promo', 'giveaway', 'airdrop', 'presale'];
+    const combined = `${title} ${summary}`.toLowerCase();
+    return promoKeywords.some(keyword => combined.includes(keyword));
 }
 
 async function prepareArticleContent(article: ProcessedArticleData): Promise<string> {
-    if (article.fullText) {
-        logger.info(`🧵 [AI Worker] Using existing full text (${article.fullText.length} chars)`);
-        return article.fullText;
-    }
+    if (article.fullText) return article.fullText;
+
+    const id = article._id!.toString();
 
     if (!article.scrapedContent) {
         logger.info(`🧵 [AI Worker] 🔍 Deep Scraping: ${article.link}`);
         const fullText = await ScraperService.extractFullText(article.link);
         if (fullText) {
-            logger.info(`   ✅ Scraped ${fullText.length} chars`);
-            article.fullText = fullText;
-            article.scrapedContent = true;
-            await RssRepository.updateById(article._id!, { fullText, scrapedContent: true });
+            await RssRepository.updateById(id, { fullText, scrapedContent: true });
             return fullText;
-        } else {
-            logger.info(`   ❌ Scraping failed or returned no text`);
         }
     }
 
     if (!article.imageUrl) {
-        logger.info(`🧵 [AI Worker] 🖼️ Extracting Image: ${article.link}`);
         const imageUrl = await ScraperService.extractMainImage(article.link);
         if (imageUrl) {
-            logger.info(`   ✅ Found image: ${imageUrl.slice(0, 50)}...`);
-            article.imageUrl = imageUrl;
-            await RssRepository.updateById(article._id!, { imageUrl });
-        } else {
-            logger.info(`   ❌ No image found`);
+            await RssRepository.updateById(id, { imageUrl });
         }
     }
 
-    const finalContent = article.summary || '';
-    if (finalContent) {
-        logger.info(`🧵 [AI Worker] Using RSS summary (${finalContent.length} chars)`);
-    } else {
-        logger.info(`🧵 [AI Worker] ⚠️ No content found for analysis`);
-    }
-    return finalContent;
+    return article.summary || '';
 }
 
 function delay(ms: number) {

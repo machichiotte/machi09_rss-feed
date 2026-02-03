@@ -229,8 +229,20 @@ export class RssRepository {
     public static async findByLink(link: string): Promise<ProcessedArticleData | null> {
         const db = getDatabase();
         const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
-        const document = await collection.findOne({ link });
-        return document;
+        return await collection.findOne({ link });
+    }
+
+    /**
+     * Finds a single RSS article by its unique MongoDB identifier.
+     * 
+     * @param {string | ObjectId} id - The identifier of the article.
+     * @returns {Promise<ProcessedArticleData | null>}
+     */
+    public static async findById(id: string | ObjectId): Promise<ProcessedArticleData | null> {
+        const db = getDatabase();
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+        const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+        return await collection.findOne({ _id: objectId } as Filter<ProcessedArticleData>);
     }
 
     /**

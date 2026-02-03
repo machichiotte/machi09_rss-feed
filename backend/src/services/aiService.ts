@@ -1,10 +1,18 @@
 import { pipeline, env, TextClassificationPipeline, SummarizationPipeline, TranslationPipeline, TokenClassificationPipeline } from '@xenova/transformers';
 import { performance } from 'node:perf_hooks';
+import os from 'node:os';
 import logger from '@/utils/logger';
 import { ArticleEntity, FinancialAnalysis as ArticleAnalysis } from '@/types/rss';
 
-// Configure cache location to avoid re-downloading models in docker/tmp
+// Configure cache location and hardware limits
 env.cacheDir = './models_cache';
+
+// Limit threads to half of available CPUs to leave room for the rest of the app
+const cpuCount = os.cpus().length;
+const allowedThreads = Math.max(1, Math.floor(cpuCount / 2));
+env.onnx.numThreads = allowedThreads;
+
+logger.info(`🖥️ System: ${cpuCount} CPUs detected. Limiting AI engine to ${allowedThreads} threads.`);
 
 const M2M100_MAP: Record<string, string> = {
     'en': 'en',
@@ -33,7 +41,7 @@ const MODELS = {
 /**
  * Result of a sentiment analysis operation.
  */
-interface SentimentResult {
+export interface SentimentResult {
     /** The predicted label: 'Positive', 'Neutral', or 'Negative' (or LABEL_X mapped) */
     label: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
     /** The confidence score between 0 and 1 */
