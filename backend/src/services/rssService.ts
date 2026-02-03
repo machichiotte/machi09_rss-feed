@@ -45,9 +45,9 @@ export class RssService {
      * @returns {Promise<{ processed: number; errors: number }>} Counts of processed articles and errors.
      */
     public static async processAllFeeds(): Promise<{ processed: number; errors: number }> {
-        logger.info('🚀 Starting Optimized RSS feed processing...');
+        const start = Date.now();
+        logger.info('🚀 Starting RSS synchronization...');
 
-        // 1. Fetch enabled sources from DB
         const enabledSourcesByCategory = await SourceRepository.getEnabledSources();
         const allFeeds: { feed: RssFeedConfig; category: string }[] = [];
 
@@ -68,11 +68,10 @@ export class RssService {
         }
 
         let totalNewArticles = 0;
-        let errorCount = 0;
+        const failedFeeds: string[] = [];
         let successCount = 0;
 
-        // Process in batches of 5 to avoid overwhelming network/sources
-        const batchSize = 5;
+        const batchSize = 10; // Increased batch size for faster processing
         for (let i = 0; i < allFeeds.length; i += batchSize) {
             const batch = allFeeds.slice(i, i + batchSize);
             const batchPromises = batch.map(async ({ feed, category }) => {
@@ -80,10 +79,8 @@ export class RssService {
                     const count = await this.fetchFeedOnly(feed, category);
                     successCount++;
                     return count;
-                } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                    logger.error(`❌ Error fetching feed ${feed.name}: ${errorMessage}`);
-                    errorCount++;
+                } catch {
+                    failedFeeds.push(feed.name);
                     return 0;
                 }
             });
@@ -92,12 +89,16 @@ export class RssService {
             totalNewArticles += results.reduce((acc, val) => acc + val, 0);
         }
 
-        logger.info(`✅ RSS Sync Complete: ${totalNewArticles} new articles from ${successCount}/${allFeeds.length} feeds (${errorCount} errors)`);
+        const duration = ((Date.now() - start) / 1000).toFixed(1);
+        const status = failedFeeds.length === 0 ? '✅' : '⚠️';
+        const errorDetail = failedFeeds.length > 0 ? ` (Failed: ${failedFeeds.join(', ')})` : '';
+
+        logger.info(`${status} RSS Sync Complete [${duration}s]: ${totalNewArticles} new articles | ${successCount}/${allFeeds.length} feeds successful${errorDetail}`);
 
         // 2. Start AI Analysis in separate process (Non-blocking)
         this.startBackgroundWorker();
 
-        return { processed: totalNewArticles, errors: errorCount };
+        return { processed: totalNewArticles, errors: failedFeeds.length };
     }
 
     /**
@@ -116,23 +117,17 @@ export class RssService {
     }
 
     private static async fetchFeedOnly(feed: RssFeedConfig, category: string): Promise<number> {
-        try {
-            const rssFeed = await parser.parseURL(feed.url);
-            let newCount = 0;
+        const rssFeed = await parser.parseURL(feed.url);
+        let newCount = 0;
 
-            const items = feed.maxArticles ? rssFeed.items.slice(0, feed.maxArticles) : rssFeed.items;
+        const items = feed.maxArticles ? rssFeed.items.slice(0, feed.maxArticles) : rssFeed.items;
 
-            for (const item of items) {
-                if (await this.processSingleItem(item, feed, category)) {
-                    newCount++;
-                }
+        for (const item of items) {
+            if (await this.processSingleItem(item, feed, category)) {
+                newCount++;
             }
-            return newCount;
-        } catch (error: unknown) { // Explicitly type error as unknown
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            logger.error(`Error fetching feed ${feed.name}: ${errorMessage}`);
-            return 0;
         }
+        return newCount;
     }
 
     private static async processSingleItem(item: RssItem, feed: RssFeedConfig, category: string): Promise<boolean> {
@@ -150,7 +145,8 @@ export class RssService {
                 article.clusterId = clusterId;
             }
         } catch (clusterError) {
-            logger.warn(`⚠️ Clustering failed for article ${item.link}:`, clusterError);
+            // Log as debug to avoid noise in main logs
+            logger.debug(`⚠️ Clustering failed for article ${item.link}:`, clusterError);
         }
 
         await RssRepository.save(article);
