@@ -5,6 +5,12 @@ import { ProcessedArticleData } from '../types/rss';
 import { ScraperService } from '../utils/scraper';
 import { RssRepository } from '../repositories/rssRepository';
 import { aiService } from '../services/aiService';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables for the standalone worker
+const envPath = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+dotenv.config({ path: path.resolve(process.cwd(), envPath) });
 
 // Flag to stop the worker gracefully
 let isRunning = true;
@@ -63,11 +69,12 @@ async function processSingleArticle(article: ProcessedArticleData) {
         const contentToAnalyze = await prepareArticleContent(article);
 
         // Analysis and Translation
-        logger.info(`🧵 [AI Worker] Analyzing: "${article.title.slice(0, 50)}..." (${article.language})`);
+        logger.info(`🧵 [AI Worker] 🚀 START Analysis: "${article.title.slice(0, 50)}..." [ID: ${article._id}]`);
         const { analysis, translations } = await aiService.analyzeArticle(article.title, contentToAnalyze, article.language || 'en');
 
         await RssRepository.updateById(article._id!, { analysis, translations, processedAt: new Date().toISOString() });
-        logger.info(`🧵 [AI Worker] Done in ${Date.now() - startTime}ms: ${analysis.sentiment}`);
+        const duration = Date.now() - startTime;
+        logger.info(`🧵 [AI Worker] ✨ FINISHED: "${article.title.slice(0, 30)}..." in ${duration}ms`);
 
         if (parentPort) parentPort.postMessage({ type: 'COMPLETED', id: article._id, title: article.title });
         await delay(500);
@@ -78,29 +85,44 @@ async function processSingleArticle(article: ProcessedArticleData) {
 }
 
 async function prepareArticleContent(article: ProcessedArticleData): Promise<string> {
-    if (article.fullText) return article.fullText;
+    if (article.fullText) {
+        logger.info(`🧵 [AI Worker] Using existing full text (${article.fullText.length} chars)`);
+        return article.fullText;
+    }
 
     if (!article.scrapedContent) {
-        logger.info(`🧵 [AI Worker] Deep Scraping: ${article.link}`);
+        logger.info(`🧵 [AI Worker] 🔍 Deep Scraping: ${article.link}`);
         const fullText = await ScraperService.extractFullText(article.link);
         if (fullText) {
+            logger.info(`   ✅ Scraped ${fullText.length} chars`);
             article.fullText = fullText;
             article.scrapedContent = true;
             await RssRepository.updateById(article._id!, { fullText, scrapedContent: true });
             return fullText;
+        } else {
+            logger.info(`   ❌ Scraping failed or returned no text`);
         }
     }
 
     if (!article.imageUrl) {
-        logger.info(`🧵 [AI Worker] Extracting Image: ${article.link}`);
+        logger.info(`🧵 [AI Worker] 🖼️ Extracting Image: ${article.link}`);
         const imageUrl = await ScraperService.extractMainImage(article.link);
         if (imageUrl) {
+            logger.info(`   ✅ Found image: ${imageUrl.slice(0, 50)}...`);
             article.imageUrl = imageUrl;
             await RssRepository.updateById(article._id!, { imageUrl });
+        } else {
+            logger.info(`   ❌ No image found`);
         }
     }
 
-    return article.summary || '';
+    const finalContent = article.summary || '';
+    if (finalContent) {
+        logger.info(`🧵 [AI Worker] Using RSS summary (${finalContent.length} chars)`);
+    } else {
+        logger.info(`🧵 [AI Worker] ⚠️ No content found for analysis`);
+    }
+    return finalContent;
 }
 
 function delay(ms: number) {
