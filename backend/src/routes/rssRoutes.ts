@@ -8,7 +8,9 @@ import {
     getMetadata,
     toggleSource,
     toggleBookmark,
-    updateSourceSettings
+    updateSourceSettings,
+    createSource,
+    removeSource
 } from '@/controllers/rssController';
 
 const router: Router = Router();
@@ -20,6 +22,8 @@ const router: Router = Router();
  */
 router.patch('/sources/:name/toggle', toggleSource);
 router.patch('/sources/:name', updateSourceSettings);
+router.post('/sources', createSource);
+router.delete('/sources/:name', removeSource);
 
 /**
  * @route   PATCH /api/rss/articles/:id/bookmark

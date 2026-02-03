@@ -77,6 +77,30 @@ export class SourceRepository {
     }
 
     /**
+     * Adds a new source to the database.
+     */
+    public static async addSource(source: SourceConfig): Promise<boolean> {
+        const db = getDatabase();
+        const collection = db.collection<SourceConfig>(COLLECTION_NAME);
+        // Check if source already exists
+        const existing = await collection.findOne({ name: source.name });
+        if (existing) return false;
+
+        const result = await collection.insertOne(source);
+        return result.acknowledged;
+    }
+
+    /**
+     * Deletes a source by name.
+     */
+    public static async deleteSource(name: string): Promise<boolean> {
+        const db = getDatabase();
+        const collection = db.collection<SourceConfig>(COLLECTION_NAME);
+        const result = await collection.deleteOne({ name });
+        return result.deletedCount > 0;
+    }
+
+    /**
      * Returns only enabled sources, grouped by category.
      */
     public static async getEnabledSources(): Promise<Record<string, SourceConfig[]>> {

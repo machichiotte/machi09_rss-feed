@@ -57,7 +57,8 @@ const emit = defineEmits<{
   'addCustomTag': [tag: string],
   'removeCustomTag': [tag: string],
   'update:activeTab': [val: string],
-  'updateSourceLimit': [category: string, name: string, limit: number]
+  'updateSourceLimit': [category: string, name: string, limit: number],
+  'addSource': [data: { name: string, url: string, category: string, language: string }]
 }>();
 
 const expandedCategories = ref<Record<string, boolean>>({});
@@ -72,6 +73,17 @@ const handleAddTag = () => {
 
 const toggleCategory = (cat: string) => {
   expandedCategories.value[cat] = !expandedCategories.value[cat];
+};
+
+const promptAddSource = (defaultCategory?: string) => {
+  const name = window.prompt("Nom de la source (ex: TechCrunch) :");
+  if (!name) return;
+  const url = window.prompt("URL du flux RSS :");
+  if (!url) return;
+  const category = defaultCategory || window.prompt("Catégorie (ex: TECH, CRYPTO) :", "GÉNÉRAL") || "GÉNÉRAL";
+  const language = window.prompt("Langue (fr, en, es...) :", "fr") || "fr";
+
+  emit('addSource', { name, url, category, language });
 };
 
 const sortedGroupedSources = computed(() => {
@@ -289,15 +301,30 @@ onUnmounted(() => window.removeEventListener('keydown', handleEsc));
                       />
                     </div>
 
-                    <button class="p-2.5 rounded-2xl text-danger/20 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all transform hover:scale-105 active:scale-95">
+                    <button 
+                      @click.stop="emit('deleteSource', category as string, getSourceName(source))"
+                      class="p-2.5 rounded-2xl text-danger/20 hover:bg-danger/10 hover:text-danger opacity-0 group-hover:opacity-100 transition-all transform hover:scale-105 active:scale-95"
+                    >
                       <Trash2 class="h-4 w-4" />
                     </button>
                   </div>
                 </div>
+
+                <!-- Add Source for this category -->
+                <button 
+                  @click="promptAddSource(category as string)"
+                  class="flex items-center justify-center gap-3 p-4 rounded-3xl border-2 border-dashed border-brand/10 text-brand/60 hover:text-brand hover:bg-brand/5 hover:border-brand/30 transition-all text-[10px] font-black uppercase tracking-widest shadow-sm group/add"
+                >
+                  <Plus class="h-4 w-4 group-hover/add:rotate-90 transition-transform" />
+                  Ajouter à {{ category }}
+                </button>
               </div>
             </div>
 
-            <button class="w-full flex items-center justify-center gap-3 p-6 rounded-[2rem] border-2 border-dashed border-brand/20 text-brand bg-brand/5 hover:bg-brand/10 hover:border-brand/40 transition-all text-xs font-black uppercase tracking-widest mt-10 shadow-sm active:scale-[0.98]">
+            <button 
+              @click="promptAddSource()"
+              class="w-full flex items-center justify-center gap-3 p-6 rounded-[2rem] border-2 border-dashed border-brand/20 text-brand bg-brand/5 hover:bg-brand/10 hover:border-brand/40 transition-all text-xs font-black uppercase tracking-widest mt-10 shadow-sm active:scale-[0.98]"
+            >
               <Plus class="h-5 w-5" />
               Ajouter une source personnalisée
             </button>

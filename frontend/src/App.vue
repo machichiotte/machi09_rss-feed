@@ -92,13 +92,32 @@ const fetchMetadata = async () => {
   }
 };
 
-const handleDeleteSource = (category: string, name: string) => {
-  if (groupedSources.value[category]) {
-    groupedSources.value[category] = groupedSources.value[category].filter(s => s.name !== name);
-    if (groupedSources.value[category].length === 0) {
-      delete groupedSources.value[category];
-      allCategories.value = allCategories.value.filter(c => c !== category);
+const handleDeleteSource = async (category: string, name: string) => {
+  if (!window.confirm(`Supprimer la source "${name}" ?`)) return;
+  
+  try {
+    await axios.delete(`${API_BASE_URL}/api/rss/sources/${encodeURIComponent(name)}`);
+    if (groupedSources.value[category]) {
+      groupedSources.value[category] = groupedSources.value[category].filter(s => s.name !== name);
+      if (groupedSources.value[category].length === 0) {
+        delete groupedSources.value[category];
+        allCategories.value = allCategories.value.filter(c => c !== category);
+      }
     }
+  } catch (err) {
+    console.error('Failed to delete source:', err);
+  }
+};
+
+const handleAddSource = async (data: { name: string, url: string, category: string, language: string }) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/rss/sources`, data);
+    console.log('Source added:', response.data);
+    // Refresh metadata to show the new source
+    await fetchMetadata();
+  } catch (err) {
+    console.error('Failed to add source:', err);
+    window.alert('Erreur lors de l\'ajout de la source. Elle existe peut-être déjà ou l\'URL est invalide.');
   }
 };
 
@@ -231,6 +250,7 @@ onMounted(async () => {
       @delete-source="handleDeleteSource"
       @toggle-source="handleToggleSource"
       @update-source-limit="handleUpdateSourceLimit"
+      @add-source="handleAddSource"
     />
 
     <main class="w-full max-w-[1910px] mx-auto px-4 sm:px-6 lg:px-10 pt-8 pb-10 relative">
