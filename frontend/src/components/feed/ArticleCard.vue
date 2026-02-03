@@ -202,70 +202,72 @@ const getDomain = (url: string) => {
           viewMode !== 'compact' && 'mb-8'
         )"
       >
-        <!-- Categories & Meta -->
-        <div class="flex items-center gap-3 mb-5 flex-wrap">
-          <div class="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-bg-card border border-brand/20 shadow-sm">
-            <img 
-              v-if="getDomain(article.link)"
-              :src="`https://www.google.com/s2/favicons?domain=${getDomain(article.link)}&sz=64`"
-              class="w-3.5 h-3.5 rounded-sm grayscale group-hover:grayscale-0 transition-all opacity-70 group-hover:opacity-100"
-              @error="($event.target as HTMLImageElement).style.display = 'none'"
-            />
-            <span class="text-[9px] font-black uppercase tracking-[0.2em]" :style="{ color: article.sourceColor || 'var(--brand)' }">
-              {{ article.feedName }}
+        <!-- Metadata Hierarchy -->
+        <div class="space-y-4 mb-6">
+          <!-- Row 1: Context & Source -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-bg-card border border-brand/20 shadow-sm transition-colors hover:border-brand/40">
+              <img 
+                v-if="getDomain(article.link)"
+                :src="`https://www.google.com/s2/favicons?domain=${getDomain(article.link)}&sz=64`"
+                class="w-3.5 h-3.5 rounded-sm grayscale group-hover:grayscale-0 transition-all opacity-70 group-hover:opacity-100"
+                @error="($event.target as HTMLImageElement).style.display = 'none'"
+              />
+              <span class="text-[11px] font-black uppercase tracking-[0.15em] drop-shadow-sm" :style="{ color: article.sourceColor || 'var(--brand)' }">
+                {{ article.feedName }}
+              </span>
+              <span v-if="article.variants && article.variants.length > 0" class="px-2 py-0.5 rounded-lg bg-brand/10 border border-brand/20 text-[8px] font-black text-brand uppercase ml-1">
+                +{{ article.variants.length }}
+              </span>
+            </div>
+
+            <span class="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-brand/5 border border-brand/10 flex items-center gap-2 shadow-sm text-text-primary">
+              <span class="opacity-50 text-[12px]">{{ getLangFlag(article.language || 'en') }}</span>
+              <span class="opacity-30">•</span>
+              {{ article.category }}
             </span>
-            <span v-if="article.variants && article.variants.length > 0" class="px-2 py-0.5 rounded-lg bg-brand/5 border border-brand/10 text-[7px] font-black text-brand uppercase ml-1">
-              {{ t('article.other_sources', { count: article.variants.length }) }}
+
+            <span class="flex items-center gap-2 text-[11px] font-medium text-text-muted px-1">
+              <Clock class="h-3.5 w-3.5 opacity-60" />
+              {{ formatDate(article.publicationDate || article.fetchedAt) }}
             </span>
           </div>
 
-          <span class="px-3 py-1.5 rounded-xl meta-news bg-brand/5 border border-brand/10 flex items-center gap-2 shadow-sm text-text-primary">
-            {{ article.category }}
-            <span class="mx-1 opacity-20 text-text-muted">•</span>
-            {{ getLangFlag(article.language || 'en') }}
-          </span>
-
-          <span class="meta-news flex items-center gap-2 text-text-muted">
-            <Clock class="h-3.5 w-3.5 opacity-50" />
-            {{ formatDate(article.publicationDate || article.fetchedAt) }}
-            <template v-if="article.author">
-              <span class="mx-1 opacity-20">•</span>
-              <span class="truncate max-w-[120px] italic opacity-80" :title="article.author">{{ article.author }}</span>
-            </template>
-          </span>
-
-          <div 
-            v-if="article.analysis" 
-            :class="cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.15em] border transition-all shadow-sm',
-              article.analysis?.sentiment === 'bullish' 
-                ? 'bg-success/10 text-success border-success/20' 
-                : article.analysis?.sentiment === 'bearish'
-                  ? 'bg-danger/10 text-danger border-danger/20'
-                  : 'bg-text-secondary/5 text-text-secondary border-text-secondary/10'
-            )"
-          >
-            <TrendingUp v-if="article.analysis?.sentiment !== 'neutral'" :class="cn('h-3 w-3', article.analysis?.sentiment === 'bearish' && 'rotate-180')" />
-            <Minus v-else class="h-3 w-3" />
-            {{ Math.round((article.analysis?.sentimentScore || 0) * 100) }}%
-          </div>
-
-          <!-- NER Entities -->
-          <div v-if="article.analysis?.entities && article.analysis.entities.length > 0" class="flex items-center gap-1.5 flex-wrap">
-            <span 
-              v-for="entity in article.analysis.entities.slice(0, 5)" 
-              :key="entity.text"
+          <!-- Row 2: AI Analysis (Sentiment & NER) -->
+          <div v-if="article.analysis" class="flex items-center gap-3 flex-wrap">
+            <!-- Sentiment Badge -->
+            <div 
               :class="cn(
-                'px-2 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-wider border shadow-sm transition-all hover:scale-105 cursor-default',
-                entity.label === 'ORG' ? 'bg-brand/10 text-brand border-brand/20' : 
-                entity.label === 'PER' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' :
-                entity.label === 'LOC' ? 'bg-sky-500/10 text-sky-500 border-sky-500/20' :
-                'bg-text-secondary/5 text-text-secondary border-text-secondary/10'
+                'flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shadow-md',
+                article.analysis?.sentiment === 'bullish' 
+                  ? 'bg-success/20 text-success border-success/30 shadow-success/10' 
+                  : article.analysis?.sentiment === 'bearish'
+                    ? 'bg-danger/20 text-danger border-danger/30 shadow-danger/10'
+                    : 'bg-text-secondary/10 text-text-secondary border-text-secondary/20'
               )"
-              :title="`${entity.label}: ${Math.round(entity.score * 100)}%`"
             >
-              {{ entity.text }}
-            </span>
+              <TrendingUp v-if="article.analysis?.sentiment !== 'neutral'" :class="cn('h-3.5 w-3.5', article.analysis?.sentiment === 'bearish' && 'rotate-180')" />
+              <Minus v-else class="h-3.5 w-3.5" />
+              {{ Math.round((article.analysis?.sentimentScore || 0) * 100) }}%
+            </div>
+
+            <!-- Entities -->
+            <div v-if="article.analysis?.entities && article.analysis.entities.length > 0" class="flex items-center gap-2 flex-wrap">
+              <span 
+                v-for="entity in article.analysis.entities.slice(0, 4)" 
+                :key="entity.text"
+                :class="cn(
+                  'px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-tight border shadow-sm transition-all hover:scale-105 cursor-default',
+                  entity.label === 'ORG' ? 'bg-brand/15 text-brand border-brand/30 dark:bg-brand/20' : 
+                  entity.label === 'PER' ? 'bg-indigo-500/15 text-indigo-500 border-indigo-500/30' :
+                  entity.label === 'LOC' ? 'bg-sky-500/15 text-sky-500 border-sky-500/30' :
+                  'bg-text-secondary/10 text-text-secondary border-text-secondary/20'
+                )"
+                :title="`${entity.label}: ${Math.round(entity.score * 100)}%`"
+              >
+                {{ entity.text }}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -304,7 +306,7 @@ const getDomain = (url: string) => {
             {{ getArticleInsightTitle(article) }}
           </h4>
 
-          <p class="text-[13px] leading-relaxed italic text-text-primary/90 font-medium">
+          <p class="text-[15px] leading-relaxed italic text-text-primary/90 font-medium tracking-tight">
             "{{ getArticleInsight(article) }}"
           </p>
         </div>
@@ -320,7 +322,7 @@ const getDomain = (url: string) => {
             </p>
           </div>
 
-          <p class="text-[13px] leading-relaxed text-text-primary/70 font-medium">
+          <p class="text-[14px] leading-relaxed text-text-primary/70 font-medium">
             {{ article.summary.replace(/<[^>]*>/g, '').slice(0, 250) }}...
           </p>
         </div>
@@ -334,7 +336,7 @@ const getDomain = (url: string) => {
         viewMode === 'list' && 'border-t-0 pt-0 px-8 pb-8'
       )"
     >
-      <div v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+      <div v-if="article.analysis?.isPromotional" class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-sm animate-pulse-slow">
         {{ t('common.promotional') }}
       </div>
       

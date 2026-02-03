@@ -41,7 +41,7 @@ const filteredTags = computed(() => {
         v-model="searchQuery"
         type="text" 
         :placeholder="placeholder || 'Filtrer les tags...'"
-        class="w-full bg-brand/5 border border-brand/5 rounded-xl pl-9 pr-8 py-1.5 text-[9px] font-black uppercase tracking-[0.1em] text-text-primary outline-none focus:border-brand/30 focus:bg-brand/10 transition-all placeholder:text-text-muted/40"
+        class="w-full bg-brand/5 border border-brand/5 rounded-xl pl-9 pr-8 py-1.5 text-[11px] font-black uppercase tracking-[0.1em] text-text-primary outline-none focus:border-brand/30 focus:bg-brand/10 transition-all placeholder:text-text-muted/40"
       />
       <button 
         v-if="searchQuery" 
@@ -60,7 +60,7 @@ const filteredTags = computed(() => {
       <button 
         @click="emit('select-tag', null)"
         :class="cn(
-          'px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex-shrink-0',
+          'px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex-shrink-0',
           selectedTag === null 
             ? 'bg-brand text-white border-brand shadow-lg icon-glow-brand' 
             : 'bg-white/5 text-text-muted border-white/5 hover:border-brand/20'
@@ -74,7 +74,7 @@ const filteredTags = computed(() => {
         :key="tag"
         @click="emit('select-tag', tag)"
         :class="cn(
-          'px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex-shrink-0 flex items-center gap-1.5',
+          'px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex-shrink-0 flex items-center gap-1.5',
           selectedTag === tag
             ? 'bg-brand/20 text-brand border-brand/40 shadow-inner' 
             : 'bg-white/5 text-text-muted/70 border-white/5 hover:border-brand/20'
