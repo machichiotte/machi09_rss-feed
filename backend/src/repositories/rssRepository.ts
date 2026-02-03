@@ -208,6 +208,19 @@ export class RssRepository {
     }
 
     /**
+     * Retrieves the most recent articles for clustering comparison.
+     */
+    public static async fetchRecent(limit: number = 50): Promise<ProcessedArticleData[]> {
+        const db = getDatabase();
+        const collection = db.collection<ProcessedArticleData>(COLLECTION_NAME);
+        return await collection
+            .find({})
+            .sort({ publicationDate: -1 })
+            .limit(limit)
+            .toArray() as ProcessedArticleData[];
+    }
+
+    /**
      * Finds a single RSS article by its unique permanent link.
      * 
      * @param {string} link - The URL link of the article.

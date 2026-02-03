@@ -31,6 +31,13 @@ export interface ProcessedArticleData {
     author?: string | null;
     sourceColor?: string | null;
     isBookmarked?: boolean;
+    clusterId?: string | null;
+}
+
+export interface ArticleEntity {
+    text: string;
+    label: string; // 'ORG', 'PER', 'LOC', 'MISC'
+    score: number;
 }
 
 export interface FinancialAnalysis {
@@ -39,6 +46,7 @@ export interface FinancialAnalysis {
     sentimentScore?: number;
     iaSummary?: string;
     isPromotional?: boolean;
+    entities?: ArticleEntity[];
 
     // Future legacy fields
     isRelevant?: 'Yes' | 'No' | 'Partial';

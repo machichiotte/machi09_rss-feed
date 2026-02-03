@@ -7,6 +7,7 @@ import { ProcessedArticleData, RssFeedConfig } from '@/types/rss';
 import { generateSourceColor } from '@/utils/colors';
 import logger from '@/utils/logger';
 import { SourceRepository } from '@/repositories/sourceRepository';
+import { ClusteringService } from './clusteringService';
 
 // ESM compatibility for __filename and __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -66,8 +67,9 @@ export class RssService {
             }
         }
 
-        let processedCount = 0;
+        let totalNewArticles = 0;
         let errorCount = 0;
+        let successCount = 0;
 
         // Process in batches of 5 to avoid overwhelming network/sources
         const batchSize = 5;
@@ -75,13 +77,8 @@ export class RssService {
             const batch = allFeeds.slice(i, i + batchSize);
             const batchPromises = batch.map(async ({ feed, category }) => {
                 try {
-                    logger.info(`📡 Fetching feed: ${feed.name} [${feed.url}] (${category})`);
                     const count = await this.fetchFeedOnly(feed, category);
-                    if (count > 0) {
-                        logger.info(`✨ Successfully saved ${count} new articles from ${feed.name}`);
-                    } else {
-                        logger.info(`ℹ️ No new articles for ${feed.name}`);
-                    }
+                    successCount++;
                     return count;
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -92,15 +89,15 @@ export class RssService {
             });
 
             const results = await Promise.all(batchPromises);
-            processedCount += results.reduce((acc, val) => acc + val, 0);
+            totalNewArticles += results.reduce((acc, val) => acc + val, 0);
         }
 
-        logger.info(`✅ Fetching complete. ${processedCount} new articles found.`);
+        logger.info(`✅ RSS Sync Complete: ${totalNewArticles} new articles from ${successCount}/${allFeeds.length} feeds (${errorCount} errors)`);
 
         // 2. Start AI Analysis in separate process (Non-blocking)
         this.startBackgroundWorker();
 
-        return { processed: processedCount, errors: errorCount };
+        return { processed: totalNewArticles, errors: errorCount };
     }
 
     /**
@@ -144,6 +141,18 @@ export class RssService {
         }
 
         const article = this.mapToArticleData(item, feed, category);
+
+        // Semantic Clustering (Story 4.3)
+        try {
+            const recentArticles = await RssRepository.fetchRecent(100);
+            const clusterId = ClusteringService.findMatch(article, recentArticles);
+            if (clusterId) {
+                article.clusterId = clusterId;
+            }
+        } catch (clusterError) {
+            logger.warn(`⚠️ Clustering failed for article ${item.link}:`, clusterError);
+        }
+
         await RssRepository.save(article);
         return true;
     }
