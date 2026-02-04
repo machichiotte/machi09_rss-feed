@@ -41,6 +41,7 @@ interface Article {
   }>;
   imageUrl?: string;
   author?: string;
+  sourceTags?: string[];
   sourceColor?: string;
   isBookmarked?: boolean;
   variants?: Article[];
@@ -60,6 +61,11 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n(toRef(props, 'preferredLanguage'));
+
+const getAiLabel = () => {
+  return props.preferredLanguage === 'fr' ? 'Résumé IA' : 'AI Summary';
+};
+
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -227,6 +233,17 @@ const getDomain = (url: string) => {
               {{ article.category }}
             </span>
 
+            <!-- Tags from Source (Story 4.4) -->
+            <template v-if="article.sourceTags && article.sourceTags.length > 0">
+              <span 
+                v-for="tag in article.sourceTags.slice(0, 3)" 
+                :key="tag"
+                class="px-2 py-1 rounded-lg bg-text-secondary/5 border border-text-secondary/10 text-[9px] font-bold text-text-muted hover:bg-text-secondary/10 transition-colors"
+              >
+                #{{ tag }}
+              </span>
+            </template>
+
             <span class="flex items-center gap-2 text-[11px] font-medium text-text-muted px-1">
               <Clock class="h-3.5 w-3.5 opacity-60" />
               {{ formatDate(article.publicationDate || article.fetchedAt) }}
@@ -293,7 +310,7 @@ const getDomain = (url: string) => {
           <div class="flex justify-between items-center mb-3">
             <p class="text-[10px] font-black uppercase tracking-widest text-insight flex items-center gap-2">
               <Sparkles class="h-3.5 w-3.5" /> 
-              {{ t('article.ai_insight') }}
+              {{ getAiLabel() }}
               <span v-if="translationToggles[article._id] && article.language?.toLowerCase() !== preferredLanguage.toLowerCase()" class="ml-2 px-2.5 py-1 rounded-full bg-translate/10 text-translate border border-translate/20 text-[8px] flex items-center gap-1.5 font-bold">
                 {{ getLangFlag(article.language || 'en') }} 
                 <ArrowRight class="h-2.5 w-2.5" /> 

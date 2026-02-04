@@ -29,6 +29,7 @@ export interface ProcessedArticleData {
     fullText?: string | null;
     imageUrl?: string | null;
     author?: string | null;
+    sourceTags?: string[] | null;
     sourceColor?: string | null;
     isBookmarked?: boolean;
     clusterId?: string | null;

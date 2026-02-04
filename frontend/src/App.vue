@@ -115,6 +115,8 @@ const handleAddSource = async (data: { name: string, url: string, category: stri
     console.log('Source added:', response.data);
     // Refresh metadata to show the new source
     await fetchMetadata();
+    // Trigger fetch for the new source
+    await triggerProcess();
   } catch (err) {
     console.error('Failed to add source:', err);
     window.alert('Erreur lors de l\'ajout de la source. Elle existe peut-être déjà ou l\'URL est invalide.');

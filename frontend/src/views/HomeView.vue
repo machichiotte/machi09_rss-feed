@@ -288,6 +288,13 @@ watch(() => props.autoTranslate, (val) => {
     }
 });
 
+watch(() => props.processing, (newVal, oldVal) => {
+  if (oldVal && !newVal) {
+    // Processing finished, reload articles to show new items
+    loadArticles(true);
+  }
+});
+
 onMounted(() => {
   loadArticles(true);
 

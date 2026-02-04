@@ -1,4 +1,6 @@
 import Parser from 'rss-parser';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 import { fork, ChildProcess } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -22,16 +24,32 @@ interface RssItem {
     pubDate?: string;
     author?: string;
     creator?: string;
+    categories?: string[];
     enclosure?: { url?: string };
-    'media:content'?: { $: { url?: string } };
+    'media:content'?: { $: { url?: string } } | Array<{ $: { url?: string } }>;
     'media:thumbnail'?: { $: { url?: string } };
+    'content:encoded'?: string;
+    description?: string;
+    'dc:subject'?: string;
+    image?: { url: string } | string;
 }
 
 const parser = new Parser({
-    timeout: 20000, // 20 seconds timeout
+    timeout: 20000,
     headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/rss+xml, application/xml;q=0.9, text/xml;q=0.8'
+    },
+    customFields: {
+        item: [
+            ['content:encoded', 'content:encoded'],
+            ['dc:subject', 'dc:subject'],
+            ['description', 'description'],
+            ['image', 'image'],
+            ['itunes:image', 'itunesImage'],
+            ['media:content', 'media:content'],
+            ['media:thumbnail', 'media:thumbnail']
+        ]
     }
 });
 
@@ -79,7 +97,8 @@ export class RssService {
                     const count = await this.fetchFeedOnly(feed, category);
                     successCount++;
                     return count;
-                } catch {
+                } catch (error) {
+                    logger.error(`❌ Feed failed: ${feed.name} (${feed.url})`, error);
                     failedFeeds.push(feed.name);
                     return 0;
                 }
@@ -109,10 +128,77 @@ export class RssService {
      * @param {string} category - The category associated with this feed.
      * @returns {Promise<number>} Number of new articles saved.
      */
+    private static cleanUrl(url?: string): string | null {
+        if (!url) return null;
+        if (url.startsWith('http%3A') || url.startsWith('https%3A')) {
+            try { return decodeURIComponent(url); } catch { return url; }
+        }
+        return url;
+    }
+
     private static extractImageUrl(item: RssItem): string | null {
-        if (item.enclosure?.url) return item.enclosure.url;
-        if (item['media:content']?.$.url) return item['media:content'].$.url;
-        if (item['media:thumbnail']?.$.url) return item['media:thumbnail'].$.url;
+        return this.getFromEnclosure(item) ||
+            this.getFromMediaContent(item) ||
+            this.getFromMediaThumbnail(item) ||
+            this.getFromImageTags(item) ||
+            this.getFromHtmlContent(item);
+    }
+
+    private static getFromEnclosure(item: RssItem): string | null {
+        return item.enclosure?.url ? this.cleanUrl(item.enclosure.url) : null;
+    }
+
+    private static getFromMediaContent(item: RssItem): string | null {
+        const mediaContent = item['media:content'];
+        if (!mediaContent) return null;
+
+        if (Array.isArray(mediaContent)) {
+            // @ts-ignore
+            const firstMedia = mediaContent.find(m => m.$?.url);
+            // @ts-ignore
+            return firstMedia ? this.cleanUrl(firstMedia.$.url) : null;
+        }
+
+        const mc = mediaContent as { $: { url?: string } };
+        return mc.$?.url ? this.cleanUrl(mc.$.url) : null;
+    }
+
+    private static getFromMediaThumbnail(item: RssItem): string | null {
+        const mediaThumbnail = item['media:thumbnail'];
+        // @ts-ignore
+        return mediaThumbnail?.$.url ? this.cleanUrl(mediaThumbnail.$.url) : null;
+    }
+
+    private static getFromImageTags(item: RssItem): string | null {
+        // @ts-ignore
+        if (item.image?.url) return this.cleanUrl(item.image.url);
+        // @ts-ignore
+        if (typeof item.image === 'string') return this.cleanUrl(item.image);
+
+        // @ts-ignore
+        const itunesImage = item.itunesImage;
+        if (itunesImage) {
+            // @ts-ignore
+            if (itunesImage.$?.href) return this.cleanUrl(itunesImage.$.href);
+            // @ts-ignore
+            if (itunesImage.href) return this.cleanUrl(itunesImage.href);
+        }
+        return null;
+    }
+
+    private static getFromHtmlContent(item: RssItem): string | null {
+        const htmlFields = [
+            item['content:encoded'],
+            item.content,
+            item.description,
+            item.contentSnippet
+        ];
+
+        for (const field of htmlFields) {
+            if (!field) continue;
+            const imgMatch = field.match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (imgMatch) return this.cleanUrl(imgMatch[1]);
+        }
         return null;
     }
 
@@ -137,6 +223,14 @@ export class RssService {
 
         const article = this.mapToArticleData(item, feed, category);
 
+        // Fallback: If no image found in RSS, try to scrape OG tags (Story 4.5)
+        if (!article.imageUrl && article.link) {
+            article.imageUrl = await this.scrapeImageUrl(article.link);
+            if (article.imageUrl) {
+                article.scrapedContent = true; // Mark that we did some scraping
+            }
+        }
+
         // Semantic Clustering (Story 4.3)
         try {
             const recentArticles = await RssRepository.fetchRecent(100);
@@ -153,6 +247,34 @@ export class RssService {
         return true;
     }
 
+    private static async scrapeImageUrl(url: string): Promise<string | null> {
+        try {
+            // Using a realistic User-Agent to avoid being blocked
+            const { data } = await axios.get(url, {
+                timeout: 5000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+                }
+            });
+            const $ = cheerio.load(data);
+
+            // Try OpenGraph tags first as they are standard for high-quality images
+            const ogImage = $('meta[property="og:image"]').attr('content');
+            if (ogImage) return ogImage;
+
+            const twitterImage = $('meta[name="twitter:image"]').attr('content');
+            if (twitterImage) return twitterImage;
+
+            const imageSrc = $('link[rel="image_src"]').attr('href');
+            if (imageSrc) return imageSrc;
+
+            return null;
+        } catch {
+            // Silently fail scraping, it's just a fallback
+            return null;
+        }
+    }
+
     private static mapToArticleData(item: RssItem, feed: RssFeedConfig, category: string): ProcessedArticleData {
         return {
             title: item.title ?? 'No title',
@@ -167,6 +289,7 @@ export class RssService {
             summary: this.extractSummary(item),
             imageUrl: this.extractImageUrl(item),
             author: this.extractAuthor(item),
+            sourceTags: this.extractSourceTags(item),
             sourceColor: feed.color ?? generateSourceColor(feed.name),
             analysis: undefined,
             error: null,
@@ -175,12 +298,35 @@ export class RssService {
         };
     }
 
+    private static extractSourceTags(item: RssItem): string[] {
+        const tags = new Set<string>();
+
+        // From standard categories
+        if (item.categories && Array.isArray(item.categories)) {
+            item.categories.forEach(c => {
+                if (typeof c === 'string') tags.add(c);
+                // Handle objects if any (some parsers return { _: 'tag' })
+                else if (c && typeof c === 'object') {
+                    const tagObj = c as { _: string };
+                    if (tagObj._) tags.add(tagObj._);
+                }
+            });
+        }
+
+        // From dc:subject
+        if (item['dc:subject']) {
+            tags.add(item['dc:subject']);
+        }
+
+        return Array.from(tags).filter(t => t.length > 0);
+    }
+
     private static extractDates(item: RssItem): string | null {
         return item.isoDate ?? item.pubDate ?? null;
     }
 
     private static extractSummary(item: RssItem): string | null {
-        return item.contentSnippet ?? item.content ?? null;
+        return item.contentSnippet ?? item.content ?? item.description ?? null;
     }
 
     private static extractAuthor(item: RssItem): string | null {
