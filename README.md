@@ -80,8 +80,8 @@ cp backend/.env.example backend/.env
 ```bash
 docker compose up --build
 ```
-- **Frontend**: http://localhost
-- **Backend API**: http://localhost/api
+- **Frontend**: http://localhost:3009
+- **Backend API**: http://localhost:4009/api
 
 ---
 
@@ -100,7 +100,7 @@ cp .env.example .env
 **Start the Backend:**
 ```bash
 pnpm dev
-# Server running on http://localhost:3000
+# Server running on http://localhost:4009
 ```
 
 #### 2. Setup Frontend
@@ -111,7 +111,7 @@ pnpm install
 
 # Start the Frontend
 pnpm dev
-# Dashboard running on http://localhost:5173
+# Dashboard running on http://localhost:3009
 ```
 
 ---
